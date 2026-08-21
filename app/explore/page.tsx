@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { auth, db } from "@/lib/firebase";
@@ -31,9 +30,7 @@ const districts = [
 ];
 
 export default function ExplorePage() {
-  const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") || "";
-
+  const [search, setSearch] = useState("");
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
@@ -53,8 +50,9 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
-    setSearch(initialQuery);
-  }, [initialQuery]);
+  const params = new URLSearchParams(window.location.search);
+  setSearch(params.get("q") || "");
+}, []);
 
   useEffect(() => {
     loadData();
