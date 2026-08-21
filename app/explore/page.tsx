@@ -101,7 +101,7 @@ export default function ExplorePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <p className="text-gray-900">Loading...</p>
       </div>
     );
   }
@@ -111,18 +111,21 @@ export default function ExplorePage() {
       <Navbar />
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2">Explore Businesses</h1>
-          <p className="text-gray-600 mb-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Explore Businesses
+          </h1>
+          <p className="text-gray-700 mb-4">
             Find trusted services across Sierra Leone
           </p>
 
           {!user && (
             <div className="bg-[#006B3F]/5 border border-[#006B3F]/20 rounded-2xl p-4 mb-6">
-              <p className="text-sm text-gray-800 font-medium mb-1">
+              <p className="text-sm text-gray-900 font-medium mb-1">
                 Log in or register free to access full benefits
               </p>
-              <p className="text-xs text-gray-600 mb-3">
-                Business names, photos, addresses and contact details are visible after login.
+              <p className="text-xs text-gray-700 mb-3">
+                Business names, photos, addresses and contact details are
+                visible after login.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -146,11 +149,11 @@ export default function ExplorePage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by category, area or description..."
-            className="w-full border rounded-2xl px-4 py-3 mb-4 outline-none focus:border-[#006B3F]"
+            className="w-full border border-gray-300 rounded-2xl px-4 py-3 mb-4 outline-none focus:border-[#006B3F] text-gray-900 bg-white"
           />
 
           <div className="mb-6">
-            <p className="text-sm font-medium text-gray-600 mb-2">
+            <p className="text-sm font-medium text-gray-800 mb-2">
               Filter by District
             </p>
             <div className="flex flex-wrap gap-2">
@@ -161,7 +164,7 @@ export default function ExplorePage() {
                   className={`px-3 py-1.5 rounded-full text-sm border ${
                     district === "All Districts"
                       ? "bg-[#006B3F] text-white border-[#006B3F]"
-                      : "bg-white text-gray-700 border-gray-300"
+                      : "bg-white text-gray-800 border-gray-300"
                   }`}
                 >
                   All Districts
@@ -175,7 +178,7 @@ export default function ExplorePage() {
                   className={`px-3 py-1.5 rounded-full text-sm border ${
                     district === d
                       ? "bg-[#006B3F] text-white border-[#006B3F]"
-                      : "bg-white text-gray-700 border-gray-300"
+                      : "bg-white text-gray-800 border-gray-300"
                   }`}
                 >
                   {d}
@@ -185,21 +188,21 @@ export default function ExplorePage() {
           </div>
 
           {loading ? (
-            <p className="text-gray-500">Loading businesses...</p>
+            <p className="text-gray-700">Loading businesses...</p>
           ) : (
             <>
               {isAdmin && (
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-700 mb-4">
                   {filtered.length} businesses found
                 </p>
               )}
 
               {filtered.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-lg font-medium text-gray-700 mb-1">
+                  <p className="text-lg font-medium text-gray-900 mb-1">
                     No businesses found.
                   </p>
-                  <p className="text-gray-500">
+                  <p className="text-gray-700">
                     Try a different district or search term.
                   </p>
                 </div>
@@ -211,36 +214,44 @@ export default function ExplorePage() {
                       <Link
                         key={b.id}
                         href={`/business/${b.id}`}
-                        className="bg-white border rounded-2xl p-5 hover:shadow-md transition"
+                        className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition"
                       >
                         <div className="flex justify-between gap-3 mb-2">
-                          <h2 className={`font-bold text-lg ${!user ? "text-gray-400" : ""}`}>
+                          <h2
+                            className={`font-bold text-lg ${
+                              user ? "text-gray-900" : "text-gray-500"
+                            }`}
+                          >
                             {user ? b.name : "Business name hidden"}
                           </h2>
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded-full h-fit">
+                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full h-fit">
                             {b.category}
                           </span>
                         </div>
 
                         {user ? (
                           <>
-                            <p className="text-sm text-gray-500 mb-1">{b.area}</p>
-                            <p className="text-sm text-[#006B3F] mb-3">{b.district}</p>
+                            <p className="text-sm text-gray-700 mb-1">
+                              {b.area}
+                            </p>
+                            <p className="text-sm text-[#006B3F] mb-3">
+                              {b.district}
+                            </p>
                           </>
                         ) : (
-                          <p className="text-sm text-gray-400 mb-3">
+                          <p className="text-sm text-gray-500 mb-3">
                             Location hidden · Register free to view
                           </p>
                         )}
 
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                        <p className="text-sm text-gray-700 line-clamp-2 mb-3">
                           {b.description}
                         </p>
 
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-amber-400">★</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-900">
+                          <span className="text-amber-500">★</span>
                           <span className="font-semibold">{stats.average}</span>
-                          <span className="text-gray-500">
+                          <span className="text-gray-700">
                             ({stats.count} reviews)
                           </span>
                         </div>

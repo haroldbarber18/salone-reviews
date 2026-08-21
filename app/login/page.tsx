@@ -17,7 +17,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/explore");
@@ -41,26 +40,30 @@ export default function LoginPage() {
               <span className="font-bold text-2xl text-gray-900">Reviews</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-gray-600 mt-1">Log in to write reviews</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-gray-700 mt-1">Log in to write reviews</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] text-gray-900 bg-white"
                 required
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium">Password</label>
+                <label className="block text-sm font-semibold text-gray-900">
+                  Password
+                </label>
                 <Link
                   href="/forgot-password"
                   className="text-sm text-[#006B3F] font-medium hover:underline"
@@ -72,7 +75,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] text-gray-900 bg-white"
                 required
               />
             </div>
@@ -88,7 +91,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-600 mt-6">
+          <p className="text-center text-sm text-gray-700 mt-6">
             Don’t have an account?{" "}
             <Link href="/signup" className="text-[#006B3F] font-medium">
               Sign up
