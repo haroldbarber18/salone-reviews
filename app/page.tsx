@@ -61,7 +61,7 @@ function formatDate(dateStr?: string) {
 
 function EmptySlot() {
   return (
-    <div className="min-h-[120px] border border-dashed border-gray-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-400 p-3">
+    <div className="min-h-[120px] border border-dashed border-gray-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-500 p-3">
       Sponsor space available
     </div>
   );
@@ -69,11 +69,10 @@ function EmptySlot() {
 
 function AdCard({ ad }: { ad?: any }) {
   if (!ad) return <EmptySlot />;
-
   return (
     <Link
       href={`/ad/${ad.id}`}
-      className="block bg-white border rounded-2xl overflow-hidden hover:shadow-md transition"
+      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition"
     >
       {ad.imageUrl && (
         <div className="bg-gray-50">
@@ -84,14 +83,13 @@ function AdCard({ ad }: { ad?: any }) {
           />
         </div>
       )}
-      <div className="p-3">
+      <div className="p-3 bg-white">
         <div className="flex items-center justify-between gap-2 mb-1">
           {ad.eventDate ? (
             <p className="text-xs text-gray-500">{formatDate(ad.eventDate)}</p>
           ) : (
             <span />
           )}
-
           {ad.feeType === "free" && (
             <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800">
               Free
@@ -103,8 +101,9 @@ function AdCard({ ad }: { ad?: any }) {
             </span>
           )}
         </div>
-
-        <h3 className="font-bold text-sm mb-1 leading-snug">{ad.title}</h3>
+        <h3 className="font-bold text-sm mb-1 leading-snug text-gray-900">
+          {ad.title}
+        </h3>
         <p className="text-xs text-gray-600 line-clamp-2">{ad.description}</p>
       </div>
     </Link>
@@ -144,7 +143,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-
       <main className="flex-1">
         <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-stretch">
@@ -160,6 +158,7 @@ export default function HomePage() {
                 Real reviews from real people. Trusted plumbers, electricians,
                 mechanics, restaurants and more across Sierra Leone.
               </p>
+
               <form
                 onSubmit={handleSearch}
                 className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto"
@@ -177,26 +176,27 @@ export default function HomePage() {
                   Search
                 </button>
               </form>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
-  <Link
-    href="/explore"
-    className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl"
-  >
-    View businesses
-  </Link>
-  <Link
-    href="/list-business"
-    className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl border border-white/30"
-  >
-    List your business
-  </Link>
-  <Link
-    href="/contact"
-    className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
-  >
-    Contact us
-  </Link>
-</div>      
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
+                <Link
+                  href="/explore"
+                  className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl"
+                >
+                  View businesses
+                </Link>
+                <Link
+                  href="/list-business"
+                  className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl border border-white/30"
+                >
+                  List your business
+                </Link>
+                <Link
+                  href="/contact"
+                  className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
+                >
+                  Contact us
+                </Link>
+              </div>
             </div>
 
             <div className="order-3">
@@ -207,21 +207,25 @@ export default function HomePage() {
 
         <section className="px-3 sm:px-4 py-8 bg-gray-50">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
-            <aside className="bg-white border rounded-2xl p-3">
+            <aside className="bg-white border border-gray-200 rounded-2xl p-3">
               <div className="mb-3">
-                <p className="text-sm font-bold mb-2">Events & Flyers</p>
+                <p className="text-sm font-bold text-gray-900 mb-2">
+                  Events & Flyers
+                </p>
                 <select
                   value={eventFilter}
                   onChange={(e) =>
                     setEventFilter(e.target.value as "all" | "week")
                   }
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none"
+                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none text-gray-900 bg-white"
                 >
                   <option value="all">All</option>
                   <option value="week">This week</option>
                 </select>
               </div>
-              <div className="max-h-[560px] overflow-y-auto space-y-3 pr-1">
+
+              {/* No nested scroll on mobile. Scroll only on large screens. */}
+              <div className="space-y-3 lg:max-h-[560px] lg:overflow-y-auto lg:pr-1">
                 {leftFeed.length === 0 ? (
                   <EmptySlot />
                 ) : (
@@ -232,7 +236,9 @@ export default function HomePage() {
 
             <div>
               <div className="mb-6">
-                <h2 className="text-xl font-bold mb-1">Essential Services</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  Essential Services
+                </h2>
                 <p className="text-gray-600 text-sm mb-3">
                   Government, financial and emergency services by district.
                 </p>
@@ -241,30 +247,41 @@ export default function HomePage() {
                   onChange={(e) => {
                     if (e.target.value) router.push(e.target.value);
                   }}
-                  className="w-full max-w-sm border rounded-xl px-4 py-3 bg-white"
+                  className="w-full max-w-sm border rounded-xl px-4 py-3 bg-white text-gray-900"
                 >
                   <option value="" disabled>
                     Choose a service type
                   </option>
-                  <option value="/services/government">Government Services</option>
-                  <option value="/services/financial">Financial Services</option>
-                  <option value="/services/emergency">Emergency Services</option>
+                  <option value="/services/government">
+                    Government Services
+                  </option>
+                  <option value="/services/financial">
+                    Financial Services
+                  </option>
+                  <option value="/services/emergency">
+                    Emergency Services
+                  </option>
                 </select>
               </div>
 
-              <h2 className="text-xl font-bold mb-1">Popular Categories</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">
+                Popular Categories
+              </h2>
               <p className="text-gray-600 text-sm mb-4">
                 What are you looking for today?
               </p>
+
               <div className="grid grid-cols-2 gap-3">
                 {categories.map((cat) => (
                   <Link
                     key={cat.name}
                     href={`/explore?q=${encodeURIComponent(cat.q)}`}
-                    className="bg-white border rounded-xl p-3 hover:shadow-sm transition"
+                    className="bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition"
                   >
                     <div className="text-lg mb-1">{cat.icon}</div>
-                    <h3 className="font-semibold text-sm">{cat.name}</h3>
+                    <h3 className="font-semibold text-sm text-gray-900">
+                      {cat.name}
+                    </h3>
                     <p className="text-[11px] text-gray-500 leading-snug">
                       {cat.desc}
                     </p>
@@ -274,7 +291,7 @@ export default function HomePage() {
             </div>
 
             <aside className="space-y-3">
-              <p className="text-sm font-bold px-1">Sponsored</p>
+              <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
               <AdCard ad={byPlacement("r1")} />
               <AdCard ad={byPlacement("r2")} />
               <AdCard ad={byPlacement("r3")} />
@@ -284,7 +301,7 @@ export default function HomePage() {
 
         <section className="px-3 sm:px-4 py-10">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-2">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
               Why SaloneReviews?
             </h2>
             <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto text-sm">
@@ -296,9 +313,11 @@ export default function HomePage() {
             <div className="grid md:grid-cols-3 gap-3 mb-8">
               <Link
                 href="/explore"
-                className="border rounded-xl p-4 hover:shadow-md transition bg-white"
+                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
               >
-                <h3 className="font-semibold mb-1 text-sm">Real Reviews</h3>
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">
+                  Real Reviews
+                </h3>
                 <p className="text-xs text-gray-600 mb-2">
                   Read honest feedback from people who actually used the service.
                 </p>
@@ -309,9 +328,11 @@ export default function HomePage() {
 
               <Link
                 href="/explore"
-                className="border rounded-xl p-4 hover:shadow-md transition bg-white"
+                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
               >
-                <h3 className="font-semibold mb-1 text-sm">Easy Contact</h3>
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">
+                  Easy Contact
+                </h3>
                 <p className="text-xs text-gray-600 mb-2">
                   Find businesses and contact them directly by call or WhatsApp.
                 </p>
@@ -322,9 +343,11 @@ export default function HomePage() {
 
               <Link
                 href="/explore"
-                className="border rounded-xl p-4 hover:shadow-md transition bg-white"
+                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
               >
-                <h3 className="font-semibold mb-1 text-sm">Built for Salone</h3>
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">
+                  Built for Salone
+                </h3>
                 <p className="text-xs text-gray-600 mb-2">
                   Made for how people across Sierra Leone actually find trusted
                   local services.
@@ -344,7 +367,6 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );
