@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,12 +8,15 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function ServiceViewPage() {
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id");
-
+  const [id, setId] = useState<string | null>(null);
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setId(params.get("id"));
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -24,21 +26,25 @@ export default function ServiceViewPage() {
         return;
       }
 
+      setLoading(true);
       try {
         const snap = await getDoc(doc(db, "essentialServices", id));
         if (snap.exists()) {
           setItem({ id: snap.id, ...snap.data() });
+          setError("");
         } else {
           setError("Service not found");
+          setItem(null);
         }
       } catch {
         setError("Failed to load service");
+        setItem(null);
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    if (id) load();
   }, [id]);
 
   if (loading) {
