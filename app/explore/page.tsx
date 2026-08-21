@@ -30,13 +30,12 @@ const districts = [
 ];
 
 export default function ExplorePage() {
-  const [search, setSearch] = useState("");
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState(initialQuery);
+  const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
 
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
@@ -50,9 +49,9 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  setSearch(params.get("q") || "");
-}, []);
+    const params = new URLSearchParams(window.location.search);
+    setSearch(params.get("q") || "");
+  }, []);
 
   useEffect(() => {
     loadData();
