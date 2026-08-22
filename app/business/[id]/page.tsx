@@ -23,7 +23,6 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
 const RESPONSE_DAYS = 14;
-
 const FILE_ACCEPT =
   "image/jpeg,image/jpg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf";
 
@@ -65,13 +64,11 @@ export default function BusinessPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [hasReviewed, setHasReviewed] = useState(false);
-
   const [responseText, setResponseText] = useState<Record<string, string>>({});
   const [adminNoteText, setAdminNoteText] = useState<Record<string, string>>({});
   const [savingResponse, setSavingResponse] = useState<string | null>(null);
   const [savingNote, setSavingNote] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
-
   const [proofFiles, setProofFiles] = useState<Record<string, File[]>>({});
   const [proofNote, setProofNote] = useState<Record<string, string>>({});
   const [uploadingProof, setUploadingProof] = useState<string | null>(null);
@@ -158,7 +155,6 @@ export default function BusinessPage() {
   const getPublicStatus = (review: any) => {
     const days = getDaysSince(review);
     const hasResponse = !!(review.businessResponse && String(review.businessResponse).trim());
-
     if (review.claimStatus === "unverified_claim") return "uc";
     if (hasResponse) return "responded";
     if (days >= RESPONSE_DAYS) return "stands";
@@ -344,7 +340,7 @@ export default function BusinessPage() {
   if (pageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading business...</p>
+        <p className="text-gray-900">Loading business...</p>
       </div>
     );
   }
@@ -355,7 +351,7 @@ export default function BusinessPage() {
         <Navbar />
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
-            <p className="text-lg font-medium mb-2">Business not found.</p>
+            <p className="text-lg font-medium text-gray-900 mb-2">Business not found.</p>
             <Link href="/explore" className="text-[#006B3F] font-medium">
               ← Back to Explore
             </Link>
@@ -367,14 +363,16 @@ export default function BusinessPage() {
   }
 
   const photos: string[] = business.photos || [];
+
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${business.name} ${business.area || ""} Sierra Leone`
+    [business.name, business.address || business.area, business.district, "Sierra Leone"]
+      .filter(Boolean)
+      .join(", ")
   )}`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
-
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="mb-4">
@@ -383,11 +381,11 @@ export default function BusinessPage() {
             </Link>
           </div>
 
-          <div className="bg-white border rounded-2xl p-6 mb-6">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             {user ? (
               <>
                 <div className="flex justify-between items-start gap-3 mb-2">
-                  <h1 className="text-2xl font-bold">
+                  <h1 className="text-2xl font-bold text-gray-900">
                     {business.name}
                     {business.isPremium && (
                       <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
@@ -395,33 +393,44 @@ export default function BusinessPage() {
                       </span>
                     )}
                   </h1>
-                  <span className="text-xs bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">
+                  <span className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full whitespace-nowrap">
                     {business.category}
                   </span>
                 </div>
-                <p className="text-gray-500 mb-1">{business.area}</p>
+                <p className="text-gray-700 mb-1">{business.area}</p>
                 <p className="text-sm text-[#006B3F] font-medium mb-3">{business.district}</p>
+                {business.address && (
+                  <p className="text-sm text-gray-700 mb-3">
+                    <span className="font-medium">Address:</span> {business.address}
+                  </p>
+                )}
               </>
             ) : (
               <div className="mb-3">
                 <div className="flex justify-between items-start gap-3 mb-3">
-                  <h1 className="text-2xl font-bold text-gray-400">Business name hidden</h1>
-                  <span className="text-xs bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">
+                  <h1 className="text-2xl font-bold text-gray-500">Business name hidden</h1>
+                  <span className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full whitespace-nowrap">
                     {business.category}
                   </span>
                 </div>
                 <div className="bg-[#006B3F]/5 border border-[#006B3F]/20 rounded-xl p-4 mb-3">
-                  <p className="text-sm text-gray-800 font-medium mb-2">
+                  <p className="text-sm text-gray-900 font-medium mb-2">
                     Log in or register free to access full benefits
                   </p>
-                  <p className="text-xs text-gray-600 mb-3">
+                  <p className="text-xs text-gray-700 mb-3">
                     Unlock business name, photos, address, call, WhatsApp, maps and sharing.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <Link href="/login" className="bg-[#006B3F] text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+                    <Link
+                      href="/login"
+                      className="bg-[#006B3F] text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
+                    >
                       Log in
                     </Link>
-                    <Link href="/signup" className="bg-white border border-[#006B3F] text-[#006B3F] text-sm font-semibold px-5 py-2.5 rounded-xl">
+                    <Link
+                      href="/signup"
+                      className="bg-white border border-[#006B3F] text-[#006B3F] text-sm font-semibold px-5 py-2.5 rounded-xl"
+                    >
                       Register free
                     </Link>
                   </div>
@@ -431,27 +440,46 @@ export default function BusinessPage() {
 
             <p className="text-gray-700 mb-3">{business.description}</p>
 
-{business.hours && (
-  <p className="text-sm text-gray-700 mb-4">
-    <span className="font-medium">Hours:</span> {business.hours}
-  </p>
-)}
+            {business.hours && (
+              <p className="text-sm text-gray-700 mb-4">
+                <span className="font-medium">Hours:</span> {business.hours}
+              </p>
+            )}
 
             <div className="flex items-center gap-3 mb-5">
               <div className="flex items-center gap-1">
-                <span className="text-amber-400 text-xl">★</span>
-                <span className="font-bold text-lg">{averageRating}</span>
+                <span className="text-amber-500 text-xl">★</span>
+                <span className="font-bold text-lg text-gray-900">{averageRating}</span>
               </div>
-              <span className="text-gray-500 text-sm">
+              <span className="text-gray-700 text-sm">
                 ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
               </span>
             </div>
 
             {user && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
-                <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl">📍 Maps</a>
+                <a
+                  href={`tel:+${business.phone}`}
+                  className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  📞 Call
+                </a>
+                <a
+                  href={`https://wa.me/${business.phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  💬 WhatsApp
+                </a>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  📍 Open in Maps
+                </a>
                 <button
                   type="button"
                   onClick={() => {
@@ -467,23 +495,29 @@ export default function BusinessPage() {
           </div>
 
           {user && photos.length > 0 && (
-            <div className="bg-white border rounded-2xl p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4">Photos</h2>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Photos</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {photos.map((url, index) => (
                   <a key={index} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`Photo ${index + 1}`} className="w-full h-32 object-cover rounded-xl border" />
+                    <img
+                      src={url}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-xl border"
+                    />
                   </a>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="bg-white border rounded-2xl p-6 mb-6">
-            <h2 className="text-xl font-bold mb-4">Reviews ({reviews.length})</h2>
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Reviews ({reviews.length})
+            </h2>
 
             {reviews.length === 0 ? (
-              <p className="text-gray-500">No reviews yet.</p>
+              <p className="text-gray-700">No reviews yet.</p>
             ) : (
               <div className="space-y-6">
                 {reviews.map((review) => {
@@ -500,7 +534,7 @@ export default function BusinessPage() {
                     <div key={review.id} className="border-b pb-6 last:border-0">
                       <div className="flex items-center justify-between gap-3 mb-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{review.userName}</span>
+                          <span className="font-medium text-gray-900">{review.userName}</span>
                           {publicStatus === "uc" && (
                             <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">
                               UC · Unverified Claim
@@ -518,7 +552,7 @@ export default function BusinessPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-amber-400">{"★".repeat(review.rating || 0)}</span>
+                          <span className="text-amber-500">{"★".repeat(review.rating || 0)}</span>
                           {isAdmin && (
                             <button
                               type="button"
@@ -535,14 +569,18 @@ export default function BusinessPage() {
 
                       {review.businessResponse ? (
                         <div className="bg-green-50 border border-green-100 rounded-xl p-3 mb-3">
-                          <p className="text-xs font-semibold text-[#006B3F] mb-1">Business Response</p>
+                          <p className="text-xs font-semibold text-[#006B3F] mb-1">
+                            Business Response
+                          </p>
                           <p className="text-sm text-gray-700">{review.businessResponse}</p>
                         </div>
                       ) : null}
 
                       {review.adminNote && publicStatus === "under_review" ? (
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
-                          <p className="text-xs font-semibold text-blue-700 mb-1">SaloneReviews Note</p>
+                          <p className="text-xs font-semibold text-blue-700 mb-1">
+                            SaloneReviews Note
+                          </p>
                           <p className="text-sm text-gray-700">{review.adminNote}</p>
                         </div>
                       ) : null}
@@ -550,8 +588,8 @@ export default function BusinessPage() {
                       {isAdmin && (
                         <div className="bg-gray-50 border rounded-xl p-3 mb-3 space-y-3">
                           <div>
-                            <p className="text-xs font-semibold text-gray-700 mb-1">14-day policy</p>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs font-semibold text-gray-800 mb-1">14-day policy</p>
+                            <p className="text-xs text-gray-700">
                               {review.businessResponse
                                 ? "Business has responded."
                                 : days >= RESPONSE_DAYS
@@ -561,39 +599,93 @@ export default function BusinessPage() {
                           </div>
 
                           <div>
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Claim status buttons</p>
+                            <p className="text-xs font-semibold text-gray-800 mb-2">
+                              Claim status buttons
+                            </p>
                             <div className="flex flex-wrap gap-2">
-                              <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "under_review")} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full">Under Review</button>
-                              <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "unverified_claim")} className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-full">Unverified Claim</button>
-                              <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "resolved")} className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full">Resolved</button>
-                              <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "")} className="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full">Clear</button>
+                              <button
+                                type="button"
+                                disabled={savingStatus === review.id}
+                                onClick={() => handleClaimStatus(review.id, "under_review")}
+                                className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full"
+                              >
+                                Under Review
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingStatus === review.id}
+                                onClick={() => handleClaimStatus(review.id, "unverified_claim")}
+                                className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-full"
+                              >
+                                Unverified Claim
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingStatus === review.id}
+                                onClick={() => handleClaimStatus(review.id, "resolved")}
+                                className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full"
+                              >
+                                Resolved
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingStatus === review.id}
+                                onClick={() => handleClaimStatus(review.id, "")}
+                                className="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full"
+                              >
+                                Clear
+                              </button>
                             </div>
                           </div>
 
                           <div>
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Business Response (on behalf of owner)</p>
+                            <p className="text-xs font-semibold text-gray-800 mb-2">
+                              Business Response (on behalf of owner)
+                            </p>
                             <textarea
                               value={responseText[review.id] ?? review.businessResponse ?? ""}
-                              onChange={(e) => setResponseText((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                              onChange={(e) =>
+                                setResponseText((prev) => ({
+                                  ...prev,
+                                  [review.id]: e.target.value,
+                                }))
+                              }
                               rows={3}
-                              className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2"
+                              className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900"
                               placeholder="Official response from the business..."
                             />
-                            <button type="button" onClick={() => handleSaveBusinessResponse(review.id)} disabled={savingResponse === review.id} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveBusinessResponse(review.id)}
+                              disabled={savingResponse === review.id}
+                              className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60"
+                            >
                               {savingResponse === review.id ? "Saving..." : "Save Business Response"}
                             </button>
                           </div>
 
                           <div>
-                            <p className="text-xs font-semibold text-blue-700 mb-2">SaloneReviews Note (temporary while under review)</p>
+                            <p className="text-xs font-semibold text-blue-700 mb-2">
+                              SaloneReviews Note (temporary while under review)
+                            </p>
                             <textarea
                               value={adminNoteText[review.id] ?? review.adminNote ?? ""}
-                              onChange={(e) => setAdminNoteText((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                              onChange={(e) =>
+                                setAdminNoteText((prev) => ({
+                                  ...prev,
+                                  [review.id]: e.target.value,
+                                }))
+                              }
                               rows={2}
-                              className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2"
+                              className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900"
                               placeholder="Optional temporary note..."
                             />
-                            <button type="button" onClick={() => handleSaveAdminNote(review.id)} disabled={savingNote === review.id} className="bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveAdminNote(review.id)}
+                              disabled={savingNote === review.id}
+                              className="bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60"
+                            >
                               {savingNote === review.id ? "Saving..." : "Save Note"}
                             </button>
                           </div>
@@ -602,13 +694,21 @@ export default function BusinessPage() {
 
                       {canViewProof && alreadyHasProof && (
                         <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
-                          <p className="text-xs font-semibold text-amber-800 mb-2">Private proof (reviewer + admin only)</p>
+                          <p className="text-xs font-semibold text-amber-800 mb-2">
+                            Private proof (reviewer + admin only)
+                          </p>
                           {reviewProofs.map((p) => (
                             <div key={p.id} className="mb-2">
                               {p.note && <p className="text-sm text-gray-700 mb-1">{p.note}</p>}
                               <div className="flex flex-wrap gap-2">
                                 {(p.files || []).map((url: string, i: number) => (
-                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#006B3F] font-medium underline">
+                                  <a
+                                    key={i}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-[#006B3F] font-medium underline"
+                                  >
                                     Open file {i + 1}
                                   </a>
                                 ))}
@@ -620,16 +720,17 @@ export default function BusinessPage() {
 
                       {canUploadProof && !alreadyHasProof && (
                         <div className="bg-gray-50 border rounded-xl p-4">
-                          <p className="text-sm font-semibold text-gray-800 mb-1">Send private proof to admin</p>
-                          <p className="text-xs text-gray-500 mb-3">
+                          <p className="text-sm font-semibold text-gray-900 mb-1">
+                            Send private proof to admin
+                          </p>
+                          <p className="text-xs text-gray-600 mb-3">
                             Upload invoice, receipt or photo. Only you and admin can see this.
                           </p>
-
                           <input
                             type="file"
                             accept={FILE_ACCEPT}
                             multiple
-                            className="block w-full text-sm text-gray-600 mb-2 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#006B3F] file:text-white file:font-semibold"
+                            className="block w-full text-sm text-gray-700 mb-2 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#006B3F] file:text-white file:font-semibold"
                             onChange={(e) =>
                               setProofFiles((prev) => ({
                                 ...prev,
@@ -637,16 +738,20 @@ export default function BusinessPage() {
                               }))
                             }
                           />
-                          <p className="text-xs text-gray-500 mb-3">
+                          <p className="text-xs text-gray-600 mb-3">
                             Allowed: JPG, PNG, WEBP, PDF · {selectedCount} selected
                           </p>
-
                           <input
                             type="text"
                             value={proofNote[review.id] || ""}
-                            onChange={(e) => setProofNote((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                            onChange={(e) =>
+                              setProofNote((prev) => ({
+                                ...prev,
+                                [review.id]: e.target.value,
+                              }))
+                            }
                             placeholder="Optional note for admin"
-                            className="w-full border rounded-xl px-3 py-2 text-sm mb-3 outline-none"
+                            className="w-full border rounded-xl px-3 py-2 text-sm mb-3 outline-none text-gray-900"
                           />
                           <button
                             type="button"
@@ -671,8 +776,8 @@ export default function BusinessPage() {
             )}
           </div>
 
-          <div className="bg-white border rounded-2xl p-6">
-            <h2 className="text-xl font-bold mb-4">Write a Review</h2>
+          <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Write a Review</h2>
 
             {user ? (
               hasReviewed ? (
@@ -682,14 +787,18 @@ export default function BusinessPage() {
               ) : (
                 <form onSubmit={handleSubmitReview} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Rating</label>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Rating
+                    </label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
                           type="button"
                           onClick={() => setRating(star)}
-                          className={`text-2xl ${star <= rating ? "text-amber-400" : "text-gray-300"}`}
+                          className={`text-2xl ${
+                            star <= rating ? "text-amber-500" : "text-gray-300"
+                          }`}
                         >
                           ★
                         </button>
@@ -698,38 +807,56 @@ export default function BusinessPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Your Review</label>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Your Review
+                    </label>
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       rows={4}
-                      className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] text-gray-900"
                       required
                     />
                   </div>
 
                   <div className="bg-gray-50 border rounded-xl p-3 space-y-3">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-800">
                       Your name will appear as:{" "}
-                      <span className="font-semibold">
-                        {postAnonymously && canBeAnonymous ? "Anonymous" : getFirstName(user.displayName)}
+                      <span className="font-semibold text-gray-900">
+                        {postAnonymously && canBeAnonymous
+                          ? "Anonymous"
+                          : getFirstName(user.displayName)}
                       </span>
                     </p>
 
                     {canBeAnonymous ? (
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={postAnonymously} onChange={(e) => setPostAnonymously(e.target.checked)} className="w-4 h-4 accent-[#006B3F]" />
-                        <span className="text-sm text-gray-700">Post as Anonymous</span>
+                        <input
+                          type="checkbox"
+                          checked={postAnonymously}
+                          onChange={(e) => setPostAnonymously(e.target.checked)}
+                          className="w-4 h-4 accent-[#006B3F]"
+                        />
+                        <span className="text-sm text-gray-800">Post as Anonymous</span>
                       </label>
                     ) : (
-                      <p className="text-xs text-red-600">Reviews of 1 or 2 stars cannot be anonymous.</p>
+                      <p className="text-xs text-red-600">
+                        Reviews of 1 or 2 stars cannot be anonymous.
+                      </p>
                     )}
 
                     {isLowRating && (
                       <div className="border-t pt-3">
                         <label className="flex items-start gap-2 cursor-pointer">
-                          <input type="checkbox" checked={hasProof} onChange={(e) => setHasProof(e.target.checked)} className="mt-1 w-4 h-4 accent-[#006B3F]" />
-                          <span className="text-sm text-gray-700">I have proof (invoice / photo / receipt)</span>
+                          <input
+                            type="checkbox"
+                            checked={hasProof}
+                            onChange={(e) => setHasProof(e.target.checked)}
+                            className="mt-1 w-4 h-4 accent-[#006B3F]"
+                          />
+                          <span className="text-sm text-gray-800">
+                            I have proof (invoice / photo / receipt)
+                          </span>
                         </label>
 
                         {hasProof && (
@@ -738,10 +865,14 @@ export default function BusinessPage() {
                               type="file"
                               accept={FILE_ACCEPT}
                               multiple
-                              className="block w-full text-sm text-gray-600 mb-2 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#006B3F] file:text-white file:font-semibold"
-                              onChange={(e) => setNewReviewFiles(e.target.files ? Array.from(e.target.files) : [])}
+                              className="block w-full text-sm text-gray-700 mb-2 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#006B3F] file:text-white file:font-semibold"
+                              onChange={(e) =>
+                                setNewReviewFiles(
+                                  e.target.files ? Array.from(e.target.files) : []
+                                )
+                              }
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-600">
                               Allowed: JPG, PNG, WEBP, PDF · {newReviewFiles.length} selected
                             </p>
                           </div>
@@ -751,29 +882,51 @@ export default function BusinessPage() {
                   </div>
 
                   {message && (
-                    <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("please") ? "text-red-500" : "text-green-600"}`}>
+                    <p
+                      className={`text-sm ${
+                        message.toLowerCase().includes("fail") ||
+                        message.toLowerCase().includes("please")
+                          ? "text-red-500"
+                          : "text-green-600"
+                      }`}
+                    >
                       {message}
                     </p>
                   )}
 
-                  <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl disabled:opacity-60">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl disabled:opacity-60"
+                  >
                     {loading ? "Submitting..." : "Submit Review"}
                   </button>
                 </form>
               )
             ) : (
               <div className="text-center py-4">
-                <p className="text-gray-600 mb-3">Log in or register free to write a review.</p>
+                <p className="text-gray-700 mb-3">
+                  Log in or register free to write a review.
+                </p>
                 <div className="flex justify-center gap-3">
-                  <Link href="/login" className="bg-[#006B3F] text-white font-semibold px-6 py-2 rounded-xl">Log in</Link>
-                  <Link href="/signup" className="bg-white border border-[#006B3F] text-[#006B3F] font-semibold px-6 py-2 rounded-xl">Register free</Link>
+                  <Link
+                    href="/login"
+                    className="bg-[#006B3F] text-white font-semibold px-6 py-2 rounded-xl"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="bg-white border border-[#006B3F] text-[#006B3F] font-semibold px-6 py-2 rounded-xl"
+                  >
+                    Register free
+                  </Link>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );
