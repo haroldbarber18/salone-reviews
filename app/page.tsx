@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,20 +16,57 @@ const categories = [
   { name: "Home", desc: "Cleaning & home help", icon: "🏠", q: "Home" },
 ];
 
+function parseAdDate(dateStr?: string) {
+  if (!dateStr) return null;
+  const s = String(dateStr).trim();
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) {
+    return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function normalizePlacement(p?: string) {
+  if (!p) return "";
+  const s = String(p).trim().toLowerCase();
+  const map: Record<string, string> = {
+    top1: "top1",
+    "top sponsor 1": "top1",
+    "top-sponsor-1": "top1",
+    top2: "top2",
+    "top sponsor 2": "top2",
+    "top-sponsor-2": "top2",
+    r1: "r1",
+    r2: "r2",
+    r3: "r3",
+    b1: "b1",
+    b2: "b2",
+    b3: "b3",
+    b4: "b4",
+    left: "left",
+    events: "left",
+  };
+  return map[s] || s;
+}
+
 function isAdVisible(ad: any) {
   if (ad.active === false) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  if (ad.startDate) {
-    const start = new Date(ad.startDate);
+
+  const start = parseAdDate(ad.startDate);
+  if (start) {
     start.setHours(0, 0, 0, 0);
     if (today < start) return false;
   }
-  if (ad.endDate) {
-    const end = new Date(ad.endDate);
+
+  const end = parseAdDate(ad.endDate);
+  if (end) {
     end.setHours(23, 59, 59, 999);
     if (today > end) return false;
   }
+
   return true;
 }
 
@@ -43,14 +79,14 @@ function isThisWeek(ad: any) {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
-  const start = ad.startDate ? new Date(ad.startDate) : weekStart;
-  const end = ad.endDate ? new Date(ad.endDate) : start;
+  const start = parseAdDate(ad.startDate) || weekStart;
+  const end = parseAdDate(ad.endDate) || start;
   return start <= weekEnd && end >= weekStart;
 }
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
+  const d = parseAdDate(dateStr) || new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("en-GB", {
     weekday: "short",
@@ -126,10 +162,14 @@ export default function HomePage() {
     setAds(data.filter(isAdVisible));
   };
 
-  const byPlacement = (key: string) => ads.find((a) => a.placement === key);
+  const byPlacement = (key: string) =>
+    ads.find((a) => normalizePlacement(a.placement) === key);
 
   const leftFeed = useMemo(() => {
-    const list = ads.filter((a) => !a.placement || a.placement === "left");
+    const list = ads.filter((a) => {
+      const p = normalizePlacement(a.placement);
+      return !p || p === "left";
+    });
     if (eventFilter === "week") return list.filter(isThisWeek);
     return list;
   }, [ads, eventFilter]);
@@ -149,7 +189,6 @@ export default function HomePage() {
             <div className="order-2 lg:order-1">
               <AdCard ad={byPlacement("top1")} />
             </div>
-
             <div className="order-1 lg:order-2 text-center">
               <h1 className="text-3xl sm:text-5xl font-bold mb-4">
                 Find di best businesses in Salone.
@@ -158,7 +197,6 @@ export default function HomePage() {
                 Real reviews from real people. Trusted plumbers, electricians,
                 mechanics, restaurants and more across Sierra Leone.
               </p>
-
               <form
                 onSubmit={handleSearch}
                 className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto"
@@ -176,7 +214,6 @@ export default function HomePage() {
                   Search
                 </button>
               </form>
-
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
                 <Link
                   href="/explore"
@@ -198,7 +235,6 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-
             <div className="order-3">
               <AdCard ad={byPlacement("top2")} />
             </div>
@@ -223,8 +259,6 @@ export default function HomePage() {
                   <option value="week">This week</option>
                 </select>
               </div>
-
-              {/* No nested scroll on mobile. Scroll only on large screens. */}
               <div className="space-y-3 lg:max-h-[560px] lg:overflow-y-auto lg:pr-1">
                 {leftFeed.length === 0 ? (
                   <EmptySlot />
@@ -263,14 +297,12 @@ export default function HomePage() {
                   </option>
                 </select>
               </div>
-
               <h2 className="text-xl font-bold text-gray-900 mb-1">
                 Popular Categories
               </h2>
               <p className="text-gray-600 text-sm mb-4">
                 What are you looking for today?
               </p>
-
               <div className="grid grid-cols-2 gap-3">
                 {categories.map((cat) => (
                   <Link
@@ -309,7 +341,6 @@ export default function HomePage() {
               building a place where real customers share real experiences so
               you can choose with confidence.
             </p>
-
             <div className="grid md:grid-cols-3 gap-3 mb-8">
               <Link
                 href="/explore"
@@ -325,7 +356,6 @@ export default function HomePage() {
                   See latest reviews →
                 </span>
               </Link>
-
               <Link
                 href="/explore"
                 className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
@@ -340,7 +370,6 @@ export default function HomePage() {
                   Find & message businesses →
                 </span>
               </Link>
-
               <Link
                 href="/explore"
                 className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
@@ -357,7 +386,6 @@ export default function HomePage() {
                 </span>
               </Link>
             </div>
-
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <AdCard ad={byPlacement("b1")} />
               <AdCard ad={byPlacement("b2")} />
