@@ -28,8 +28,44 @@ const categories = [
   "Hotels",
   "Beauty",
   "Home",
+  "Health & Medical",
+  "Education & Training",
+  "Money & Insurance",
+  "Legal & Government",
+  "Shopping & Fashion",
+  "Electronics & Tech",
+  "Events & Entertainment",
+  "Media & Publishing",
+  "Business Services",
+  "Animals & Pets",
+  "Sports & Fitness",
+  "Utilities & Energy",
+  "Public & Community",
   "Other",
 ];
+
+const subcategories: Record<string, string[]> = {
+  Tradesmen: ["Electrician", "Painter", "Tiler", "Welder", "Carpenter", "Plumber"],
+  Auto: ["Mechanic", "Car wash", "Spare parts", "Taxi"],
+  Food: ["Restaurant", "Bar", "Cafe", "Takeaway", "Bakery"],
+  Hotels: ["Hotel", "Guest house", "Lodge"],
+  Beauty: ["Salon", "Barber", "Spa"],
+  Home: ["Cleaning", "Security", "Laundry"],
+  "Health & Medical": ["Pharmacy", "Clinic", "Hospital", "Dentist"],
+  "Education & Training": ["School", "Tuition", "Vocational"],
+  "Money & Insurance": ["Bank", "Insurance", "Forex"],
+  "Legal & Government": ["Lawyer"],
+  "Shopping & Fashion": ["Clothes", "Tailor", "Market"],
+  "Electronics & Tech": ["Phones", "Phone repair", "Computers"],
+  "Events & Entertainment": ["DJ", "Event hall", "Photographer"],
+  "Media & Publishing": ["Radio", "Printing"],
+  "Business Services": ["Printing", "Accounting", "Logistics"],
+  "Animals & Pets": ["Vet", "Pet shop"],
+  "Sports & Fitness": ["Gym"],
+  "Utilities & Energy": ["Solar", "Gas"],
+  "Public & Community": ["Church", "NGO", "Funeral"],
+  Other: [],
+};
 
 const districts = [
   "Western Area Urban",
@@ -58,9 +94,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
+  const [subcategory, setSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
   const [area, setArea] = useState("");
@@ -70,6 +106,8 @@ export default function AdminPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+
+  const subcategoryOptions = subcategories[category] || [];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -90,11 +128,7 @@ export default function AdminPage() {
     try {
       const q = query(collection(db, "businesses"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setBusinesses(data);
+      setBusinesses(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (error) {
       console.log("Error loading businesses:", error);
     }
@@ -108,6 +142,7 @@ export default function AdminPage() {
     setHours("");
     setDescription("");
     setCategory("Tradesmen");
+    setSubcategory("");
     setCustomCategory("");
     setDistrict("Western Area Urban");
     setIsPremium(false);
@@ -116,10 +151,12 @@ export default function AdminPage() {
   };
 
   const startEdit = (b: any) => {
+    const known = categories.includes(b.category);
     setEditingId(b.id);
     setName(b.name || "");
-    setCategory(categories.includes(b.category) ? b.category : "Other");
-    setCustomCategory(categories.includes(b.category) ? "" : b.category || "");
+    setCategory(known ? b.category : "Other");
+    setCustomCategory(known ? "" : b.category || "");
+    setSubcategory(b.subcategory || "");
     setDistrict(b.district || "Western Area Urban");
     setArea(b.area || "");
     setPhone(b.phone || "");
@@ -142,8 +179,7 @@ export default function AdminPage() {
     for (const file of photos) {
       const fileRef = ref(storage, `business-photos/${Date.now()}-${file.name}`);
       await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
-      urls.push(url);
+      urls.push(await getDownloadURL(fileRef));
     }
     return urls;
   };
@@ -152,35 +188,31 @@ export default function AdminPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-
     try {
       if (category === "Other" && !customCategory.trim()) {
         setMessage("Please enter a custom category.");
         setLoading(false);
         return;
       }
-
       if (category === "Other" && customCategory.trim().length > 15) {
         setMessage("Custom category must be 15 characters or less.");
         setLoading(false);
         return;
       }
 
-      const finalCategory =
-        category === "Other" ? customCategory.trim() : category;
+      const finalCategory = category === "Other" ? customCategory.trim() : category;
+      const finalSubcategory = category === "Other" ? "" : subcategory.trim();
 
       let photoUrls = existingPhotos;
       if (isPremium && photos.length > 0) {
-        const uploaded = await uploadPhotos();
-        photoUrls = uploaded;
+        photoUrls = await uploadPhotos();
       }
-      if (!isPremium) {
-        photoUrls = [];
-      }
+      if (!isPremium) photoUrls = [];
 
       const payload = {
         name: name.trim(),
         category: finalCategory,
+        subcategory: finalSubcategory,
         district,
         area: area.trim(),
         phone: phone.trim(),
@@ -201,16 +233,11 @@ export default function AdminPage() {
         });
         setMessage("Business added successfully.");
       }
-
       resetForm();
       loadBusinesses();
     } catch (error) {
       console.log(error);
-      setMessage(
-        editingId
-          ? "Failed to update business. Please try again."
-          : "Failed to add business. Please try again."
-      );
+      setMessage(editingId ? "Failed to update business. Please try again." : "Failed to add business. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -231,12 +258,8 @@ export default function AdminPage() {
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="bg-white border rounded-2xl p-8 max-w-md text-center">
             <h1 className="text-xl font-bold mb-2">Admin access required</h1>
-            <p className="text-gray-600 mb-4">
-              This page is only for the SaloneReviews admin account.
-            </p>
-            <Link href="/" className="text-[#006B3F] font-medium">
-              ← Back to Home
-            </Link>
+            <p className="text-gray-600 mb-4">This page is only for the SaloneReviews admin account.</p>
+            <Link href="/" className="text-[#006B3F] font-medium">← Back to Home</Link>
           </div>
         </main>
         <Footer />
@@ -252,28 +275,17 @@ export default function AdminPage() {
           <div className="flex flex-wrap gap-3 justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
-              <p className="text-gray-600">
-                Add and manage businesses on SaloneReviews
-              </p>
+              <p className="text-gray-600">Add and manage businesses on SaloneReviews</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/admin/requests" className="text-sm text-[#006B3F] font-medium">
-                Business Requests →
-              </Link>
-              <Link href="/admin/ads" className="text-sm text-[#006B3F] font-medium">
-                Ads →
-              </Link>
-              <Link href="/admin/services" className="text-sm text-[#006B3F] font-medium">
-                Essential Services →
-              </Link>
+              <Link href="/admin/requests" className="text-sm text-[#006B3F] font-medium">Business Requests →</Link>
+              <Link href="/admin/ads" className="text-sm text-[#006B3F] font-medium">Ads →</Link>
+              <Link href="/admin/services" className="text-sm text-[#006B3F] font-medium">Essential Services →</Link>
             </div>
           </div>
 
           <div className="bg-white border rounded-2xl p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">
-              {editingId ? "Edit Business" : "Add New Business"}
-            </h2>
-
+            <h2 className="text-xl font-bold mb-4">{editingId ? "Edit Business" : "Add New Business"}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Business Name</label>
@@ -291,17 +303,17 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium mb-1">Category</label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setSubcategory("");
+                    }}
                     className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
                   >
                     {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium mb-1">District</label>
                   <select
@@ -310,19 +322,36 @@ export default function AdminPage() {
                     className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
                   >
                     {districts.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
+                      <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {category === "Other" && (
+              {category !== "Other" && subcategoryOptions.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Custom Category (max 15 characters)
+                    Subcategory (optional)
                   </label>
+                  <select
+                    value={subcategory}
+                    onChange={(e) => setSubcategory(e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
+                  >
+                    <option value="">Leave blank — use category only</option>
+                    {subcategoryOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only pick this if there is a different useful name, e.g. Plumber. Otherwise leave blank.
+                  </p>
+                </div>
+              )}
+
+              {category === "Other" && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Custom Category (max 15 characters)</label>
                   <input
                     type="text"
                     value={customCategory}
@@ -346,11 +375,8 @@ export default function AdminPage() {
                   required
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Phone (with country code, no +)
-                </label>
+                <label className="block text-sm font-medium mb-1">Phone (with country code, no +)</label>
                 <input
                   type="text"
                   value={phone}
@@ -360,7 +386,6 @@ export default function AdminPage() {
                   required
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Opening Hours</label>
                 <input
@@ -371,7 +396,6 @@ export default function AdminPage() {
                   className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea
@@ -400,9 +424,7 @@ export default function AdminPage() {
 
               {isPremium && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Upload Photos (max 4)
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Upload Photos (max 4)</label>
                   <input
                     type="file"
                     accept="image/*"
@@ -411,21 +433,13 @@ export default function AdminPage() {
                     className="w-full border rounded-xl px-4 py-3 bg-white"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {photos.length > 0
-                      ? `${photos.length} new photo(s) selected`
-                      : `${existingPhotos.length} existing photo(s)`}
+                    {photos.length > 0 ? `${photos.length} new photo(s) selected` : `${existingPhotos.length} existing photo(s)`}
                   </p>
                 </div>
               )}
 
               {message && (
-                <p
-                  className={`text-sm ${
-                    message.toLowerCase().includes("success")
-                      ? "text-green-600"
-                      : "text-red-500"
-                  }`}
-                >
+                <p className={`text-sm ${message.toLowerCase().includes("success") ? "text-green-600" : "text-red-500"}`}>
                   {message}
                 </p>
               )}
@@ -436,19 +450,10 @@ export default function AdminPage() {
                   disabled={loading}
                   className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#005a35] disabled:opacity-60"
                 >
-                  {loading
-                    ? "Saving..."
-                    : editingId
-                    ? "Update Business"
-                    : "Add Business"}
+                  {loading ? "Saving..." : editingId ? "Update Business" : "Add Business"}
                 </button>
-
                 {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="bg-gray-100 text-gray-700 font-semibold px-6 py-3 rounded-xl"
-                  >
+                  <button type="button" onClick={resetForm} className="bg-gray-100 text-gray-700 font-semibold px-6 py-3 rounded-xl">
                     Cancel edit
                   </button>
                 )}
@@ -457,50 +462,29 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white border rounded-2xl p-6">
-            <h2 className="text-xl font-bold mb-4">
-              Current Businesses ({businesses.length})
-            </h2>
-
+            <h2 className="text-xl font-bold mb-4">Current Businesses ({businesses.length})</h2>
             {businesses.length === 0 ? (
               <p className="text-gray-500">No businesses added yet.</p>
             ) : (
               <div className="space-y-3">
                 {businesses.map((b) => (
-                  <div
-                    key={b.id}
-                    className="border rounded-xl p-4 flex justify-between gap-4 items-start"
-                  >
+                  <div key={b.id} className="border rounded-xl p-4 flex justify-between gap-4 items-start">
                     <div>
                       <h3 className="font-semibold">
                         {b.name}{" "}
                         {b.isPremium && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">
-                            Premium
-                          </span>
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Premium</span>
                         )}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        {b.category} · {b.district}
+                        {b.subcategory ? b.subcategory : b.category} · {b.district}
                       </p>
                       <p className="text-sm text-gray-600">{b.area}</p>
-                      {b.hours && (
-                        <p className="text-sm text-gray-600">Hours: {b.hours}</p>
-                      )}
+                      {b.hours && <p className="text-sm text-gray-600">Hours: {b.hours}</p>}
                     </div>
-
                     <div className="flex flex-col gap-2 items-end">
-                      <button
-                        onClick={() => startEdit(b)}
-                        className="text-sm text-[#006B3F] font-medium"
-                      >
-                        Edit
-                      </button>
-                      <Link
-                        href={`/business/${b.id}`}
-                        className="text-sm text-gray-600 font-medium whitespace-nowrap"
-                      >
-                        View →
-                      </Link>
+                      <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
+                      <Link href={`/business/${b.id}`} className="text-sm text-gray-600 font-medium whitespace-nowrap">View →</Link>
                     </div>
                   </div>
                 ))}

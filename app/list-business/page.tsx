@@ -33,12 +33,49 @@ const CATEGORIES = [
   "Hotels",
   "Beauty",
   "Home",
+  "Health & Medical",
+  "Education & Training",
+  "Money & Insurance",
+  "Legal & Government",
+  "Shopping & Fashion",
+  "Electronics & Tech",
+  "Events & Entertainment",
+  "Media & Publishing",
+  "Business Services",
+  "Animals & Pets",
+  "Sports & Fitness",
+  "Utilities & Energy",
+  "Public & Community",
   "Other",
 ];
+
+const SUBCATEGORIES: Record<string, string[]> = {
+  Tradesmen: ["Electrician", "Painter", "Tiler", "Welder", "Carpenter", "Plumber"],
+  Auto: ["Mechanic", "Car wash", "Spare parts", "Taxi"],
+  Food: ["Restaurant", "Bar", "Cafe", "Takeaway", "Bakery"],
+  Hotels: ["Hotel", "Guest house", "Lodge"],
+  Beauty: ["Salon", "Barber", "Spa"],
+  Home: ["Cleaning", "Security", "Laundry"],
+  "Health & Medical": ["Pharmacy", "Clinic", "Hospital", "Dentist"],
+  "Education & Training": ["School", "Tuition", "Vocational"],
+  "Money & Insurance": ["Bank", "Insurance", "Forex"],
+  "Legal & Government": ["Lawyer"],
+  "Shopping & Fashion": ["Clothes", "Tailor", "Market"],
+  "Electronics & Tech": ["Phones", "Phone repair", "Computers"],
+  "Events & Entertainment": ["DJ", "Event hall", "Photographer"],
+  "Media & Publishing": ["Radio", "Printing"],
+  "Business Services": ["Printing", "Accounting", "Logistics"],
+  "Animals & Pets": ["Vet", "Pet shop"],
+  "Sports & Fitness": ["Gym"],
+  "Utilities & Energy": ["Solar", "Gas"],
+  "Public & Community": ["Church", "NGO", "Funeral"],
+  Other: [],
+};
 
 export default function ListBusinessPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
+  const [subcategory, setSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
   const [phone, setPhone] = useState("");
@@ -47,20 +84,21 @@ export default function ListBusinessPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const subcategoryOptions = SUBCATEGORIES[category] || [];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim() || !phone.trim()) {
       setMessage("Please fill in business name, phone and description.");
       return;
     }
-
     setLoading(true);
     setMessage("");
-
     try {
       await addDoc(collection(db, "businessRequests"), {
         name: name.trim(),
         category: category === "Other" ? customCategory.trim() || "Other" : category,
+        subcategory: category === "Other" ? "" : subcategory.trim(),
         district,
         phone: phone.trim(),
         whatsapp: whatsapp.trim() || phone.trim(),
@@ -68,9 +106,9 @@ export default function ListBusinessPage() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
-
       setName("");
       setCategory("Tradesmen");
+      setSubcategory("");
       setCustomCategory("");
       setDistrict("Western Area Urban");
       setPhone("");
@@ -97,41 +135,40 @@ export default function ListBusinessPage() {
           <Link href="/" className="text-sm text-[#006B3F] font-medium">
             ← Back to Home
           </Link>
-
           <h1 className="text-3xl font-bold mt-4 mb-2">List your business</h1>
-<p className="text-gray-600 mb-6">
-  Basic listings are free. Upgrade later for photos, premium visibility, flyers and events.
-</p>
+          <p className="text-gray-600 mb-6">
+            Basic listings are free. Upgrade later for photos, premium visibility, flyers and events.
+          </p>
 
-<div className="bg-white border rounded-2xl p-5 mb-6">
-  <h2 className="font-semibold text-lg mb-4">Why list on SaloneReviews?</h2>
-  <div className="space-y-4">
-    <div>
-      <p className="font-semibold text-[#006B3F]">1. Free basic listing</p>
-      <p className="text-sm text-gray-600">
-        Get your business name, category, district, phone and description online free.
-      </p>
-    </div>
-    <div>
-      <p className="font-semibold text-[#006B3F]">2. More visibility</p>
-      <p className="text-sm text-gray-600">
-        Customers searching for trusted local services can find and contact you faster.
-      </p>
-    </div>
-    <div>
-      <p className="font-semibold text-[#006B3F]">3. Real reviews</p>
-      <p className="text-sm text-gray-600">
-        Build reputation through honest feedback from people who used your service.
-      </p>
-    </div>
-    <div>
-      <p className="font-semibold text-[#006B3F]">4. Premium options</p>
-      <p className="text-sm text-gray-600">
-        Add photos, featured placement, flyers and event promotions when you are ready.
-      </p>
-    </div>
-  </div>
-</div>
+          <div className="bg-white border rounded-2xl p-5 mb-6">
+            <h2 className="font-semibold text-lg mb-4">Why list on SaloneReviews?</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="font-semibold text-[#006B3F]">1. Free basic listing</p>
+                <p className="text-sm text-gray-600">
+                  Get your business name, category, district, phone and description online free.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-[#006B3F]">2. More visibility</p>
+                <p className="text-sm text-gray-600">
+                  Customers searching for trusted local services can find and contact you faster.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-[#006B3F]">3. Real reviews</p>
+                <p className="text-sm text-gray-600">
+                  Build reputation through honest feedback from people who used your service.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-[#006B3F]">4. Premium options</p>
+                <p className="text-sm text-gray-600">
+                  Add photos, featured placement, flyers and event promotions when you are ready.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div className="bg-white border rounded-2xl p-5 mb-6">
             <h2 className="font-semibold mb-2">Prefer WhatsApp?</h2>
@@ -150,7 +187,6 @@ export default function ListBusinessPage() {
 
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 space-y-4">
             <h2 className="font-semibold text-lg">Website request form</h2>
-
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -158,32 +194,42 @@ export default function ListBusinessPage() {
               className="w-full border rounded-xl px-4 py-3"
               required
             />
-
             <div className="grid sm:grid-cols-2 gap-4">
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setSubcategory("");
+                }}
                 className="w-full border rounded-xl px-4 py-3"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 className="w-full border rounded-xl px-4 py-3"
               >
                 {DISTRICTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
+
+            {category !== "Other" && subcategoryOptions.length > 0 && (
+              <select
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3"
+              >
+                <option value="">Subcategory optional — leave blank</option>
+                {subcategoryOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            )}
 
             {category === "Other" && (
               <input
@@ -210,7 +256,6 @@ export default function ListBusinessPage() {
                 className="w-full border rounded-xl px-4 py-3"
               />
             </div>
-
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -219,12 +264,10 @@ export default function ListBusinessPage() {
               className="w-full border rounded-xl px-4 py-3"
               required
             />
-
             {message && (
               <p
                 className={`text-sm ${
-                  message.toLowerCase().includes("fail") ||
-                  message.toLowerCase().includes("fill")
+                  message.toLowerCase().includes("fail") || message.toLowerCase().includes("fill")
                     ? "text-red-500"
                     : "text-green-600"
                 }`}
@@ -232,7 +275,6 @@ export default function ListBusinessPage() {
                 {message}
               </p>
             )}
-
             <button
               type="submit"
               disabled={loading}
