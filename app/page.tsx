@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,21 +9,26 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 const categories = [
-  { name: "Tradesmen", desc: "Plumbers, electricians & more", icon: "🔧", q: "Tradesmen" },
-  { name: "Auto", desc: "Mechanics & car services", icon: "🚗", q: "Auto" },
-  { name: "Food", desc: "Restaurants & local food", icon: "🍲", q: "Food" },
-  { name: "Hotels", desc: "Guest houses & stays", icon: "🏨", q: "Hotels" },
-  { name: "Beauty", desc: "Salons & beauty services", icon: "💇", q: "Beauty" },
-  { name: "Home", desc: "Cleaning & home help", icon: "🏠", q: "Home" },
+  { name: "Tradesmen", desc: "All trades", icon: "🔧", q: "Tradesmen" },
+  { name: "Electrician", desc: "Wiring & power", icon: "💡", q: "Electrician" },
+  { name: "Painter", desc: "Painting", icon: "🎨", q: "Painter" },
+  { name: "Tiler", desc: "Tiles", icon: "🧱", q: "Tiler" },
+  { name: "Welder", desc: "Welding", icon: "🛠️", q: "Welder" },
+  { name: "Carpenter", desc: "Woodwork", icon: "🪚", q: "Carpenter" },
+  { name: "Auto", desc: "Mechanics", icon: "🚗", q: "Auto" },
+  { name: "Food", desc: "Restaurants & bars", icon: "🍲", q: "Food" },
+  { name: "Hotels", desc: "Stays", icon: "🏨", q: "Hotels" },
+  { name: "Beauty", desc: "Salons", icon: "💇", q: "Beauty" },
+  { name: "Home", desc: "Home help", icon: "🏠", q: "Home" },
+  { name: "Cleaning", desc: "Cleaners", icon: "🧹", q: "Cleaning" },
+  { name: "Security", desc: "Guards", icon: "🛡️", q: "Security" },
 ];
 
 function parseAdDate(dateStr?: string) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
   const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
-  }
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -54,19 +60,16 @@ function isAdVisible(ad: any) {
   if (ad.active === false) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const start = parseAdDate(ad.startDate);
   if (start) {
     start.setHours(0, 0, 0, 0);
     if (today < start) return false;
   }
-
   const end = parseAdDate(ad.endDate);
   if (end) {
     end.setHours(23, 59, 59, 999);
     if (today > end) return false;
   }
-
   return true;
 }
 
@@ -112,11 +115,7 @@ function AdCard({ ad }: { ad?: any }) {
     >
       {ad.imageUrl && (
         <div className="bg-gray-50">
-          <img
-            src={ad.imageUrl}
-            alt={ad.title}
-            className="w-full h-40 object-contain"
-          />
+          <img src={ad.imageUrl} alt={ad.title} className="w-full h-40 object-contain" />
         </div>
       )}
       <div className="p-3 bg-white">
@@ -137,9 +136,7 @@ function AdCard({ ad }: { ad?: any }) {
             </span>
           )}
         </div>
-        <h3 className="font-bold text-sm mb-1 leading-snug text-gray-900">
-          {ad.title}
-        </h3>
+        <h3 className="font-bold text-sm mb-1 leading-snug text-gray-900">{ad.title}</h3>
         <p className="text-xs text-gray-600 line-clamp-2">{ad.description}</p>
       </div>
     </Link>
@@ -197,28 +194,19 @@ export default function HomePage() {
                 Real reviews from real people. Trusted plumbers, electricians,
                 mechanics, restaurants and more across Sierra Leone.
               </p>
-              <form
-                onSubmit={handleSearch}
-                className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto"
-              >
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search plumbers, restaurants, mechanics..."
                   className="flex-1 rounded-2xl px-4 py-3 bg-white text-gray-900 outline-none"
                 />
-                <button
-                  type="submit"
-                  className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl"
-                >
+                <button type="submit" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
                   Search
                 </button>
               </form>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
-                <Link
-                  href="/explore"
-                  className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl"
-                >
+                <Link href="/explore" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
                   View businesses
                 </Link>
                 <Link
@@ -245,14 +233,10 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
             <aside className="bg-white border border-gray-200 rounded-2xl p-3">
               <div className="mb-3">
-                <p className="text-sm font-bold text-gray-900 mb-2">
-                  Events & Flyers
-                </p>
+                <p className="text-sm font-bold text-gray-900 mb-2">Events & Flyers</p>
                 <select
                   value={eventFilter}
-                  onChange={(e) =>
-                    setEventFilter(e.target.value as "all" | "week")
-                  }
+                  onChange={(e) => setEventFilter(e.target.value as "all" | "week")}
                   className="w-full border rounded-xl px-3 py-2 text-sm outline-none text-gray-900 bg-white"
                 >
                   <option value="all">All</option>
@@ -270,9 +254,7 @@ export default function HomePage() {
 
             <div>
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-1">
-                  Essential Services
-                </h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Essential Services</h2>
                 <p className="text-gray-600 text-sm mb-3">
                   Government, financial and emergency services by district.
                 </p>
@@ -286,37 +268,24 @@ export default function HomePage() {
                   <option value="" disabled>
                     Choose a service type
                   </option>
-                  <option value="/services/government">
-                    Government Services
-                  </option>
-                  <option value="/services/financial">
-                    Financial Services
-                  </option>
-                  <option value="/services/emergency">
-                    Emergency Services
-                  </option>
+                  <option value="/services/government">Government Services</option>
+                  <option value="/services/financial">Financial Services</option>
+                  <option value="/services/emergency">Emergency Services</option>
                 </select>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
-                Popular Categories
-              </h2>
-              <p className="text-gray-600 text-sm mb-4">
-                What are you looking for today?
-              </p>
-              <div className="grid grid-cols-2 gap-3">
+
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Popular Categories</h2>
+              <p className="text-gray-600 text-sm mb-3">What are you looking for today?</p>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                 {categories.map((cat) => (
                   <Link
                     key={cat.name}
                     href={`/explore?q=${encodeURIComponent(cat.q)}`}
-                    className="bg-white border border-gray-200 rounded-xl p-3 hover:shadow-sm transition"
+                    className="bg-white border border-gray-200 rounded-lg p-2 hover:shadow-sm transition"
                   >
-                    <div className="text-lg mb-1">{cat.icon}</div>
-                    <h3 className="font-semibold text-sm text-gray-900">
-                      {cat.name}
-                    </h3>
-                    <p className="text-[11px] text-gray-500 leading-snug">
-                      {cat.desc}
-                    </p>
+                    <div className="text-base mb-0.5">{cat.icon}</div>
+                    <h3 className="font-semibold text-xs text-gray-900 leading-tight">{cat.name}</h3>
+                    <p className="text-[10px] text-gray-500 leading-tight">{cat.desc}</p>
                   </Link>
                 ))}
               </div>
@@ -333,57 +302,32 @@ export default function HomePage() {
 
         <section className="px-3 sm:px-4 py-10">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-              Why SaloneReviews?
-            </h2>
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Why SaloneReviews?</h2>
             <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto text-sm">
-              Too many people rely only on “my friend recommended him.” We are
-              building a place where real customers share real experiences so
-              you can choose with confidence.
+              Too many people rely only on “my friend recommended him.” We are building a place
+              where real customers share real experiences so you can choose with confidence.
             </p>
             <div className="grid md:grid-cols-3 gap-3 mb-8">
-              <Link
-                href="/explore"
-                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
-              >
-                <h3 className="font-semibold mb-1 text-sm text-gray-900">
-                  Real Reviews
-                </h3>
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Real Reviews</h3>
                 <p className="text-xs text-gray-600 mb-2">
                   Read honest feedback from people who actually used the service.
                 </p>
-                <span className="text-xs font-semibold text-[#006B3F]">
-                  See latest reviews →
-                </span>
+                <span className="text-xs font-semibold text-[#006B3F]">See latest reviews →</span>
               </Link>
-              <Link
-                href="/explore"
-                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
-              >
-                <h3 className="font-semibold mb-1 text-sm text-gray-900">
-                  Easy Contact
-                </h3>
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Easy Contact</h3>
                 <p className="text-xs text-gray-600 mb-2">
                   Find businesses and contact them directly by call or WhatsApp.
                 </p>
-                <span className="text-xs font-semibold text-[#006B3F]">
-                  Find & message businesses →
-                </span>
+                <span className="text-xs font-semibold text-[#006B3F]">Find & message businesses →</span>
               </Link>
-              <Link
-                href="/explore"
-                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white"
-              >
-                <h3 className="font-semibold mb-1 text-sm text-gray-900">
-                  Built for Salone
-                </h3>
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Built for Salone</h3>
                 <p className="text-xs text-gray-600 mb-2">
-                  Made for how people across Sierra Leone actually find trusted
-                  local services.
+                  Made for how people across Sierra Leone actually find trusted local services.
                 </p>
-                <span className="text-xs font-semibold text-[#006B3F]">
-                  Explore local services →
-                </span>
+                <span className="text-xs font-semibold text-[#006B3F]">Explore local services →</span>
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
