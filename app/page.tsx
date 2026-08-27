@@ -15,6 +15,7 @@ const categories = [
   { name: "Tiler", desc: "Tiles", icon: "🧱", q: "Tiler" },
   { name: "Welder", desc: "Welding", icon: "🛠️", q: "Welder" },
   { name: "Carpenter", desc: "Woodwork", icon: "🪚", q: "Carpenter" },
+  { name: "Plumber", desc: "Pipes & water", icon: "🚿", q: "Plumber" },
   { name: "Auto", desc: "Mechanics", icon: "🚗", q: "Auto" },
   { name: "Food", desc: "Restaurants & bars", icon: "🍲", q: "Food" },
   { name: "Hotels", desc: "Stays", icon: "🏨", q: "Hotels" },
@@ -22,6 +23,8 @@ const categories = [
   { name: "Home", desc: "Home help", icon: "🏠", q: "Home" },
   { name: "Cleaning", desc: "Cleaners", icon: "🧹", q: "Cleaning" },
   { name: "Security", desc: "Guards", icon: "🛡️", q: "Security" },
+  { name: "Pharmacy", desc: "Chemist", icon: "💊", q: "Pharmacy" },
+  { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
 
 function parseAdDate(dateStr?: string) {
