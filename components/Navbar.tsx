@@ -6,9 +6,12 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
+const ADMIN_EMAILS = ["gdos87@hotmail.com"];
+
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
+  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -22,8 +25,7 @@ export default function Navbar() {
     router.push("/");
   };
 
-  const firstName =
-    user?.displayName?.trim()?.split(/\s+/)[0] || "User";
+  const firstName = user?.displayName?.trim()?.split(/\s+/)[0] || "User";
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -37,10 +39,17 @@ export default function Navbar() {
             <span className="font-bold text-xl text-gray-900">Reviews</span>
           </div>
         </Link>
-
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {user ? (
             <>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-full hover:bg-[#005a35]"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className="text-sm font-medium text-gray-900 hover:underline max-w-[120px] sm:max-w-none truncate"
