@@ -7,7 +7,14 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
 
@@ -64,29 +71,30 @@ export default function AdminImportPage() {
     const text = await file.text();
     const table = parseCsv(text);
     if (table.length < 2) {
-      setMessage("No data rows found. Save the Import sheet as CSV.");
+      setMessage("No data rows found.");
       return;
     }
     const headers = table[0].map((h) => h.trim().toLowerCase());
     const idx = (name: string) => headers.indexOf(name);
-    const parsed = table.slice(1).map((r) => ({
-      listing_id: r[idx("listing_id")] || "",
-      name: r[idx("name")] || "",
-      category: r[idx("category")] || "Other",
-      subcategory: r[idx("subcategory")] || "",
-      district: r[idx("district")] || "Western Area Urban",
-      area: r[idx("area")] || "",
-      address: r[idx("address")] || "",
-      description: r[idx("description")] || "",
-      hours: r[idx("hours")] || "",
-      phone: r[idx("phone")] || r[idx("whatsapp_or_phone")] || "",
-      email: r[idx("email")] || "",
-      website: r[idx("website")] || "",
-      photo1: r[idx("photo1")] || r[idx("photo1 free")] || "",
-      listing_status: r[idx("listing_status")] || "Live",
-    })).filter((x) => x.name);
+    const parsed = table
+      .slice(1)
+      .map((r) => ({
+        listing_id: r[idx("listing_id")] || "",
+        name: r[idx("name")] || "",
+        category: r[idx("category")] || "Other",
+        subcategory: r[idx("subcategory")] || "",
+        district: r[idx("district")] || "Western Area Urban",
+        area: r[idx("area")] || "",
+        address: r[idx("address")] || "",
+        description: r[idx("description")] || "",
+        hours: r[idx("hours")] || "",
+        phone: r[idx("phone")] || r[idx("whatsapp_or_phone")] || "",
+        email: r[idx("email")] || "",
+        website: r[idx("website")] || "",
+      }))
+      .filter((x) => x.name);
     setRows(parsed);
-    setMessage(`${parsed.length} rows ready. Photos stay blank until you add them in Admin.`);
+    setMessage(`${parsed.length} rows ready.`);
   };
 
   const handleImport = async () => {
@@ -94,18 +102,18 @@ export default function AdminImportPage() {
     setMessage("");
     try {
       const snap = await getDocs(collection(db, "businesses"));
-      const existingNames = new Set(
-        snap.docs.map((d) => String(d.data().name || "").trim().toLowerCase())
+      const byName = new Map(
+        snap.docs.map((d) => [String(d.data().name || "").trim().toLowerCase(), d.id])
+      );
+      const byId = new Map(
+        snap.docs
+          .filter((d) => d.data().listingId)
+          .map((d) => [String(d.data().listingId).trim().toUpperCase(), d.id])
       );
       let added = 0;
-      let skipped = 0;
+      let updated = 0;
       for (const r of rows) {
-        const key = r.name.trim().toLowerCase();
-        if (existingNames.has(key)) {
-          skipped++;
-          continue;
-        }
-        await addDoc(collection(db, "businesses"), {
+        const payload = {
           listingId: r.listing_id,
           name: r.name.trim(),
           category: r.category,
@@ -118,17 +126,27 @@ export default function AdminImportPage() {
           phone: String(r.phone).replace(/\D/g, ""),
           email: r.email,
           website: r.website,
-          photos: [],
-          isPremium: false,
-          claimStatus: "Unclaimed",
-          source: "Excel batch",
-          createdAt: serverTimestamp(),
-          createdBy: user?.email || "",
-        });
-        existingNames.add(key);
-        added++;
+        };
+        const existingId =
+          byId.get(String(r.listing_id || "").trim().toUpperCase()) ||
+          byName.get(r.name.trim().toLowerCase());
+        if (existingId) {
+          await updateDoc(doc(db, "businesses", existingId), payload);
+          updated++;
+        } else {
+          await addDoc(collection(db, "businesses"), {
+            ...payload,
+            photos: [],
+            isPremium: false,
+            claimStatus: "Unclaimed",
+            source: "Excel batch",
+            createdAt: serverTimestamp(),
+            createdBy: user?.email || "",
+          });
+          added++;
+        }
       }
-      setMessage(`Imported ${added}. Skipped ${skipped} already on the site.`);
+      setMessage(`Imported ${added} new. Updated ${updated} existing.`);
     } catch (e) {
       console.log(e);
       setMessage("Import failed.");
@@ -152,7 +170,7 @@ export default function AdminImportPage() {
           <Link href="/admin" className="text-sm text-[#006B3F] font-medium">← Back to Admin</Link>
           <h1 className="text-2xl font-bold mt-3 mb-2">Import listings</h1>
           <p className="text-sm text-gray-600 mb-4">
-            Upload a CSV of the Import sheet. Photo file names are stored later — listings import with or without a photo.
+            Existing businesses are updated. New names are added.
           </p>
           <input
             type="file"
@@ -163,7 +181,6 @@ export default function AdminImportPage() {
           {message && <p className="text-sm mb-4">{message}</p>}
           {rows.length > 0 && (
             <>
-              <p className="text-sm mb-3">{rows.length} businesses in file</p>
               <button
                 onClick={handleImport}
                 disabled={loading}
@@ -177,9 +194,7 @@ export default function AdminImportPage() {
                     <tr className="bg-gray-50 text-left">
                       <th className="p-2">ID</th>
                       <th className="p-2">Name</th>
-                      <th className="p-2">Category</th>
-                      <th className="p-2">District</th>
-                      <th className="p-2">Phone</th>
+                      <th className="p-2">Description</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -187,9 +202,7 @@ export default function AdminImportPage() {
                       <tr key={r.listing_id || r.name} className="border-t">
                         <td className="p-2">{r.listing_id}</td>
                         <td className="p-2">{r.name}</td>
-                        <td className="p-2">{r.subcategory || r.category}</td>
-                        <td className="p-2">{r.district}</td>
-                        <td className="p-2">{r.phone || "—"}</td>
+                        <td className="p-2">{r.description ? r.description.slice(0, 80) : "MISSING"}</td>
                       </tr>
                     ))}
                   </tbody>
