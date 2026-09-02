@@ -287,6 +287,7 @@ export default function AdminPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/admin/requests" className="text-sm text-[#006B3F] font-medium">Business Requests →</Link>
+              <Link href="/admin/claims" className="text-sm text-[#006B3F] font-medium">Claims →</Link>
               <Link href="/admin/import" className="text-sm text-[#006B3F] font-medium">Import Excel →</Link>
               <Link href="/admin/ads" className="text-sm text-[#006B3F] font-medium">Ads →</Link>
               <Link href="/admin/services" className="text-sm text-[#006B3F] font-medium">Essential Services →</Link>

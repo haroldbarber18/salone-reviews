@@ -51,8 +51,14 @@ export default function Footer() {
                 </Link>
               </div>
               <div>
+                             <div>
                 <Link href="/list-business" className="hover:text-white">
                   List your business
+                </Link>
+              </div>
+              <div>
+                <Link href="/claim" className="hover:text-white">
+                  Claim your business
                 </Link>
               </div>
               <div>
@@ -60,7 +66,6 @@ export default function Footer() {
                   Contact
                 </Link>
               </div>
-              <div>
                 <Link href="/services/government" className="hover:text-white">
                   Essential services
                 </Link>
