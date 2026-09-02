@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SaloneReviews - Find Trusted Businesses in Sierra Leone",
   description: "Real reviews from real people. Find trusted plumbers, electricians, restaurants and more across Sierra Leone.",
+  verification: {
+    google: "9I61ZqNiWlco0W8N8JQpJiYD5JnZ_7gvcHi5VV4rgKQ",
 };
 
 export default function RootLayout({
