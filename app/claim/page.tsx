@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,8 +9,7 @@ import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export default function ClaimPage() {
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [businessId, setBusinessId] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerWhatsapp, setOwnerWhatsapp] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -19,26 +18,25 @@ export default function ClaimPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    getDocs(collection(db, "businesses")).then((snap) => {
-      const data = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((b: any) => (b.claimStatus || "Unclaimed") !== "Claimed")
-        .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
-      setBusinesses(data);
-    });
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const biz = businesses.find((b) => b.id === businessId);
-    if (!biz || !ownerName.trim() || !ownerWhatsapp.trim()) {
-      setMessage("Please choose a business and enter your name and WhatsApp.");
+    if (!businessName.trim() || !ownerName.trim() || !ownerWhatsapp.trim()) {
+      setMessage("Please enter the business name as listed, your name and WhatsApp.");
       return;
     }
     setLoading(true);
     setMessage("");
     try {
+      const snap = await getDocs(collection(db, "businesses"));
+      const typed = businessName.trim().toLowerCase();
+      const match = snap.docs.find(
+        (d) => String(d.data().name || "").trim().toLowerCase() === typed
+      );
+      if (!match) {
+        setMessage("We could not find that exact name. Copy it from the listing page.");
+        setLoading(false);
+        return;
+      }
       let proofUrl = "";
       if (proof) {
         const fileRef = ref(storage, `claim-proofs/${Date.now()}-${proof.name}`);
@@ -46,8 +44,8 @@ export default function ClaimPage() {
         proofUrl = await getDownloadURL(fileRef);
       }
       await addDoc(collection(db, "claimRequests"), {
-        businessId: biz.id,
-        businessName: biz.name,
+        businessId: match.id,
+        businessName: match.data().name || businessName.trim(),
         ownerName: ownerName.trim(),
         ownerWhatsapp: ownerWhatsapp.trim(),
         ownerEmail: ownerEmail.trim(),
@@ -56,7 +54,7 @@ export default function ClaimPage() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
-      setBusinessId("");
+      setBusinessName("");
       setOwnerName("");
       setOwnerWhatsapp("");
       setOwnerEmail("");
@@ -79,23 +77,17 @@ export default function ClaimPage() {
           <Link href="/" className="text-sm text-[#006B3F] font-medium">← Back to Home</Link>
           <h1 className="text-3xl font-bold mt-4 mb-2">Claim your business</h1>
           <p className="text-gray-600 mb-6">
-            If your shop is already on SaloneReviews, send proof that you run it.
+            Type the business name exactly as it appears on SaloneReviews.
             After we approve, you can add the free photo and paid extra photos.
           </p>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 space-y-4">
-            <select
-              value={businessId}
-              onChange={(e) => setBusinessId(e.target.value)}
+            <input
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Business name as listed"
               className="w-full border rounded-xl px-4 py-3"
               required
-            >
-              <option value="">Select your business</option>
-              {businesses.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} — {b.area || b.district}
-                </option>
-              ))}
-            </select>
+            />
             <input
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
@@ -133,7 +125,7 @@ export default function ClaimPage() {
               />
             </div>
             {message && (
-              <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("please") ? "text-red-500" : "text-green-600"}`}>
+              <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("please") || message.toLowerCase().includes("could not") ? "text-red-500" : "text-green-600"}`}>
                 {message}
               </p>
             )}
