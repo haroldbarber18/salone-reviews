@@ -108,6 +108,7 @@ export default function AdminPage() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
 
   const subcategoryOptions = subcategories[category] || [];
+  const maxPhotos = isPremium ? 4 : 1;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -169,14 +170,21 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    setPhotos(files.slice(0, 4));
+  const handlePremiumChange = (checked: boolean) => {
+    setIsPremium(checked);
+    const limit = checked ? 4 : 1;
+    setPhotos((prev) => prev.slice(0, limit));
+    if (!checked) setExistingPhotos((prev) => prev.slice(0, 1));
   };
 
-  const uploadPhotos = async () => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setPhotos(files.slice(0, maxPhotos));
+  };
+
+  const uploadPhotos = async (files: File[]) => {
     const urls: string[] = [];
-    for (const file of photos) {
+    for (const file of files) {
       const fileRef = ref(storage, `business-photos/${Date.now()}-${file.name}`);
       await uploadBytes(fileRef, file);
       urls.push(await getDownloadURL(fileRef));
@@ -203,11 +211,11 @@ export default function AdminPage() {
       const finalCategory = category === "Other" ? customCategory.trim() : category;
       const finalSubcategory = category === "Other" ? "" : subcategory.trim();
 
-      let photoUrls = existingPhotos;
-      if (isPremium && photos.length > 0) {
-        photoUrls = await uploadPhotos();
+      let photoUrls = existingPhotos.slice(0, maxPhotos);
+      if (photos.length > 0) {
+        const uploaded = await uploadPhotos(photos.slice(0, maxPhotos));
+        photoUrls = uploaded;
       }
-      if (!isPremium) photoUrls = [];
 
       const payload = {
         name: name.trim(),
@@ -330,9 +338,7 @@ export default function AdminPage() {
 
               {category !== "Other" && subcategoryOptions.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Subcategory (optional)
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Subcategory (optional)</label>
                   <select
                     value={subcategory}
                     onChange={(e) => setSubcategory(e.target.value)}
@@ -343,9 +349,6 @@ export default function AdminPage() {
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Only pick this if there is a different useful name, e.g. Plumber. Otherwise leave blank.
-                  </p>
                 </div>
               )}
 
@@ -407,36 +410,47 @@ export default function AdminPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Photo {isPremium ? "(up to 4)" : "(1 free, optional)"}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple={isPremium}
+                  onChange={handlePhotoChange}
+                  className="w-full border rounded-xl px-4 py-3 bg-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {photos.length > 0
+                    ? `${photos.length} new photo(s) selected`
+                    : existingPhotos.length > 0
+                    ? `${existingPhotos.length} existing photo(s)`
+                    : "No photo yet — you can save without one"}
+                </p>
+                {existingPhotos.length > 0 && photos.length === 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {existingPhotos.slice(0, maxPhotos).map((url) => (
+                      <img key={url} src={url} alt="" className="w-16 h-16 object-cover rounded-lg border" />
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isPremium}
-                  onChange={(e) => setIsPremium(e.target.checked)}
+                  onChange={(e) => handlePremiumChange(e.target.checked)}
                   className="mt-1 w-4 h-4 accent-[#006B3F]"
                 />
                 <span className="text-sm text-gray-700">
                   <span className="font-medium">Premium membership</span>
                   <span className="block text-gray-500 text-xs mt-0.5">
-                    Allows up to 4 photo uploads for this business
+                    Allows up to 4 photos. Free listings can have 1 photo.
                   </span>
                 </span>
               </label>
-
-              {isPremium && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Upload Photos (max 4)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handlePhotoChange}
-                    className="w-full border rounded-xl px-4 py-3 bg-white"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {photos.length > 0 ? `${photos.length} new photo(s) selected` : `${existingPhotos.length} existing photo(s)`}
-                  </p>
-                </div>
-              )}
 
               {message && (
                 <p className={`text-sm ${message.toLowerCase().includes("success") ? "text-green-600" : "text-red-500"}`}>
@@ -469,18 +483,24 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {businesses.map((b) => (
                   <div key={b.id} className="border rounded-xl p-4 flex justify-between gap-4 items-start">
-                    <div>
-                      <h3 className="font-semibold">
-                        {b.name}{" "}
-                        {b.isPremium && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Premium</span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {b.subcategory ? b.subcategory : b.category} · {b.district}
-                      </p>
-                      <p className="text-sm text-gray-600">{b.area}</p>
-                      {b.hours && <p className="text-sm text-gray-600">Hours: {b.hours}</p>}
+                    <div className="flex gap-3 min-w-0">
+                      {b.photos?.[0] ? (
+                        <img src={b.photos[0]} alt="" className="w-14 h-14 object-cover rounded-lg border shrink-0" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg bg-gray-100 border shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="font-semibold">
+                          {b.name}{" "}
+                          {b.isPremium && (
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Premium</span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {b.subcategory ? b.subcategory : b.category} · {b.district}
+                        </p>
+                        <p className="text-sm text-gray-600">{b.area}</p>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end">
                       <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
