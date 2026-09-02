@@ -37,7 +37,6 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
-
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
@@ -61,14 +60,9 @@ export default function ExplorePage() {
     setLoading(true);
     try {
       const businessSnap = await getDocs(collection(db, "businesses"));
-      setBusinesses(
-        businessSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
-
+      setBusinesses(businessSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       const reviewSnap = await getDocs(collection(db, "reviews"));
-      setReviews(
-        reviewSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
+      setReviews(reviewSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.log(error);
       setBusinesses([]);
@@ -88,7 +82,7 @@ export default function ExplorePage() {
   };
 
   const filtered = businesses.filter((b) => {
-    const text = `${b.name || ""} ${b.category || ""} ${b.area || ""} ${
+    const text = `${b.name || ""} ${b.category || ""} ${b.subcategory || ""} ${b.area || ""} ${
       b.district || ""
     } ${b.description || ""}`.toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase());
@@ -111,12 +105,8 @@ export default function ExplorePage() {
       <Navbar />
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Explore Businesses
-          </h1>
-          <p className="text-gray-700 mb-4">
-            Find trusted services across Sierra Leone
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Explore Businesses</h1>
+          <p className="text-gray-700 mb-4">Find trusted services across Sierra Leone</p>
 
           {!user && (
             <div className="bg-[#006B3F]/5 border border-[#006B3F]/20 rounded-2xl p-4 mb-6">
@@ -124,20 +114,13 @@ export default function ExplorePage() {
                 Log in or register free to access full benefits
               </p>
               <p className="text-xs text-gray-700 mb-3">
-                Business names, photos, addresses and contact details are
-                visible after login.
+                Business names, photos, addresses and contact details are visible after login.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/login"
-                  className="bg-[#006B3F] text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
-                >
+                <Link href="/login" className="bg-[#006B3F] text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
                   Log in
                 </Link>
-                <Link
-                  href="/signup"
-                  className="bg-white border border-[#006B3F] text-[#006B3F] text-sm font-semibold px-5 py-2.5 rounded-xl"
-                >
+                <Link href="/signup" className="bg-white border border-[#006B3F] text-[#006B3F] text-sm font-semibold px-5 py-2.5 rounded-xl">
                   Register free
                 </Link>
               </div>
@@ -153,9 +136,7 @@ export default function ExplorePage() {
           />
 
           <div className="mb-6">
-            <p className="text-sm font-medium text-gray-800 mb-2">
-              Filter by District
-            </p>
+            <p className="text-sm font-medium text-gray-800 mb-2">Filter by District</p>
             <div className="flex flex-wrap gap-2">
               {isAdmin && (
                 <button
@@ -192,68 +173,57 @@ export default function ExplorePage() {
           ) : (
             <>
               {isAdmin && (
-                <p className="text-sm text-gray-700 mb-4">
-                  {filtered.length} businesses found
-                </p>
+                <p className="text-sm text-gray-700 mb-4">{filtered.length} businesses found</p>
               )}
-
               {filtered.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-lg font-medium text-gray-900 mb-1">
-                    No businesses found.
-                  </p>
-                  <p className="text-gray-700">
-                    Try a different district or search term.
-                  </p>
+                  <p className="text-lg font-medium text-gray-900 mb-1">No businesses found.</p>
+                  <p className="text-gray-700">Try a different district or search term.</p>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filtered.map((b) => {
                     const stats = getStats(b.id);
+                    const label = b.subcategory || b.category;
+                    const photo = user && b.photos?.[0] ? b.photos[0] : null;
                     return (
                       <Link
                         key={b.id}
                         href={`/business/${b.id}`}
-                        className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition"
+                        className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition"
                       >
-                        <div className="flex justify-between gap-3 mb-2">
-                          <h2
-                            className={`font-bold text-lg ${
-                              user ? "text-gray-900" : "text-gray-500"
-                            }`}
-                          >
-                            {user ? b.name : "Business name hidden"}
-                          </h2>
-                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full h-fit">
-                            {b.category}
-                          </span>
-                        </div>
-
-                        {user ? (
-                          <>
-                            <p className="text-sm text-gray-700 mb-1">
-                              {b.area}
-                            </p>
-                            <p className="text-sm text-[#006B3F] mb-3">
-                              {b.district}
-                            </p>
-                          </>
+                        {photo ? (
+                          <img src={photo} alt="" className="w-full h-36 object-cover" />
                         ) : (
-                          <p className="text-sm text-gray-500 mb-3">
-                            Location hidden · Register free to view
-                          </p>
+                          <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                            {user ? "No photo" : "Photo hidden"}
+                          </div>
                         )}
-
-                        <p className="text-sm text-gray-700 line-clamp-2 mb-3">
-                          {b.description}
-                        </p>
-
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <span className="text-amber-500">★</span>
-                          <span className="font-semibold">{stats.average}</span>
-                          <span className="text-gray-700">
-                            ({stats.count} reviews)
-                          </span>
+                        <div className="p-5">
+                          <div className="flex justify-between gap-3 mb-2">
+                            <h2 className={`font-bold text-lg ${user ? "text-gray-900" : "text-gray-500"}`}>
+                              {user ? b.name : "Business name hidden"}
+                            </h2>
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full h-fit">
+                              {label}
+                            </span>
+                          </div>
+                          {user ? (
+                            <>
+                              <p className="text-sm text-gray-700 mb-1">{b.area}</p>
+                              <p className="text-sm text-[#006B3F] mb-3">{b.district}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-500 mb-3">
+                              Location hidden · Register free to view
+                            </p>
+                          )}
+                          <p className="text-sm text-gray-700 line-clamp-2 mb-3">{b.description}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-900">
+                            <span className="text-amber-500">★</span>
+                            <span className="font-semibold">{stats.average}</span>
+                            <span className="text-gray-700">({stats.count} reviews)</span>
+                          </div>
                         </div>
                       </Link>
                     );
