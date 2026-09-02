@@ -13,10 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SaloneReviews - Find Trusted Businesses in Sierra Leone",
-  description: "Real reviews from real people. Find trusted plumbers, electricians, restaurants and more across Sierra Leone.",
+  title: "SaloneReviews | Business reviews, events and directory in Sierra Leone",
+  description:
+    "Find trusted businesses, tradesmen, restaurants and upcoming events across Sierra Leone. Read real reviews. List or claim your shop free.",
   verification: {
     google: "9I61ZqNiWlco0W8N8JQpJiYD5JnZ_7gvcHi5VV4rgKQ",
+  },
 };
 
 export default function RootLayout({
@@ -26,7 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
+      >
         {children}
       </body>
     </html>
