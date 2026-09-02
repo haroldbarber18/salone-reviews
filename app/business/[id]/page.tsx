@@ -490,6 +490,14 @@ export default function BusinessPage() {
                 >
                   📤 Share
                 </button>
+                {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
+                 <Link
+             href="/claim"
+           className="inline-block mt-3 text-sm font-semibold text-[#006B3F]"
+             >
+          Is this your business? Claim this listing
+        </Link>
+          )}
               </div>
             )}
           </div>
