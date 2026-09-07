@@ -24,28 +24,6 @@ const categories = [
   "Events & Entertainment","Media & Publishing","Business Services","Animals & Pets",
   "Sports & Fitness","Utilities & Energy","Public & Community","Other",
 ];
-const subcategories: Record<string, string[]> = {
-  Tradesmen: ["Electrician","Painter","Tiler","Welder","Carpenter","Plumber"],
-  Auto: ["Mechanic","Car wash","Spare parts","Taxi"],
-  Food: ["Restaurant","Bar","Cafe","Takeaway","Bakery"],
-  Hotels: ["Hotel","Guest house","Lodge"],
-  Beauty: ["Salon","Barber","Spa"],
-  Home: ["Cleaning","Security","Laundry"],
-  "Health & Medical": ["Pharmacy","Clinic","Hospital","Dentist"],
-  "Education & Training": ["School","Tuition","Vocational"],
-  "Money & Insurance": ["Bank","Microfinance","Insurance"],
-  "Legal & Government": ["Lawyer","Notary"],
-  "Shopping & Fashion": ["Boutique","Market stall"],
-  "Electronics & Tech": ["Phone repair","Computer"],
-  "Events & Entertainment": ["DJ","Event planner"],
-  "Media & Publishing": ["Radio","Printing"],
-  "Business Services": ["Accounting","Printing"],
-  "Animals & Pets": ["Vet","Pet shop"],
-  "Sports & Fitness": ["Gym","Coach"],
-  "Utilities & Energy": ["Solar","Water"],
-  "Public & Community": ["NGO","Church"],
-  Other: [],
-};
 const districts = [
   "Western Area Urban","Western Area Rural","Bo","Kenema","Bombali","Port Loko","Kono",
   "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
@@ -144,7 +122,6 @@ export default function AdminPage() {
   if (checking) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) { router.push("/login"); return null; }
   if (!isAdmin) return <div className="min-h-screen flex items-center justify-center">Admin access only</div>;
-  const subOptions = subcategories[category] || [];
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -162,23 +139,15 @@ export default function AdminPage() {
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
             <div className="grid sm:grid-cols-2 gap-4">
-              <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(""); }} className="w-full border rounded-xl px-4 py-3">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl px-4 py-3">
                 {categories.map((c) => <option key={c}>{c}</option>)}
               </select>
-              <div>
-                <input
-                  list="subcategory-list"
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  placeholder="Subcategory (optional) — type or pick"
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-                <datalist id="subcategory-list">
-                  {subOptions.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </div>
+              <input
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                placeholder="Subcategory (optional)"
+                className="w-full border rounded-xl px-4 py-3"
+              />
             </div>
             {category === "Other" && (
               <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Custom category" className="w-full border rounded-xl px-4 py-3" />
