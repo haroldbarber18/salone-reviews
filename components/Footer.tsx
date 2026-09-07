@@ -187,7 +187,7 @@ export default function Footer() {
             </svg>
           </SocialIcon>
 
-          <SocialIcon href="https://youtube.com/salonereviews" label="YouTube">
+          <SocialIcon href="https://youtube.com/@salonereviews" label="YouTube">
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
               <path d="M23 7.5a4 4 0 0 0-2.8-2.8C18.4 4.2 12 4.2 12 4.2s-6.4 0-8.2.5A4 4 0 0 0 1 7.5 41.6 41.6 0 0 0 1 12a41.6 41.6 0 0 0 .8 4.5 4 4 0 0 0 2.8 2.8c1.8.5 8.2.5 8.2.5s6.4 0 8.2-.5a4 4 0 0 0 2.8-2.8A41.6 41.6 0 0 0 23 12a41.6 41.6 0 0 0 0-4.5zM9.8 15.5v-7l6.2 3.5-6.2 3.5z" />
             </svg>
