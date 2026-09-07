@@ -165,19 +165,20 @@ export default function AdminPage() {
               <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(""); }} className="w-full border rounded-xl px-4 py-3">
                 {categories.map((c) => <option key={c}>{c}</option>)}
               </select>
-             <input
-                list="subcategory-list"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                placeholder="Subcategory (optional) — type or pick"
-                className="w-full border rounded-xl px-4 py-3"
-              />
-              <datalist id="subcategory-list">
-                {subOptions.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
-              )}
+              <div>
+                <input
+                  list="subcategory-list"
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  placeholder="Subcategory (optional) — type or pick"
+                  className="w-full border rounded-xl px-4 py-3"
+                />
+                <datalist id="subcategory-list">
+                  {subOptions.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              </div>
             </div>
             {category === "Other" && (
               <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Custom category" className="w-full border rounded-xl px-4 py-3" />
