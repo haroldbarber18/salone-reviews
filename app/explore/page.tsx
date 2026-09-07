@@ -28,6 +28,14 @@ const districts = [
   "Koinadugu",
 ];
 
+function isFeaturedActive(b: any) {
+  if (!b?.featuredUntil) return false;
+  const d = new Date(b.featuredUntil);
+  if (isNaN(d.getTime())) return false;
+  d.setHours(23, 59, 59, 999);
+  return d >= new Date();
+}
+
 export default function ExplorePage() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -82,32 +90,27 @@ export default function ExplorePage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return businesses.filter((b) => {
+    const list = businesses.filter((b) => {
       const districtMatch =
         isAdmin && district === "All" ? true : b.district === district;
       if (!districtMatch) return false;
       if (!q) return true;
-      const hay = [
-        b.name,
-        b.category,
-        b.subcategory,
-        b.area,
-        b.district,
-        b.description,
-      ]
+      const hay = [b.name, b.category, b.subcategory, b.area, b.district, b.description]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
+    return list.sort((a, b) => {
+      const fa = isFeaturedActive(a) ? 1 : 0;
+      const fb = isFeaturedActive(b) ? 1 : 0;
+      return fb - fa;
+    });
   }, [businesses, search, district, isAdmin]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
@@ -147,9 +150,7 @@ export default function ExplorePage() {
           {authLoading || loading ? (
             <p>Loading...</p>
           ) : filtered.length === 0 ? (
-            <div className="bg-white border rounded-2xl p-6 text-gray-500">
-              No businesses found.
-            </div>
+            <div className="bg-white border rounded-2xl p-6 text-gray-500">No businesses found.</div>
           ) : (
             <>
               <p className="text-sm text-gray-600 mb-4">
@@ -159,26 +160,30 @@ export default function ExplorePage() {
               <div className="grid gap-4">
                 {paged.map((b) => {
                   const stats = getStats(b.id);
+                  const featured = isFeaturedActive(b);
                   return (
                     <Link
                       key={b.id}
                       href={`/business/${b.id}`}
-                      className="bg-white border rounded-2xl p-5 hover:shadow-md transition"
+                      className={`bg-white rounded-2xl p-5 hover:shadow-md transition ${
+                        featured ? "border-2 border-amber-300 bg-amber-50" : "border"
+                      }`}
                     >
                       <div className="flex gap-4">
                         {user && b.photos?.[0] ? (
-                          <img
-                            src={b.photos[0]}
-                            alt=""
-                            className="w-20 h-20 object-cover rounded-xl border shrink-0"
-                          />
+                          <img src={b.photos[0]} alt="" className="w-20 h-20 object-cover rounded-xl border shrink-0" />
                         ) : (
                           <div className="w-20 h-20 rounded-xl bg-gray-100 border shrink-0" />
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between gap-3 mb-2">
-                            <h2 className="font-bold text-lg text-gray-900">
+                            <h2 className="font-bold text-lg text-gray-900 flex flex-wrap items-center gap-2">
                               {user ? b.name : "Business name hidden"}
+                              {featured && (
+                                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                                  Featured
+                                </span>
+                              )}
                             </h2>
                             <span className="text-xs bg-gray-100 px-2 py-1 rounded-full h-fit">
                               {b.subcategory || b.category}
@@ -194,9 +199,7 @@ export default function ExplorePage() {
                               Location hidden · Register free to view
                             </p>
                           )}
-                          <p className="text-sm text-gray-700 line-clamp-2 mb-3">
-                            {b.description}
-                          </p>
+                          <p className="text-sm text-gray-700 line-clamp-2 mb-3">{b.description}</p>
                           <div className="flex items-center gap-2 text-sm text-gray-900">
                             <span className="text-amber-500">★</span>
                             <span className="font-semibold">{stats.average}</span>
@@ -210,12 +213,7 @@ export default function ExplorePage() {
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => goTo(currentPage - 1)}
-                    className="px-4 py-2 rounded-xl border bg-white disabled:opacity-40"
-                  >
+                  <button type="button" disabled={currentPage === 1} onClick={() => goTo(currentPage - 1)} className="px-4 py-2 rounded-xl border bg-white disabled:opacity-40">
                     Previous
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
@@ -224,20 +222,13 @@ export default function ExplorePage() {
                       type="button"
                       onClick={() => goTo(n)}
                       className={`w-10 h-10 rounded-xl border ${
-                        n === currentPage
-                          ? "bg-[#006B3F] text-white border-[#006B3F]"
-                          : "bg-white"
+                        n === currentPage ? "bg-[#006B3F] text-white border-[#006B3F]" : "bg-white"
                       }`}
                     >
                       {n}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    disabled={currentPage === totalPages}
-                    onClick={() => goTo(currentPage + 1)}
-                    className="px-4 py-2 rounded-xl border bg-white disabled:opacity-40"
-                  >
+                  <button type="button" disabled={currentPage === totalPages} onClick={() => goTo(currentPage + 1)} className="px-4 py-2 rounded-xl border bg-white disabled:opacity-40">
                     Next
                   </button>
                 </div>
