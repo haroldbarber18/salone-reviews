@@ -18,6 +18,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
+const MAX_PHOTOS = 4;
 const PLACEMENTS = [
   { value: "top1", label: "Top Sponsor 1" },
   { value: "top2", label: "Top Sponsor 2" },
@@ -52,8 +53,8 @@ export default function AdminAdsPage() {
   const [eventEndDate, setEventEndDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [existingImageUrl, setExistingImageUrl] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
@@ -90,8 +91,8 @@ export default function AdminAdsPage() {
     setEventEndDate("");
     setStartDate("");
     setEndDate("");
-    setImageFile(null);
-    setExistingImageUrl("");
+    setImageFiles([]);
+    setExistingPhotos([]);
   };
 
   const startEdit = (ad: any) => {
@@ -109,9 +110,29 @@ export default function AdminAdsPage() {
     setEventEndDate(ad.eventEndDate || "");
     setStartDate(ad.startDate || "");
     setEndDate(ad.endDate || "");
-    setExistingImageUrl(ad.imageUrl || "");
-    setImageFile(null);
+    const photos = Array.isArray(ad.photos) && ad.photos.length ? ad.photos : ad.imageUrl ? [ad.imageUrl] : [];
+    setExistingPhotos(photos);
+    setImageFiles([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const incoming = Array.from(files);
+    const room = MAX_PHOTOS - existingPhotos.length - imageFiles.length;
+    if (room <= 0) {
+      setMessage("Maximum 4 photos.");
+      return;
+    }
+    setImageFiles((prev) => [...prev, ...incoming.slice(0, room)]);
+  };
+
+  const removeExisting = (url: string) => {
+    setExistingPhotos((prev) => prev.filter((p) => p !== url));
+  };
+
+  const removeNew = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,12 +149,13 @@ export default function AdminAdsPage() {
     setLoading(true);
     setMessage("");
     try {
-      let imageUrl = existingImageUrl;
-      if (imageFile) {
-        const imageRef = ref(storage, `ads/${Date.now()}-${imageFile.name}`);
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
+      const uploaded: string[] = [];
+      for (const file of imageFiles) {
+        const imageRef = ref(storage, `ads/${Date.now()}-${file.name}`);
+        await uploadBytes(imageRef, file);
+        uploaded.push(await getDownloadURL(imageRef));
       }
+      const photos = [...existingPhotos, ...uploaded].slice(0, MAX_PHOTOS);
       const payload = {
         type,
         placement,
@@ -148,7 +170,8 @@ export default function AdminAdsPage() {
         eventEndDate: eventEndDate || "",
         startDate: startDate || "",
         endDate: endDate || "",
-        imageUrl,
+        photos,
+        imageUrl: photos[0] || "",
         active: true,
       };
       if (editingId) {
@@ -185,6 +208,8 @@ export default function AdminAdsPage() {
     return null;
   }
   if (!isAdmin) return <div className="min-h-screen flex items-center justify-center">Admin access only</div>;
+
+  const remaining = MAX_PHOTOS - existingPhotos.length - imageFiles.length;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -230,7 +255,7 @@ export default function AdminAdsPage() {
             {feeType === "paid" && (
               <div>
                 <label className="block text-sm font-medium mb-2">Price</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. Le 500 or NLe 1,000" className="w-full border rounded-xl px-4 py-3" />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. NLe 500" className="w-full border rounded-xl px-4 py-3" />
               </div>
             )}
 
@@ -247,12 +272,10 @@ export default function AdminAdsPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">Event start date</label>
                 <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
-                <p className="text-xs text-gray-500 mt-1">One-day event: fill this only.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Event end date (optional)</label>
                 <input type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
-                <p className="text-xs text-gray-500 mt-1">Use only if it runs more than one day.</p>
               </div>
             </div>
 
@@ -269,16 +292,42 @@ export default function AdminAdsPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                {editingId ? "Replace image (optional)" : "Image"}
+                Photos (up to 4). First photo is the homepage cover.
               </label>
-              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="block w-full text-sm" />
-              {existingImageUrl && !imageFile && (
-                <img src={existingImageUrl} alt="Current" className="mt-3 w-28 h-28 object-cover rounded-xl border" />
+              {remaining > 0 && (
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleFiles(e.target.files)}
+                  className="block w-full text-sm"
+                />
               )}
+              <p className="text-xs text-gray-500 mt-1">{existingPhotos.length + imageFiles.length} / 4 used</p>
+              <div className="flex flex-wrap gap-3 mt-3">
+                {existingPhotos.map((url) => (
+                  <div key={url} className="relative">
+                    <img src={url} alt="" className="w-24 h-24 object-cover rounded-xl border" />
+                    <button type="button" onClick={() => removeExisting(url)} className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-6 h-6 rounded-full">
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {imageFiles.map((file, i) => (
+                  <div key={`${file.name}-${i}`} className="relative">
+                    <div className="w-24 h-24 rounded-xl border bg-gray-100 flex items-center justify-center text-[10px] p-1 text-center">
+                      {file.name}
+                    </div>
+                    <button type="button" onClick={() => removeNew(i)} className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-6 h-6 rounded-full">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {message && (
-              <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("enter") ? "text-red-500" : "text-green-600"}`}>
+              <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("enter") || message.toLowerCase().includes("maximum") ? "text-red-500" : "text-green-600"}`}>
                 {message}
               </p>
             )}
@@ -298,8 +347,8 @@ export default function AdminAdsPage() {
             <h2 className="text-xl font-bold">Published items</h2>
             {ads.map((ad) => (
               <div key={ad.id} className="bg-white border rounded-2xl p-4 flex gap-4 items-start">
-                {ad.imageUrl ? (
-                  <img src={ad.imageUrl} alt={ad.title} className="w-24 h-24 object-cover rounded-xl" />
+                {(ad.photos?.[0] || ad.imageUrl) ? (
+                  <img src={ad.photos?.[0] || ad.imageUrl} alt={ad.title} className="w-24 h-24 object-cover rounded-xl" />
                 ) : (
                   <div className="w-24 h-24 bg-gray-100 rounded-xl" />
                 )}
@@ -307,14 +356,9 @@ export default function AdminAdsPage() {
                   <div className="flex flex-wrap gap-2 mb-1">
                     <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{ad.type}</span>
                     <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">{ad.placement}</span>
-                    {ad.feeType ? (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                        {ad.feeType}{ad.price ? ` · ${ad.price}` : ""}
-                      </span>
-                    ) : null}
-                    {ad.eventDate && (
-                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
-                        {ad.eventDate}{ad.eventEndDate ? ` to ${ad.eventEndDate}` : ""}
+                    {(ad.photos?.length || 0) > 1 && (
+                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        {ad.photos.length} photos
                       </span>
                     )}
                   </div>
@@ -322,12 +366,8 @@ export default function AdminAdsPage() {
                   <p className="text-sm text-gray-600">{ad.description}</p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => startEdit(ad)} className="text-sm text-[#006B3F] font-medium">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(ad.id)} className="text-sm text-red-600 font-medium">
-                    Delete
-                  </button>
+                  <button onClick={() => startEdit(ad)} className="text-sm text-[#006B3F] font-medium">Edit</button>
+                  <button onClick={() => handleDelete(ad.id)} className="text-sm text-red-600 font-medium">Delete</button>
                 </div>
               </div>
             ))}

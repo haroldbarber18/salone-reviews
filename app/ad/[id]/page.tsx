@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -20,22 +19,13 @@ function formatDate(dateStr?: string) {
   });
 }
 
-function formatShortDate(dateStr?: string) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
-  return {
-    day: d.getDate(),
-    month: d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
-  };
-}
-
 export default function AdDetailsPage() {
   const params = useParams();
   const id = params?.id as string;
   const [ad, setAd] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activePhoto, setActivePhoto] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -57,124 +47,85 @@ export default function AdDetailsPage() {
     load();
   }, [id]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading details...</div>;
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading details...</div>;
   if (error || !ad) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3">
         <p>{error || "Item not found"}</p>
-        <Link href="/" className="text-[#006B3F] font-medium">
-          ← Back to Home
-        </Link>
+        <Link href="/" className="text-[#006B3F] font-medium">Back home</Link>
       </div>
     );
   }
 
-  const shortDate = formatShortDate(ad.eventDate);
+  const photos: string[] =
+    Array.isArray(ad.photos) && ad.photos.length
+      ? ad.photos
+      : ad.imageUrl
+      ? [ad.imageUrl]
+      : [];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          <Link href="/" className="text-sm text-[#006B3F] font-medium">
-            ← Back to Home
-          </Link>
-
+      <main className="flex-1 px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/" className="text-sm text-[#006B3F] font-medium">← Back home</Link>
           <div className="bg-white border rounded-2xl overflow-hidden mt-4">
-            {ad.imageUrl && (
+            {photos.length > 0 && (
               <div className="bg-gray-50">
                 <img
-                  src={ad.imageUrl}
+                  src={photos[activePhoto]}
                   alt={ad.title}
-                  className="w-full max-h-[360px] object-contain"
+                  className="w-full max-h-[420px] object-contain bg-white"
                 />
-              </div>
-            )}
-
-            <div className="p-5 sm:p-6">
-              <div className="flex gap-4 mb-4">
-                {shortDate && (
-                  <div className="w-16 h-16 rounded-xl bg-[#006B3F] text-white flex flex-col items-center justify-center shrink-0">
-                    <span className="text-[11px] font-semibold">{shortDate.month}</span>
-                    <span className="text-2xl font-bold leading-none">{shortDate.day}</span>
+                {photos.length > 1 && (
+                  <div className="flex gap-2 p-3 overflow-x-auto">
+                    {photos.map((url, i) => (
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => setActivePhoto(i)}
+                        className={`w-16 h-16 rounded-lg overflow-hidden border ${
+                          i === activePhoto ? "border-[#006B3F]" : "border-gray-200"
+                        }`}
+                      >
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
                   </div>
                 )}
-
-                <div className="flex-1">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                    {ad.type === "event"
-                      ? "Event"
-                      : ad.type === "flyer"
-                      ? "Flyer"
-                      : "Sponsored"}
-                  </p>
-                  <h1 className="text-2xl font-bold leading-snug">{ad.title}</h1>
-                </div>
               </div>
-
-              <div className="flex flex-wrap gap-2 mb-5">
+            )}
+            <div className="p-5">
+              <div className="flex flex-wrap gap-2 mb-3">
                 {ad.feeType === "free" && (
-                  <span className="text-xs bg-green-100 text-green-800 px-2.5 py-1 rounded-full font-semibold">
-                    Free
-                  </span>
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Free</span>
                 )}
                 {ad.feeType === "paid" && (
-                  <span className="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-semibold">
+                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
                     Paid{ad.price ? ` · ${ad.price}` : ""}
                   </span>
                 )}
-                {ad.district && (
-                  <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">
-                    {ad.district}
-                  </span>
-                )}
               </div>
-
-              <div className="space-y-3 mb-6">
-                {ad.eventDate && (
-                  <div className="flex gap-3 items-start">
-                    <span className="text-lg">🕒</span>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase">When</p>
-                      <p className="text-sm text-gray-800">{formatDate(ad.eventDate)}</p>
-                    </div>
-                  </div>
-                )}
-
-                {ad.district && (
-                  <div className="flex gap-3 items-start">
-                    <span className="text-lg">📍</span>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase">Where</p>
-                      <p className="text-sm text-gray-800">{ad.district}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
+              <h1 className="text-2xl font-bold mb-3">{ad.title}</h1>
+              {(ad.eventDate || ad.eventEndDate) && (
+                <p className="text-sm text-gray-700 mb-1">
+                  <span className="font-medium">Event date:</span>{" "}
+                  {ad.eventDate && ad.eventEndDate
+                    ? `${formatDate(ad.eventDate)} – ${formatDate(ad.eventEndDate)}`
+                    : formatDate(ad.eventDate || ad.eventEndDate)}
+                </p>
+              )}
+              {ad.district && <p className="text-sm text-[#006B3F] mb-4">{ad.district}</p>}
               <p className="text-gray-700 whitespace-pre-wrap mb-6">{ad.description}</p>
-
               <div className="flex flex-wrap gap-3">
                 {ad.phone && (
-                  <a
-                    href={`https://wa.me/${ad.phone}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-[#25D366] text-white font-semibold px-5 py-3 rounded-xl"
-                  >
-                    WhatsApp / RSVP
+                  <a href={`https://wa.me/${ad.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white font-semibold px-5 py-3 rounded-xl">
+                    WhatsApp
                   </a>
                 )}
                 {ad.link && (
-                  <a
-                    href={ad.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-gray-900 text-white font-semibold px-5 py-3 rounded-xl"
-                  >
+                  <a href={ad.link} target="_blank" rel="noopener noreferrer" className="bg-gray-900 text-white font-semibold px-5 py-3 rounded-xl">
                     Open link
                   </a>
                 )}
