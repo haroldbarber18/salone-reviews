@@ -48,6 +48,10 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
+    if (isAdmin) setDistrict("All");
+  }, [isAdmin]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSearch(params.get("q") || "");
   }, []);
@@ -79,9 +83,10 @@ export default function ExplorePage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return businesses.filter((b) => {
-      const districtOk = isAdmin ? true : b.district === district;
-      if (!districtOk && district !== "All") return false;
-      if (!q) return isAdmin || b.district === district;
+      const districtMatch =
+        isAdmin && district === "All" ? true : b.district === district;
+      if (!districtMatch) return false;
+      if (!q) return true;
       const hay = [
         b.name,
         b.category,
@@ -93,9 +98,7 @@ export default function ExplorePage() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      const match = hay.includes(q);
-      if (isAdmin) return match;
-      return match && b.district === district;
+      return hay.includes(q);
     });
   }, [businesses, search, district, isAdmin]);
 
@@ -121,7 +124,6 @@ export default function ExplorePage() {
       <main className="flex-1 px-4 py-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Explore businesses</h1>
-
           <div className="grid md:grid-cols-2 gap-3 mb-6">
             <input
               value={search}
@@ -142,7 +144,6 @@ export default function ExplorePage() {
               ))}
             </select>
           </div>
-
           {authLoading || loading ? (
             <p>Loading...</p>
           ) : filtered.length === 0 ? (
@@ -207,7 +208,6 @@ export default function ExplorePage() {
                   );
                 })}
               </div>
-
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
                   <button
