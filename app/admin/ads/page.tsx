@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +18,6 @@ import {
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
-
 const PLACEMENTS = [
   { value: "top1", label: "Top Sponsor 1" },
   { value: "top2", label: "Top Sponsor 2" },
@@ -41,7 +39,6 @@ export default function AdminAdsPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [type, setType] = useState<"flyer" | "event">("event");
   const [placement, setPlacement] = useState("left");
   const [feeType, setFeeType] = useState<"" | "free" | "paid">("");
@@ -52,11 +49,11 @@ export default function AdminAdsPage() {
   const [link, setLink] = useState("");
   const [district, setDistrict] = useState("");
   const [eventDate, setEventDate] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState("");
-
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
@@ -90,6 +87,7 @@ export default function AdminAdsPage() {
     setLink("");
     setDistrict("");
     setEventDate("");
+    setEventEndDate("");
     setStartDate("");
     setEndDate("");
     setImageFile(null);
@@ -108,6 +106,7 @@ export default function AdminAdsPage() {
     setLink(ad.link || "");
     setDistrict(ad.district || "");
     setEventDate(ad.eventDate || "");
+    setEventEndDate(ad.eventEndDate || "");
     setStartDate(ad.startDate || "");
     setEndDate(ad.endDate || "");
     setExistingImageUrl(ad.imageUrl || "");
@@ -126,10 +125,8 @@ export default function AdminAdsPage() {
       setMessage("Enter price for paid events.");
       return;
     }
-
     setLoading(true);
     setMessage("");
-
     try {
       let imageUrl = existingImageUrl;
       if (imageFile) {
@@ -137,7 +134,6 @@ export default function AdminAdsPage() {
         await uploadBytes(imageRef, imageFile);
         imageUrl = await getDownloadURL(imageRef);
       }
-
       const payload = {
         type,
         placement,
@@ -149,12 +145,12 @@ export default function AdminAdsPage() {
         link: link.trim(),
         district: district.trim(),
         eventDate: eventDate || "",
+        eventEndDate: eventEndDate || "",
         startDate: startDate || "",
         endDate: endDate || "",
         imageUrl,
         active: true,
       };
-
       if (editingId) {
         await updateDoc(doc(db, "ads", editingId), payload);
         setMessage("Updated successfully.");
@@ -165,7 +161,6 @@ export default function AdminAdsPage() {
         });
         setMessage("Saved successfully.");
       }
-
       resetForm();
       loadAds();
     } catch (error) {
@@ -235,7 +230,7 @@ export default function AdminAdsPage() {
             {feeType === "paid" && (
               <div>
                 <label className="block text-sm font-medium mb-2">Price</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. £85 or 500,000 SLL" className="w-full border rounded-xl px-4 py-3" />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. Le 500 or NLe 1,000" className="w-full border rounded-xl px-4 py-3" />
               </div>
             )}
 
@@ -246,12 +241,19 @@ export default function AdminAdsPage() {
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp / Phone" className="w-full border rounded-xl px-4 py-3" />
               <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Optional external link" className="w-full border rounded-xl px-4 py-3" />
             </div>
-
             <input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Venue / District" className="w-full border rounded-xl px-4 py-3" />
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Event date (optional)</label>
-              <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Event start date</label>
+                <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
+                <p className="text-xs text-gray-500 mt-1">One-day event: fill this only.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Event end date (optional)</label>
+                <input type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
+                <p className="text-xs text-gray-500 mt-1">Use only if it runs more than one day.</p>
+              </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
@@ -280,7 +282,6 @@ export default function AdminAdsPage() {
                 {message}
               </p>
             )}
-
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl disabled:opacity-60">
                 {loading ? "Saving..." : editingId ? "Update" : "Publish"}
@@ -311,6 +312,11 @@ export default function AdminAdsPage() {
                         {ad.feeType}{ad.price ? ` · ${ad.price}` : ""}
                       </span>
                     ) : null}
+                    {ad.eventDate && (
+                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
+                        {ad.eventDate}{ad.eventEndDate ? ` to ${ad.eventEndDate}` : ""}
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-semibold">{ad.title}</h3>
                   <p className="text-sm text-gray-600">{ad.description}</p>

@@ -97,6 +97,12 @@ function formatDate(dateStr?: string) {
     month: "short",
   });
 }
+function formatEventRange(ad: any) {
+  if (ad.eventDate && ad.eventEndDate) {
+    return `${formatDate(ad.eventDate)} – ${formatDate(ad.eventEndDate)}`;
+  }
+  return formatDate(ad.eventDate || ad.eventEndDate);
+}
 function EmptySlot() {
   return (
     <div className="min-h-[120px] border border-dashed border-gray-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-500 p-3">
@@ -118,8 +124,8 @@ function AdCard({ ad }: { ad?: any }) {
       )}
       <div className="p-3 bg-white">
         <div className="flex items-center justify-between gap-2 mb-1">
-          {ad.eventDate ? (
-            <p className="text-xs text-gray-500">{formatDate(ad.eventDate)}</p>
+          {(ad.eventDate || ad.eventEndDate) ? (
+            <p className="text-xs text-gray-500">{formatEventRange(ad)}</p>
           ) : (
             <span />
           )}
