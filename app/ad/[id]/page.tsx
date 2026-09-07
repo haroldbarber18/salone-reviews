@@ -72,21 +72,21 @@ export default function AdDetailsPage() {
           <Link href="/" className="text-sm text-[#006B3F] font-medium">← Back home</Link>
           <div className="bg-white border rounded-2xl overflow-hidden mt-4">
             {photos.length > 0 && (
-              <div className="bg-gray-50">
+              <div className="bg-gray-100">
                 <img
                   src={photos[activePhoto]}
                   alt={ad.title}
-                  className="w-full max-h-[420px] object-contain bg-white"
+                  className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover"
                 />
                 {photos.length > 1 && (
-                  <div className="flex gap-2 p-3 overflow-x-auto">
+                  <div className="flex gap-2 p-3 overflow-x-auto bg-white">
                     {photos.map((url, i) => (
                       <button
                         key={url}
                         type="button"
                         onClick={() => setActivePhoto(i)}
-                        className={`w-16 h-16 rounded-lg overflow-hidden border ${
-                          i === activePhoto ? "border-[#006B3F]" : "border-gray-200"
+                        className={`w-16 h-16 rounded-lg overflow-hidden border shrink-0 ${
+                          i === activePhoto ? "border-[#006B3F] border-2" : "border-gray-200"
                         }`}
                       >
                         <img src={url} alt="" className="w-full h-full object-cover" />
