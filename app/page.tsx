@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-
 const categories = [
   { name: "Tradesmen", desc: "All trades", icon: "🔧", q: "Tradesmen" },
   { name: "Electrician", desc: "Wiring & power", icon: "💡", q: "Electrician" },
@@ -26,7 +24,6 @@ const categories = [
   { name: "Pharmacy", desc: "Chemist", icon: "💊", q: "Pharmacy" },
   { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
-
 function parseAdDate(dateStr?: string) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
@@ -35,7 +32,10 @@ function parseAdDate(dateStr?: string) {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
-
+function getAdSortTime(ad: any) {
+  const d = parseAdDate(ad.eventDate) || parseAdDate(ad.startDate);
+  return d ? d.getTime() : Number.MAX_SAFE_INTEGER;
+}
 function normalizePlacement(p?: string) {
   if (!p) return "";
   const s = String(p).trim().toLowerCase();
@@ -58,7 +58,6 @@ function normalizePlacement(p?: string) {
   };
   return map[s] || s;
 }
-
 function isAdVisible(ad: any) {
   if (ad.active === false) return false;
   const today = new Date();
@@ -75,7 +74,6 @@ function isAdVisible(ad: any) {
   }
   return true;
 }
-
 function isThisWeek(ad: any) {
   if (!ad.startDate && !ad.endDate) return true;
   const now = new Date();
@@ -89,7 +87,6 @@ function isThisWeek(ad: any) {
   const end = parseAdDate(ad.endDate) || start;
   return start <= weekEnd && end >= weekStart;
 }
-
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
   const d = parseAdDate(dateStr) || new Date(dateStr);
@@ -100,7 +97,6 @@ function formatDate(dateStr?: string) {
     month: "short",
   });
 }
-
 function EmptySlot() {
   return (
     <div className="min-h-[120px] border border-dashed border-gray-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-500 p-3">
@@ -108,7 +104,6 @@ function EmptySlot() {
     </div>
   );
 }
-
 function AdCard({ ad }: { ad?: any }) {
   if (!ad) return <EmptySlot />;
   return (
@@ -145,41 +140,44 @@ function AdCard({ ad }: { ad?: any }) {
     </Link>
   );
 }
-
 export default function HomePage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [ads, setAds] = useState<any[]>([]);
   const [eventFilter, setEventFilter] = useState<"all" | "week">("all");
-
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     loadAds();
   }, []);
-
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const loadAds = async () => {
     const snap = await getDocs(collection(db, "ads"));
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     setAds(data.filter(isAdVisible));
   };
-
   const byPlacement = (key: string) =>
     ads.find((a) => normalizePlacement(a.placement) === key);
-
   const leftFeed = useMemo(() => {
     const list = ads.filter((a) => {
       const p = normalizePlacement(a.placement);
       return !p || p === "left";
     });
-    if (eventFilter === "week") return list.filter(isThisWeek);
-    return list;
+    const filtered = eventFilter === "week" ? list.filter(isThisWeek) : list;
+    return [...filtered].sort((a, b) => getAdSortTime(a) - getAdSortTime(b));
   }, [ads, eventFilter]);
-
+  const visibleLeftFeed =
+    !isMobile || showAllEvents ? leftFeed : leftFeed.slice(0, 10);
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = search.trim();
     router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
   };
-
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
@@ -231,7 +229,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
         <section className="px-3 sm:px-4 py-8 bg-gray-50">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
             <aside className="bg-white border border-gray-200 rounded-2xl p-3">
@@ -239,7 +236,10 @@ export default function HomePage() {
                 <p className="text-sm font-bold text-gray-900 mb-2">Events & Flyers</p>
                 <select
                   value={eventFilter}
-                  onChange={(e) => setEventFilter(e.target.value as "all" | "week")}
+                  onChange={(e) => {
+                    setEventFilter(e.target.value as "all" | "week");
+                    setShowAllEvents(false);
+                  }}
                   className="w-full border rounded-xl px-3 py-2 text-sm outline-none text-gray-900 bg-white"
                 >
                   <option value="all">All</option>
@@ -247,14 +247,31 @@ export default function HomePage() {
                 </select>
               </div>
               <div className="space-y-3 lg:max-h-[560px] lg:overflow-y-auto lg:pr-1">
-                {leftFeed.length === 0 ? (
+                {visibleLeftFeed.length === 0 ? (
                   <EmptySlot />
                 ) : (
-                  leftFeed.map((ad) => <AdCard key={ad.id} ad={ad} />)
+                  visibleLeftFeed.map((ad) => <AdCard key={ad.id} ad={ad} />)
                 )}
               </div>
+              {isMobile && leftFeed.length > 10 && !showAllEvents && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllEvents(true)}
+                  className="w-full mt-3 border border-[#006B3F] text-[#006B3F] font-semibold py-3 rounded-xl bg-white"
+                >
+                  See more ({leftFeed.length - 10} more)
+                </button>
+              )}
+              {isMobile && showAllEvents && leftFeed.length > 10 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllEvents(false)}
+                  className="w-full mt-2 text-sm text-gray-600 py-2"
+                >
+                  Show less
+                </button>
+              )}
             </aside>
-
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Essential Services</h2>
@@ -276,7 +293,6 @@ export default function HomePage() {
                   <option value="/services/emergency">Emergency Services</option>
                 </select>
               </div>
-
               <h2 className="text-xl font-bold text-gray-900 mb-1">Popular Categories</h2>
               <p className="text-gray-600 text-sm mb-3">What are you looking for today?</p>
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
@@ -293,7 +309,6 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-
             <aside className="space-y-3">
               <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
               <AdCard ad={byPlacement("r1")} />
@@ -302,7 +317,6 @@ export default function HomePage() {
             </aside>
           </div>
         </section>
-
         <section className="px-3 sm:px-4 py-10">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Why SaloneReviews?</h2>
