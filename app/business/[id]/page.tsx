@@ -82,6 +82,7 @@ export default function BusinessPage() {
   const [proofFiles, setProofFiles] = useState<Record<string, File[]>>({});
   const [proofNote, setProofNote] = useState<Record<string, string>>({});
   const [uploadingProof, setUploadingProof] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const isLowRating = rating <= 2;
   const canBeAnonymous = rating >= 3;
@@ -332,6 +333,26 @@ export default function BusinessPage() {
     }
   };
 
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const count = (business?.photos || []).length;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight" && count) {
+        setLightboxIndex((i) => (i === null ? 0 : (i + 1) % count));
+      }
+      if (e.key === "ArrowLeft" && count) {
+        setLightboxIndex((i) => (i === null ? 0 : (i - 1 + count) % count));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [lightboxIndex, business]);
+
   if (pageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -465,9 +486,14 @@ export default function BusinessPage() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">Photos</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {photos.map((url, index) => (
-                  <a key={index} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`Photo ${index + 1}`} className="w-full h-32 object-cover rounded-xl border" />
-                  </a>
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setLightboxIndex(index)}
+                    className="text-left"
+                  >
+                    <img src={url} alt={`Photo ${index + 1}`} className="w-full h-32 object-cover rounded-xl border hover:opacity-90" />
+                  </button>
                 ))}
               </div>
             </div>
@@ -676,6 +702,56 @@ export default function BusinessPage() {
         </div>
       </main>
       <Footer />
+
+      {lightboxIndex !== null && photos[lightboxIndex] && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-3"
+          onClick={() => setLightboxIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-4 right-4 text-white text-sm font-semibold bg-white/15 hover:bg-white/25 px-3 py-2 rounded-xl"
+          >
+            Close
+          </button>
+          <p className="absolute top-4 left-4 text-white text-sm">
+            {lightboxIndex + 1} of {photos.length}
+          </p>
+          {photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? 0 : (i - 1 + photos.length) % photos.length));
+              }}
+              className="absolute left-3 sm:left-6 text-white text-3xl bg-white/15 hover:bg-white/25 w-12 h-12 rounded-full"
+            >
+              ‹
+            </button>
+          )}
+          <img
+            src={photos[lightboxIndex]}
+            alt={`Photo ${lightboxIndex + 1}`}
+            className="max-h-[85vh] max-w-[92vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? 0 : (i + 1) % photos.length));
+              }}
+              className="absolute right-3 sm:right-6 text-white text-3xl bg-white/15 hover:bg-white/25 w-12 h-12 rounded-full"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
