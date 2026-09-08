@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null);
   const [checking, setChecking] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [listQuery, setListQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,6 +71,21 @@ export default function AdminPage() {
     const snap = await getDocs(qy);
     setBusinesses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
+  const visibleBusinesses = useMemo(() => {
+    const q = listQuery.trim().toLowerCase();
+    const filtered = q
+      ? businesses.filter((b) =>
+          [b.name, b.category, b.subcategory, b.district, b.area, b.phone, b.whatsapp]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(q)
+        )
+      : businesses;
+    return [...filtered].sort((a, b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" })
+    );
+  }, [businesses, listQuery]);
   const resetForm = () => {
     setEditingId(null); setName(""); setCategory("Tradesmen"); setCustomCategory("");
     setSubcategory(""); setDistrict("Western Area Urban"); setArea(""); setPhone("");
@@ -188,23 +204,54 @@ export default function AdminPage() {
               {editingId && <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">Cancel</button>}
             </div>
           </form>
-          <h2 className="text-lg font-bold mb-3">Current businesses ({businesses.length})</h2>
+          <h2 className="text-lg font-bold mb-3">
+            Current businesses ({listQuery.trim() ? `${visibleBusinesses.length} of ${businesses.length}` : businesses.length})
+          </h2>
+          <form
+            className="flex flex-col sm:flex-row gap-2 mb-4"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <input
+              value={listQuery}
+              onChange={(e) => setListQuery(e.target.value)}
+              placeholder="Search name, area, category, phone..."
+              className="flex-1 border rounded-xl px-4 py-3 bg-white"
+            />
+            <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">
+              Search
+            </button>
+            {listQuery && (
+              <button
+                type="button"
+                onClick={() => setListQuery("")}
+                className="bg-gray-200 font-semibold px-5 py-3 rounded-xl"
+              >
+                Clear
+              </button>
+            )}
+          </form>
           <div className="space-y-3">
-            {businesses.map((b) => (
-              <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold">
-                    {b.name}{" "}
-                    {isFeaturedActive(b) && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Featured</span>}
-                  </h3>
-                  <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
-                  <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
-                </div>
+            {visibleBusinesses.length === 0 ? (
+              <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
+                No businesses match that search.
               </div>
-            ))}
+            ) : (
+              visibleBusinesses.map((b) => (
+                <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">
+                      {b.name}{" "}
+                      {isFeaturedActive(b) && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Featured</span>}
+                    </h3>
+                    <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                    <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
+                    <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
