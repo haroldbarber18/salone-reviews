@@ -25,7 +25,7 @@ export default function AdDetailsPage() {
   const [ad, setAd] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activePhoto, setActivePhoto] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -47,6 +47,33 @@ export default function AdDetailsPage() {
     load();
   }, [id]);
 
+  const photos: string[] = ad
+    ? Array.isArray(ad.photos) && ad.photos.length
+      ? ad.photos
+      : ad.imageUrl
+      ? [ad.imageUrl]
+      : []
+    : [];
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight" && photos.length) {
+        setLightboxIndex((i) => (i === null ? 0 : (i + 1) % photos.length));
+      }
+      if (e.key === "ArrowLeft" && photos.length) {
+        setLightboxIndex((i) => (i === null ? 0 : (i - 1 + photos.length) % photos.length));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [lightboxIndex, photos.length]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading details...</div>;
   if (error || !ad) {
     return (
@@ -57,13 +84,6 @@ export default function AdDetailsPage() {
     );
   }
 
-  const photos: string[] =
-    Array.isArray(ad.photos) && ad.photos.length
-      ? ad.photos
-      : ad.imageUrl
-      ? [ad.imageUrl]
-      : [];
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -72,28 +92,22 @@ export default function AdDetailsPage() {
           <Link href="/" className="text-sm text-[#006B3F] font-medium">← Back home</Link>
           <div className="bg-white border rounded-2xl overflow-hidden mt-4">
             {photos.length > 0 && (
-              <div className="bg-gray-100">
-                <img
-                  src={photos[activePhoto]}
-                  alt={ad.title}
-                  className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover"
-                />
-                {photos.length > 1 && (
-                  <div className="flex gap-2 p-3 overflow-x-auto bg-white">
-                    {photos.map((url, i) => (
-                      <button
-                        key={url}
-                        type="button"
-                        onClick={() => setActivePhoto(i)}
-                        className={`w-16 h-16 rounded-lg overflow-hidden border shrink-0 ${
-                          i === activePhoto ? "border-[#006B3F] border-2" : "border-gray-200"
-                        }`}
-                      >
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="bg-gray-100 space-y-3 p-3 sm:p-4">
+                {photos.map((url, i) => (
+                  <button
+                    key={`${url}-${i}`}
+                    type="button"
+                    onClick={() => setLightboxIndex(i)}
+                    className="block w-full bg-white rounded-xl overflow-hidden border"
+                  >
+                    <img
+                      src={url}
+                      alt={`${ad.title} flyer ${i + 1}`}
+                      className="w-full max-h-[85vh] object-contain bg-white"
+                    />
+                  </button>
+                ))}
+                <p className="text-xs text-gray-500 text-center">Tap a flyer to view full size</p>
               </div>
             )}
             <div className="p-5">
@@ -135,6 +149,56 @@ export default function AdDetailsPage() {
         </div>
       </main>
       <Footer />
+
+      {lightboxIndex !== null && photos[lightboxIndex] && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-3"
+          onClick={() => setLightboxIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-4 right-4 text-white text-sm font-semibold bg-white/15 hover:bg-white/25 px-3 py-2 rounded-xl"
+          >
+            Close
+          </button>
+          <p className="absolute top-4 left-4 text-white text-sm">
+            {lightboxIndex + 1} of {photos.length}
+          </p>
+          {photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous flyer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? 0 : (i - 1 + photos.length) % photos.length));
+              }}
+              className="absolute left-3 sm:left-6 text-white text-3xl bg-white/15 hover:bg-white/25 w-12 h-12 rounded-full"
+            >
+              ‹
+            </button>
+          )}
+          <img
+            src={photos[lightboxIndex]}
+            alt={`Flyer ${lightboxIndex + 1}`}
+            className="max-h-[90vh] max-w-[94vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next flyer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((i) => (i === null ? 0 : (i + 1) % photos.length));
+              }}
+              className="absolute right-3 sm:right-6 text-white text-3xl bg-white/15 hover:bg-white/25 w-12 h-12 rounded-full"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
