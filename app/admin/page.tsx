@@ -184,7 +184,32 @@ export default function AdminPage() {
               <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} />
               Extra photos paid (up to 6)
             </label>
+            {existingPhotos.length > 0 && (
+              <div className="border rounded-xl p-4 bg-gray-50">
+                <p className="font-semibold text-sm mb-3">
+                  Current photos ({existingPhotos.length}/{isPremium ? 6 : 1})
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {existingPhotos.map((url, index) => (
+                    <div key={`${url}-${index}`} className="relative">
+                      <img src={url} alt={`Photo ${index + 1}`} className="w-full h-28 object-cover rounded-xl border bg-white" />
+                      <button
+                        type="button"
+                        onClick={() => setExistingPhotos((prev) => prev.filter((_, i) => i !== index))}
+                        className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-lg"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Click Remove on a duplicate, then Update.</p>
+              </div>
+            )}
             <input type="file" accept="image/*" multiple onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
+            {photoFiles.length > 0 && (
+              <p className="text-sm text-gray-600">{photoFiles.length} new file{photoFiles.length === 1 ? "" : "s"} selected to add</p>
+            )}
             <div className="border rounded-xl p-4 space-y-3 bg-gray-50">
               <p className="font-semibold text-sm">Featured add-on</p>
               <label className="block text-sm">Featured until</label>
