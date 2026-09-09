@@ -15,9 +15,10 @@ import {
   query,
   doc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-const ADMIN_EMAILS = ["gdos87@hotmail.com"];
+import { isAdminEmail, normEmail } from "@/lib/roles";
 const categories = [
   "Tradesmen","Auto","Food","Hotels","Beauty","Home","Health & Medical","Education & Training",
   "Money & Insurance","Legal & Government","Shopping & Fashion","Electronics & Tech",
@@ -60,12 +61,65 @@ export default function AdminPage() {
   const [videoUntil, setVideoUntil] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
-  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
+  const [staffHelpers, setStaffHelpers] = useState<any[]>([]);
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffCanEdit, setStaffCanEdit] = useState(true);
+  const [staffActivity, setStaffActivity] = useState<any[]>([]);
+  const [staffMessage, setStaffMessage] = useState("");
+  const isAdmin = isAdminEmail(user?.email);
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setChecking(false); });
     return () => unsub();
   }, []);
-  useEffect(() => { if (isAdmin) loadBusinesses(); }, [isAdmin]);
+  useEffect(() => { if (isAdmin) { loadBusinesses(); loadStaff(); } }, [isAdmin]);
+  const loadStaff = async () => {
+    const [helpersSnap, activitySnap] = await Promise.all([
+      getDocs(collection(db, "staffHelpers")),
+      getDocs(collection(db, "staffActivity")),
+    ]);
+    setStaffHelpers(helpersSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    const logs = activitySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    logs.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+    setStaffActivity(logs.slice(0, 40));
+  };
+  const addStaffHelper = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = normEmail(staffEmail);
+    if (!email || !email.includes("@")) {
+      setStaffMessage("Enter a valid email.");
+      return;
+    }
+    if (staffHelpers.some((s) => normEmail(s.email) === email)) {
+      setStaffMessage("That email is already staff.");
+      return;
+    }
+    await addDoc(collection(db, "staffHelpers"), {
+      email,
+      canEdit: staffCanEdit,
+      createdAt: serverTimestamp(),
+    });
+    await addDoc(collection(db, "staffActivity"), {
+      actorEmail: normEmail(user?.email),
+      action: "staff-added",
+      details: `${email} · ${staffCanEdit ? "can edit" : "add only"}`,
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    setStaffEmail("");
+    setStaffMessage("Staff helper added. They must sign up / log in with that same email.");
+    loadStaff();
+  };
+  const removeStaffHelper = async (helper: any) => {
+    await deleteDoc(doc(db, "staffHelpers", helper.id));
+    await addDoc(collection(db, "staffActivity"), {
+      actorEmail: normEmail(user?.email),
+      action: "staff-removed",
+      details: helper.email,
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    loadStaff();
+  };
   const loadBusinesses = async () => {
     const qy = query(collection(db, "businesses"), orderBy("createdAt", "desc"));
     const snap = await getDocs(qy);
@@ -151,6 +205,57 @@ export default function AdminPage() {
             <Link href="/admin/import" className="text-[#006B3F] font-medium">CSV import</Link>
             <Link href="/admin/services" className="text-[#006B3F] font-medium">Essential services</Link>
             <Link href="/pricing" className="text-[#006B3F] font-medium">Pricing page</Link>
+            <Link href="/staff" className="text-[#006B3F] font-medium">Staff page</Link>
+          </div>
+          <div className="bg-white border rounded-2xl p-6 mb-8">
+            <h2 className="text-lg font-bold mb-1">Staff helpers</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Add their personal login email later. They can add listings. Tick edit if they may change existing ones.
+            </p>
+            <form onSubmit={addStaffHelper} className="flex flex-col sm:flex-row gap-2 mb-3">
+              <input
+                value={staffEmail}
+                onChange={(e) => setStaffEmail(e.target.value)}
+                placeholder="staffer@gmail.com"
+                className="flex-1 border rounded-xl px-4 py-3"
+              />
+              <label className="flex items-center gap-2 text-sm px-1">
+                <input type="checkbox" checked={staffCanEdit} onChange={(e) => setStaffCanEdit(e.target.checked)} />
+                Can edit existing
+              </label>
+              <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">Add staff</button>
+            </form>
+            {staffMessage && <p className="text-sm text-green-700 mb-3">{staffMessage}</p>}
+            <div className="space-y-2 mb-6">
+              {staffHelpers.length === 0 ? (
+                <p className="text-sm text-gray-500">No staff helpers yet.</p>
+              ) : (
+                staffHelpers.map((s) => (
+                  <div key={s.id} className="flex justify-between gap-3 items-center border rounded-xl px-4 py-3">
+                    <div>
+                      <p className="font-medium text-sm">{s.email}</p>
+                      <p className="text-xs text-gray-500">{s.canEdit ? "Can add and edit" : "Can add only"}</p>
+                    </div>
+                    <button type="button" onClick={() => removeStaffHelper(s)} className="text-sm text-red-600 font-medium">Remove</button>
+                  </div>
+                ))
+              )}
+            </div>
+            <h3 className="font-semibold text-sm mb-2">Staff activity</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {staffActivity.length === 0 ? (
+                <p className="text-sm text-gray-500">Nothing logged yet.</p>
+              ) : (
+                staffActivity.map((log) => (
+                  <p key={log.id} className="text-sm text-gray-700">
+                    <span className="font-medium">{log.actorEmail}</span>{" "}
+                    {log.action}
+                    {log.businessName ? ` · ${log.businessName}` : ""}
+                    {log.details ? ` · ${log.details}` : ""}
+                  </p>
+                ))
+              )}
+            </div>
           </div>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />

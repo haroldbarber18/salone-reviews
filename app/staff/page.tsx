@@ -1,0 +1,338 @@
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { auth, db, storage } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  serverTimestamp,
+  orderBy,
+  query,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { isAdminEmail, isHardcodedStaff, normEmail } from "@/lib/roles";
+
+const categories = [
+  "Tradesmen","Auto","Food","Hotels","Beauty","Home","Health & Medical","Education & Training",
+  "Money & Insurance","Legal & Government","Shopping & Fashion","Electronics & Tech",
+  "Events & Entertainment","Media & Publishing","Business Services","Animals & Pets",
+  "Sports & Fitness","Utilities & Energy","Public & Community","Other",
+];
+const districts = [
+  "Western Area Urban","Western Area Rural","Bo","Kenema","Bombali","Port Loko","Kono",
+  "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
+];
+
+async function logActivity(entry: {
+  actorEmail: string;
+  action: string;
+  businessId?: string;
+  businessName?: string;
+  details?: string;
+}) {
+  await addDoc(collection(db, "staffActivity"), {
+    ...entry,
+    createdAt: serverTimestamp(),
+    createdAtMs: Date.now(),
+  });
+}
+
+export default function StaffPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [checking, setChecking] = useState(true);
+  const [allowed, setAllowed] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [listQuery, setListQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("Tradesmen");
+  const [customCategory, setCustomCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [district, setDistrict] = useState("Western Area Urban");
+  const [area, setArea] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [hours, setHours] = useState("");
+  const [description, setDescription] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (!u) {
+        setAllowed(false);
+        setChecking(false);
+        return;
+      }
+      const email = normEmail(u.email);
+      if (isAdminEmail(email) || isHardcodedStaff(email)) {
+        setAllowed(true);
+        setCanEdit(true);
+        setChecking(false);
+        return;
+      }
+      try {
+        const snap = await getDocs(collection(db, "staffHelpers"));
+        const match = snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .find((s) => normEmail(s.email) === email);
+        setAllowed(!!match);
+        setCanEdit(!!match?.canEdit);
+      } catch {
+        setAllowed(false);
+      }
+      setChecking(false);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (allowed) loadBusinesses();
+  }, [allowed]);
+
+  const loadBusinesses = async () => {
+    const qy = query(collection(db, "businesses"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(qy);
+    setBusinesses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+
+  const visibleBusinesses = useMemo(() => {
+    const q = listQuery.trim().toLowerCase();
+    const filtered = q
+      ? businesses.filter((b) =>
+          [b.name, b.category, b.subcategory, b.district, b.area, b.phone]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(q)
+        )
+      : businesses;
+    return [...filtered].sort((a, b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" })
+    );
+  }, [businesses, listQuery]);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setName("");
+    setCategory("Tradesmen");
+    setCustomCategory("");
+    setSubcategory("");
+    setDistrict("Western Area Urban");
+    setArea("");
+    setPhone("");
+    setWhatsapp("");
+    setHours("");
+    setDescription("");
+    setIsPremium(false);
+    setPhotoFiles([]);
+    setExistingPhotos([]);
+  };
+
+  const startEdit = (b: any) => {
+    if (!canEdit) {
+      setMessage("Your account can add listings only. Ask admin for edit access.");
+      return;
+    }
+    setEditingId(b.id);
+    setName(b.name || "");
+    setCategory(b.category || "Tradesmen");
+    setCustomCategory(b.customCategory || "");
+    setSubcategory(b.subcategory || "");
+    setDistrict(b.district || "Western Area Urban");
+    setArea(b.area || "");
+    setPhone(b.phone || "");
+    setWhatsapp(b.whatsapp || "");
+    setHours(b.hours || "");
+    setDescription(b.description || "");
+    setIsPremium(!!b.isPremium);
+    setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
+    setPhotoFiles([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !description.trim()) {
+      setMessage("Name and description are required.");
+      return;
+    }
+    if (editingId && !canEdit) {
+      setMessage("Your account can add listings only.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const uploaded: string[] = [];
+      for (const file of photoFiles) {
+        const r = ref(storage, `businesses/${Date.now()}-${file.name}`);
+        await uploadBytes(r, file);
+        uploaded.push(await getDownloadURL(r));
+      }
+      const photos = [...existingPhotos, ...uploaded].slice(0, isPremium ? 6 : 1);
+      const payload = {
+        name: name.trim(),
+        category: category === "Other" && customCategory.trim() ? customCategory.trim() : category,
+        customCategory: customCategory.trim(),
+        subcategory: subcategory.trim(),
+        district,
+        area: area.trim(),
+        phone: phone.trim(),
+        whatsapp: whatsapp.trim(),
+        hours: hours.trim(),
+        description: description.trim(),
+        photos,
+      };
+      if (editingId) {
+        await updateDoc(doc(db, "businesses", editingId), payload);
+        await logActivity({
+          actorEmail: normEmail(user?.email),
+          action: "updated",
+          businessId: editingId,
+          businessName: payload.name,
+        });
+        setMessage("Updated.");
+      } else {
+        const created = await addDoc(collection(db, "businesses"), {
+          ...payload,
+          isPremium: false,
+          featuredUntil: "",
+          videoUrl: "",
+          videoUntil: "",
+          createdAt: serverTimestamp(),
+        });
+        await logActivity({
+          actorEmail: normEmail(user?.email),
+          action: "added",
+          businessId: created.id,
+          businessName: payload.name,
+        });
+        setMessage("Saved.");
+      }
+      resetForm();
+      loadBusinesses();
+    } catch {
+      setMessage("Failed to save.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (checking) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
+  if (!allowed) return <div className="min-h-screen flex items-center justify-center">Staff access only</div>;
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <h1 className="text-2xl font-bold mb-1">{editingId ? "Edit business" : "Staff"}</h1>
+          <p className="text-sm text-gray-600 mb-6">
+            Add listing details and photos. You cannot change Featured, Video, ads or site settings.
+          </p>
+          <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl px-4 py-3">
+                {categories.map((c) => <option key={c}>{c}</option>)}
+              </select>
+              <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Subcategory (optional)" className="w-full border rounded-xl px-4 py-3" />
+            </div>
+            {category === "Other" && (
+              <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Custom category" className="w-full border rounded-xl px-4 py-3" />
+            )}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <select value={district} onChange={(e) => setDistrict(e.target.value)} className="w-full border rounded-xl px-4 py-3">
+                {districts.map((d) => <option key={d}>{d}</option>)}
+              </select>
+              <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Area / street" className="w-full border rounded-xl px-4 py-3" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="w-full border rounded-xl px-4 py-3" />
+              <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp" className="w-full border rounded-xl px-4 py-3" />
+            </div>
+            <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Opening hours" className="w-full border rounded-xl px-4 py-3" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full border rounded-xl px-4 py-3" required />
+            {existingPhotos.length > 0 && (
+              <div className="border rounded-xl p-4 bg-gray-50">
+                <p className="font-semibold text-sm mb-3">Current photos ({existingPhotos.length}/{isPremium ? 6 : 1})</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {existingPhotos.map((url, index) => (
+                    <div key={`${url}-${index}`} className="relative">
+                      <img src={url} alt="" className="w-full h-28 object-cover rounded-xl border bg-white" />
+                      <button
+                        type="button"
+                        onClick={() => setExistingPhotos((prev) => prev.filter((_, i) => i !== index))}
+                        className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-lg"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <input type="file" accept="image/*" multiple onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
+            {message && <p className="text-sm text-green-700">{message}</p>}
+            <div className="flex gap-3">
+              <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl">
+                {loading ? "Saving..." : editingId ? "Update" : "Add business"}
+              </button>
+              {editingId && (
+                <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">Cancel</button>
+              )}
+            </div>
+          </form>
+
+          <h2 className="text-lg font-bold mb-3">
+            Current businesses ({listQuery.trim() ? `${visibleBusinesses.length} of ${businesses.length}` : businesses.length})
+          </h2>
+          <form className="flex flex-col sm:flex-row gap-2 mb-4" onSubmit={(e) => e.preventDefault()}>
+            <input
+              value={listQuery}
+              onChange={(e) => setListQuery(e.target.value)}
+              placeholder="Search name, area, category, phone..."
+              className="flex-1 border rounded-xl px-4 py-3 bg-white"
+            />
+            <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">Search</button>
+          </form>
+          <div className="space-y-3">
+            {visibleBusinesses.map((b) => (
+              <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold">{b.name}</h3>
+                  <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
+                  {canEdit && (
+                    <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
+                  )}
+                  <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}

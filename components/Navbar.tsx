@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-
-const ADMIN_EMAILS = ["gdos87@hotmail.com"];
+import { isAdminEmail, isHardcodedStaff, normEmail } from "@/lib/roles";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
+  const [staffEmails, setStaffEmails] = useState<string[]>([]);
   const router = useRouter();
-  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
+  const email = normEmail(user?.email);
+  const isAdmin = isAdminEmail(email);
+  const isStaff = !!(email && (isHardcodedStaff(email) || staffEmails.includes(email)));
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -19,6 +22,17 @@ export default function Navbar() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "staffHelpers"));
+        setStaffEmails(snap.docs.map((d) => normEmail((d.data() as any).email)));
+      } catch {
+        setStaffEmails([]);
+      }
+    })();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -31,8 +45,8 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2 min-w-0">
-          <div className="w-9 h-9 bg-[#006B3F] rounded-xl flex items-center justify-center text-white text-lg shrink-0">
-            🇸🇱
+          <div className="w-9 h-9 bg-[#006B3F] rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0">
+            SL
           </div>
           <div className="truncate">
             <span className="font-bold text-xl text-[#006B3F]">Salone</span>
@@ -48,6 +62,14 @@ export default function Navbar() {
                   className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-full hover:bg-[#005a35]"
                 >
                   Admin
+                </Link>
+              )}
+              {isStaff && !isAdmin && (
+                <Link
+                  href="/staff"
+                  className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-full hover:bg-[#005a35]"
+                >
+                  Staff
                 </Link>
               )}
               <Link
