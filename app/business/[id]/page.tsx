@@ -107,6 +107,8 @@ export default function BusinessPage() {
   const [proofNote, setProofNote] = useState<Record<string, string>>({});
   const [uploadingProof, setUploadingProof] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [invitedFromLink, setInvitedFromLink] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const isOwner = !!(
     user &&
@@ -129,6 +131,11 @@ export default function BusinessPage() {
       loadProofs();
     }
   }, [id]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    setInvitedFromLink(q.get("invite") === "1");
+  }, []);
   useEffect(() => {
     if (user) setHasReviewed(reviews.some((r) => r.userId === user.uid));
     else setHasReviewed(false);
@@ -240,6 +247,7 @@ export default function BusinessPage() {
         claimStatus: isLowRating ? "under_review" : "",
         businessResponse: "",
         adminNote: "",
+        invited: invitedFromLink,
         createdAt: serverTimestamp(),
       });
       if (isLowRating && hasProof && newReviewFiles.length > 0) {
@@ -280,6 +288,17 @@ export default function BusinessPage() {
     } catch {
       setMessage("Failed to remove review.");
     }
+  };
+
+  const handleInviteCustomer = async () => {
+    if (!business) return;
+    const link = `https://www.salonereviews.com/business/${id}?invite=1`;
+    const text = `Thanks for using ${business.name}. Please leave a short review on SaloneReviews:\n${link}`;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    } catch {}
+    setInviteMsg("Message copied. WhatsApp is opening so you can send it.");
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleSaveBusinessResponse = async (reviewId: string) => {
@@ -522,6 +541,19 @@ export default function BusinessPage() {
                 )}
               </div>
             )}
+            {canReplyAsBusiness && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleInviteCustomer}
+                  className="w-full sm:w-auto bg-white border border-[#006B3F] text-[#006B3F] font-semibold px-5 py-3 rounded-xl"
+                >
+                  Invite a customer to review
+                </button>
+                {inviteMsg && <p className="text-sm text-[#006B3F] mt-2">{inviteMsg}</p>}
+                <p className="text-xs text-gray-600 mt-1">Copies a WhatsApp message with your listing link.</p>
+              </div>
+            )}
           </div>
 
           {user && photos.length > 0 && (
@@ -571,6 +603,9 @@ export default function BusinessPage() {
                       <div className="flex items-center justify-between gap-3 mb-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-gray-900">{review.userName}</span>
+                          {review.invited && (
+                            <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Invited</span>
+                          )}
                           {publicStatus === "uc" && (
                             <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">UC · Unverified Claim</span>
                           )}
@@ -699,6 +734,9 @@ export default function BusinessPage() {
 
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Write a Review</h2>
+            {invitedFromLink && (
+              <p className="text-sm text-[#006B3F] mb-3">The shop invited you to leave this review.</p>
+            )}
             {user ? (
               hasReviewed ? (
                 <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">You have already reviewed this business. Thank you.</div>
