@@ -47,6 +47,7 @@ type Review = {
   id: string;
   businessId?: string;
   rating?: number;
+  hidden?: boolean;
 };
 
 function isFeatured(biz?: Business) {
@@ -58,7 +59,7 @@ function isFeatured(biz?: Business) {
 }
 
 function ratingFor(businessId: string, reviews: Review[]) {
-  const list = reviews.filter((r) => r.businessId === businessId);
+  const list = reviews.filter((r) => r.businessId === businessId && !r.hidden);
   if (!list.length) return { average: "0.0", count: 0 };
   const sum = list.reduce((acc, r) => acc + Number(r.rating || 0), 0);
   return { average: (sum / list.length).toFixed(1), count: list.length };
@@ -86,16 +87,47 @@ function Stars({ average, count }: { average: string; count: number }) {
   );
 }
 
+
+function tradeLabel(biz: Business) {
+  return biz.subcategory || biz.category || "businesses";
+}
+
+function rankMapFor(businesses: Business[], reviews: Review[]) {
+  const groups: Record<string, Business[]> = {};
+  businesses.forEach((biz) => {
+    const key = `${biz.district || ""}|${tradeLabel(biz)}`.toLowerCase();
+    (groups[key] ||= []).push(biz);
+  });
+  const map: Record<string, string> = {};
+  Object.values(groups).forEach((list) => {
+    const scored = list
+      .map((biz) => ({ biz, stats: ratingFor(biz.id, reviews) }))
+      .filter((row) => row.stats.count > 0)
+      .sort(
+        (a, b) =>
+          b.stats.count - a.stats.count ||
+          Number(b.stats.average) - Number(a.stats.average)
+      );
+    scored.forEach((row, i) => {
+      const place = row.biz.district || "Sierra Leone";
+      map[row.biz.id] = `#${i + 1} ${tradeLabel(row.biz)} in ${place}`;
+    });
+  });
+  return map;
+}
+
 function BusinessCard({
   biz,
   loggedIn,
   stats,
   featured,
+  rankLine,
 }: {
   biz: Business;
   loggedIn: boolean;
   stats: { average: string; count: number };
   featured: boolean;
+  rankLine?: string;
 }) {
   const photo = loggedIn ? biz.photos?.[0] : undefined;
   const category = biz.subcategory || biz.category;
@@ -131,6 +163,9 @@ function BusinessCard({
           </div>
 
           {category && <p className="text-sm text-[#006B3F] mt-0.5">{category}</p>}
+          {rankLine && (
+            <p className="text-xs font-semibold text-gray-700 mt-0.5">{rankLine}</p>
+          )}
 
           {loggedIn ? (
             <p className="text-sm text-gray-500 mt-0.5 truncate">
@@ -215,8 +250,16 @@ export default function ExplorePage() {
     });
   }, [businesses, query, district, isAdmin]);
 
+  const ranks = useMemo(() => rankMapFor(businesses, reviews), [businesses, reviews]);
   const featured = filtered.filter((biz) => isFeatured(biz));
-  const rest = filtered.filter((biz) => !isFeatured(biz));
+  const rest = filtered
+    .filter((biz) => !isFeatured(biz))
+    .slice()
+    .sort((a, b) => {
+      const sa = ratingFor(a.id, reviews);
+      const sb = ratingFor(b.id, reviews);
+      return sb.count - sa.count || Number(sb.average) - Number(sa.average) || String(a.name || "").localeCompare(String(b.name || ""));
+    });
 
   const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -283,6 +326,7 @@ export default function ExplorePage() {
                         loggedIn={loggedIn}
                         featured
                         stats={ratingFor(biz.id, reviews)}
+                        rankLine={ranks[biz.id]}
                       />
                     ))}
                   </div>
@@ -306,6 +350,7 @@ export default function ExplorePage() {
                         loggedIn={loggedIn}
                         featured={false}
                         stats={ratingFor(biz.id, reviews)}
+                        rankLine={ranks[biz.id]}
                       />
                     ))}
                   </div>

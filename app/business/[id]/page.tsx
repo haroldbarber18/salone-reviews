@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -18,6 +18,7 @@ import {
   updateDoc,
   serverTimestamp,
   arrayUnion,
+  increment,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -109,6 +110,9 @@ export default function BusinessPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [invitedFromLink, setInvitedFromLink] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [reviewSort, setReviewSort] = useState<"recommended" | "newest" | "highest" | "lowest">("recommended");
+  const [staffEmails, setStaffEmails] = useState<string[]>([]);
+  const [flagNote, setFlagNote] = useState<Record<string, string>>({});
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const isOwner = !!(
     user &&
@@ -117,6 +121,8 @@ export default function BusinessPage() {
     normEmail(user.email) === normEmail(business.ownerEmail)
   );
   const canReplyAsBusiness = isAdmin || isOwner;
+  const isStaff = !!(user && staffEmails.includes(String(user.email || "").trim().toLowerCase()));
+  const canModerate = isAdmin || isStaff;
   const isLowRating = rating <= 2;
   const canBeAnonymous = rating >= 3;
 
@@ -135,6 +141,18 @@ export default function BusinessPage() {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
     setInvitedFromLink(q.get("invite") === "1");
+  }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "staffHelpers"));
+        setStaffEmails(
+          snap.docs
+            .map((d) => String((d.data() as any).email || "").trim().toLowerCase())
+            .filter(Boolean)
+        );
+      } catch {}
+    })();
   }, []);
   useEffect(() => {
     if (user) setHasReviewed(reviews.some((r) => r.userId === user.uid));
@@ -178,10 +196,34 @@ export default function BusinessPage() {
     }
   };
 
+  const visibleReviews = useMemo(
+    () => (canModerate ? reviews : reviews.filter((r) => !r.hidden)),
+    [reviews, canModerate]
+  );
+  const publicReviews = useMemo(() => reviews.filter((r) => !r.hidden), [reviews]);
   const averageRating =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
+    publicReviews.length > 0
+      ? (publicReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / publicReviews.length).toFixed(1)
       : "0.0";
+  const sortedReviews = useMemo(() => {
+    const list = visibleReviews.slice();
+    const when = (r: any) => {
+      const d = getReviewDate(r);
+      return d ? d.getTime() : 0;
+    };
+    if (reviewSort === "newest") return list.sort((a, b) => when(b) - when(a));
+    if (reviewSort === "highest") return list.sort((a, b) => (b.rating || 0) - (a.rating || 0) || when(b) - when(a));
+    if (reviewSort === "lowest") return list.sort((a, b) => (a.rating || 0) - (b.rating || 0) || when(b) - when(a));
+    // recommended: recency-weighted rating
+    return list.sort((a, b) => {
+      const recency = (r: any) => {
+        const days = Math.max(0, getDaysSince(r));
+        return 1 / (1 + days / 60);
+      };
+      const score = (r: any) => Number(r.rating || 0) * recency(r) + (r.invited ? 0.15 : 0);
+      return score(b) - score(a);
+    });
+  }, [visibleReviews, reviewSort]);
 
   const uploadFiles = async (reviewId: string, files: File[]) => {
     const urls: string[] = [];
@@ -287,6 +329,39 @@ export default function BusinessPage() {
       loadReviews();
     } catch {
       setMessage("Failed to remove review.");
+    }
+  };
+
+  const handleFlagReview = async (reviewId: string) => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "reviews", reviewId), {
+        flagged: true,
+        flagCount: increment(1),
+        lastFlaggedAt: serverTimestamp(),
+        lastFlagNote: (flagNote[reviewId] || "").trim(),
+      });
+      setMessage("Thanks. We will check this review.");
+      loadReviews();
+    } catch {
+      setMessage("Could not flag this review.");
+    }
+  };
+
+  const handleHideReview = async (reviewId: string, hidden: boolean) => {
+    if (!canModerate) return;
+    try {
+      await updateDoc(doc(db, "reviews", reviewId), {
+        hidden,
+        hiddenAt: serverTimestamp(),
+      });
+      setMessage(hidden ? "Review hidden from the public." : "Review visible again.");
+      loadReviews();
+    } catch {
+      setMessage("Could not update that review.");
     }
   };
 
@@ -503,6 +578,31 @@ export default function BusinessPage() {
               </div>
             )}
 
+            {publicReviews.length > 0 && (
+              <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                  __html: JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "LocalBusiness",
+                    name: business.name || "Business",
+                    address: {
+                      "@type": "PostalAddress",
+                      addressLocality: business.area || "",
+                      addressRegion: business.district || "",
+                      addressCountry: "SL",
+                    },
+                    aggregateRating: {
+                      "@type": "AggregateRating",
+                      ratingValue: averageRating,
+                      reviewCount: publicReviews.length,
+                      bestRating: "5",
+                      worstRating: "1",
+                    },
+                  }),
+                }}
+              />
+            )}
             <p className="text-gray-700 mb-3">{business.description}</p>
             {business.hours && (
               <p className="text-sm text-gray-700 mb-4">
@@ -584,12 +684,26 @@ export default function BusinessPage() {
           )}
 
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews ({reviews.length})</h2>
-            {reviews.length === 0 ? (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Reviews ({publicReviews.length})</h2>
+              {visibleReviews.length > 1 && (
+                <select
+                  value={reviewSort}
+                  onChange={(e) => setReviewSort(e.target.value as any)}
+                  className="border rounded-xl px-3 py-2 text-sm bg-white"
+                >
+                  <option value="recommended">Recommended</option>
+                  <option value="newest">Newest</option>
+                  <option value="highest">Highest rating</option>
+                  <option value="lowest">Lowest rating</option>
+                </select>
+              )}
+            </div>
+            {visibleReviews.length === 0 ? (
               <p className="text-gray-700">No reviews yet.</p>
             ) : (
               <div className="space-y-6">
-                {reviews.map((review) => {
+                {sortedReviews.map((review) => {
                   const reviewProofs = proofs.filter((p) => p.reviewId === review.id);
                   const canUploadProof = !!(user && user.uid === review.userId);
                   const canViewProof = !!(isAdmin || (user && user.uid === review.userId));
@@ -605,6 +719,12 @@ export default function BusinessPage() {
                           <span className="font-medium text-gray-900">{review.userName}</span>
                           {review.invited && (
                             <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Invited</span>
+                          )}
+                          {review.hidden && (
+                            <span className="text-[11px] bg-gray-800 text-white px-2 py-0.5 rounded-full font-semibold">Hidden</span>
+                          )}
+                          {review.flagged && canModerate && (
+                            <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">Flagged</span>
                           )}
                           {publicStatus === "uc" && (
                             <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">UC · Unverified Claim</span>
@@ -624,6 +744,28 @@ export default function BusinessPage() {
                         </div>
                       </div>
                       <p className="text-gray-700 text-sm mb-3">{review.comment}</p>
+                      {user && user.uid !== review.userId && (
+                        <div className="mb-3">
+                          <button
+                            type="button"
+                            onClick={() => handleFlagReview(review.id)}
+                            className="text-xs text-gray-600 underline"
+                          >
+                            Flag this review
+                          </button>
+                        </div>
+                      )}
+                      {canModerate && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <button
+                            type="button"
+                            onClick={() => handleHideReview(review.id, !review.hidden)}
+                            className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-full"
+                          >
+                            {review.hidden ? "Unhide review" : "Hide review"}
+                          </button>
+                        </div>
+                      )}
                       {getOwnerReplies(review).length > 0 && (
                         <div className="space-y-2 mb-3">
                           {getOwnerReplies(review).map((rep: any, i: number) => (
