@@ -17,6 +17,7 @@ import {
   deleteDoc,
   updateDoc,
   serverTimestamp,
+  arrayUnion,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -40,6 +41,29 @@ function getDaysSince(review: any) {
   const d = getReviewDate(review);
   if (!d) return 0;
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+function normEmail(v?: string | null) {
+  return String(v || "").trim().toLowerCase();
+}
+function formatWhen(value: any) {
+  const d =
+    value && typeof value.toDate === "function"
+      ? value.toDate()
+      : value?.seconds
+      ? new Date(value.seconds * 1000)
+      : value
+      ? new Date(value)
+      : null;
+  if (!d || isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function getOwnerReplies(review: any) {
+  const list = Array.isArray(review?.businessResponses) ? review.businessResponses : [];
+  if (list.length) return list;
+  if (review?.businessResponse && String(review.businessResponse).trim()) {
+    return [{ text: String(review.businessResponse).trim(), at: review.businessResponseAt || null, byName: "Business" }];
+  }
+  return [];
 }
 function isFeaturedActive(b: any) {
   if (!b?.featuredUntil) return false;
@@ -84,6 +108,13 @@ export default function BusinessPage() {
   const [uploadingProof, setUploadingProof] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
+  const isOwner = !!(
+    user &&
+    business &&
+    normEmail(business.ownerEmail) &&
+    normEmail(user.email) === normEmail(business.ownerEmail)
+  );
+  const canReplyAsBusiness = isAdmin || isOwner;
   const isLowRating = rating <= 2;
   const canBeAnonymous = rating >= 3;
 
@@ -252,15 +283,27 @@ export default function BusinessPage() {
   };
 
   const handleSaveBusinessResponse = async (reviewId: string) => {
-    if (!isAdmin) return;
+    if (!canReplyAsBusiness) return;
+    const text = (responseText[reviewId] || "").trim();
+    if (!text) {
+      setMessage("Type a reply first.");
+      return;
+    }
     setSavingResponse(reviewId);
     try {
       await updateDoc(doc(db, "reviews", reviewId), {
-        businessResponse: (responseText[reviewId] || "").trim(),
+        businessResponse: text,
         businessResponseAt: serverTimestamp(),
         claimStatus: "resolved",
+        businessResponses: arrayUnion({
+          text,
+          atMs: Date.now(),
+          byEmail: normEmail(user?.email),
+          byName: isAdmin ? "SaloneReviews (for the business)" : (business?.ownerName || business?.name || "Business"),
+        }),
       });
-      setMessage("Business response saved.");
+      setResponseText((prev) => ({ ...prev, [reviewId]: "" }));
+      setMessage("Reply posted.");
       loadReviews();
     } catch {
       setMessage("Failed to save business response.");
@@ -546,12 +589,41 @@ export default function BusinessPage() {
                         </div>
                       </div>
                       <p className="text-gray-700 text-sm mb-3">{review.comment}</p>
-                      {review.businessResponse ? (
-                        <div className="bg-green-50 border border-green-100 rounded-xl p-3 mb-3">
-                          <p className="text-xs font-semibold text-[#006B3F] mb-1">Business Response</p>
-                          <p className="text-sm text-gray-700">{review.businessResponse}</p>
+                      {getOwnerReplies(review).length > 0 && (
+                        <div className="space-y-2 mb-3">
+                          {getOwnerReplies(review).map((rep: any, i: number) => (
+                            <div key={i} className="bg-green-50 border border-green-100 rounded-xl p-3">
+                              <p className="text-xs font-semibold text-[#006B3F] mb-1">
+                                Reply from {rep.byName || "the business"}
+                                {formatWhen(rep.at || rep.atMs) ? ` · ${formatWhen(rep.at || rep.atMs)}` : ""}
+                              </p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{rep.text}</p>
+                            </div>
+                          ))}
                         </div>
-                      ) : null}
+                      )}
+                      {canReplyAsBusiness && (
+                        <div className="bg-gray-50 border rounded-xl p-3 mb-3">
+                          <p className="text-xs font-semibold text-gray-800 mb-2">
+                            {getOwnerReplies(review).length ? "Add another reply" : "Reply as the business"}
+                          </p>
+                          <textarea
+                            value={responseText[review.id] || ""}
+                            onChange={(e) => setResponseText((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                            rows={3}
+                            className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900"
+                            placeholder="Thank the customer or explain what you will do..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveBusinessResponse(review.id)}
+                            disabled={savingResponse === review.id}
+                            className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60"
+                          >
+                            {savingResponse === review.id ? "Posting..." : "Post reply"}
+                          </button>
+                        </div>
+                      )}
                       {review.adminNote && publicStatus === "under_review" ? (
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
                           <p className="text-xs font-semibold text-blue-700 mb-1">SaloneReviews Note</p>
@@ -578,13 +650,6 @@ export default function BusinessPage() {
                               <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "resolved")} className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full">Resolved</button>
                               <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "")} className="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full">Clear</button>
                             </div>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-gray-800 mb-2">Business Response (on behalf of owner)</p>
-                            <textarea value={responseText[review.id] ?? review.businessResponse ?? ""} onChange={(e) => setResponseText((prev) => ({ ...prev, [review.id]: e.target.value }))} rows={3} className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900" placeholder="Official response from the business..." />
-                            <button type="button" onClick={() => handleSaveBusinessResponse(review.id)} disabled={savingResponse === review.id} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60">
-                              {savingResponse === review.id ? "Saving..." : "Save Business Response"}
-                            </button>
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-blue-700 mb-2">SaloneReviews Note (temporary while under review)</p>
