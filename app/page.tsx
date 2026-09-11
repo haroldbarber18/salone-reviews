@@ -115,33 +115,65 @@ function AdCard({ ad }: { ad?: any }) {
   return (
     <Link
       href={`/ad/${ad.id}`}
-      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition"
+      className="block h-full bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition"
     >
-      {ad.imageUrl && (
-        <div className="bg-gray-50">
-          <img src={ad.imageUrl} alt={ad.title} className="w-full h-40 object-contain" />
-        </div>
-      )}
+      <div className="bg-gray-50 h-36 flex items-center justify-center">
+        {ad.imageUrl ? (
+          <img src={ad.imageUrl} alt={ad.title} className="w-full h-36 object-contain" />
+        ) : (
+          <span className="text-xs text-gray-400">Flyer</span>
+        )}
+      </div>
       <div className="p-3 bg-white">
         <div className="flex items-center justify-between gap-2 mb-1">
           {(ad.eventDate || ad.eventEndDate) ? (
-            <p className="text-xs text-gray-500">{formatEventRange(ad)}</p>
+            <p className="text-xs text-gray-500 truncate">{formatEventRange(ad)}</p>
           ) : (
             <span />
           )}
           {ad.feeType === "free" && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800">
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800 shrink-0">
               Free
             </span>
           )}
           {ad.feeType === "paid" && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800">
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800 shrink-0">
               {ad.price || "Paid"}
             </span>
           )}
         </div>
-        <h3 className="font-bold text-sm mb-1 leading-snug text-gray-900">{ad.title}</h3>
-        <p className="text-xs text-gray-600 line-clamp-2">{ad.description}</p>
+        <h3 className="font-bold text-sm leading-snug text-gray-900 line-clamp-2">{ad.title}</h3>
+      </div>
+    </Link>
+  );
+}
+
+function isFeaturedBiz(biz: any) {
+  if (!biz?.featuredUntil) return false;
+  const until = new Date(biz.featuredUntil);
+  if (Number.isNaN(until.getTime())) return false;
+  until.setHours(23, 59, 59, 999);
+  return until >= new Date();
+}
+function HomeBizCard({ biz }: { biz: any }) {
+  const photo = biz.photos?.[0];
+  const category = biz.subcategory || biz.category;
+  return (
+    <Link
+      href={`/business/${biz.id}`}
+      className="block h-full min-h-[132px] bg-white border border-amber-300 rounded-2xl p-3 hover:shadow-md transition overflow-hidden"
+    >
+      <div className="flex gap-3">
+        {photo ? (
+          <img src={photo} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 bg-gray-100" />
+        ) : (
+          <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
+        )}
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-gray-900 line-clamp-2">{biz.name || "Business"}</p>
+          {category && <p className="text-xs text-[#006B3F] mt-0.5 truncate">{category}</p>}
+          <p className="text-xs text-gray-500 mt-0.5 truncate">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
+        </div>
       </div>
     </Link>
   );
@@ -153,8 +185,10 @@ export default function HomePage() {
   const [eventFilter, setEventFilter] = useState<"all" | "week">("all");
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [featuredBiz, setFeaturedBiz] = useState<any[]>([]);
   useEffect(() => {
     loadAds();
+    loadFeaturedBiz();
   }, []);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -289,7 +323,7 @@ export default function HomePage() {
                   onChange={(e) => {
                     if (e.target.value) router.push(e.target.value);
                   }}
-                  className="w-full max-w-sm border rounded-xl px-4 py-3 bg-white text-gray-900"
+                  className="w-full border rounded-xl px-4 py-3 bg-white text-gray-900"
                 >
                   <option value="" disabled>
                     Choose a service type
@@ -301,12 +335,12 @@ export default function HomePage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-1">Popular Categories</h2>
               <p className="text-gray-600 text-sm mb-3">What are you looking for today?</p>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 items-stretch">
                 {categories.map((cat) => (
                   <Link
                     key={cat.name}
                     href={`/explore?q=${encodeURIComponent(cat.q)}`}
-                    className="bg-white border border-gray-200 rounded-lg p-2 hover:shadow-sm transition"
+                    className="bg-white border border-gray-200 rounded-2xl p-2 hover:shadow-sm transition h-full min-h-[76px]"
                   >
                     <div className="text-base mb-0.5">{cat.icon}</div>
                     <h3 className="font-semibold text-xs text-gray-900 leading-tight">{cat.name}</h3>
@@ -314,8 +348,26 @@ export default function HomePage() {
                   </Link>
                 ))}
               </div>
+              {featuredBiz.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-end justify-between gap-3 mb-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 mb-1">Featured businesses</h2>
+                      <p className="text-gray-600 text-sm">Tap a card for the full listing.</p>
+                    </div>
+                    <Link href="/explore" className="text-sm font-semibold text-[#006B3F] shrink-0">
+                      See all →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+                    {featuredBiz.map((biz) => (
+                      <HomeBizCard key={biz.id} biz={biz} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <aside className="space-y-3">
+            <aside className="space-y-3 [&>a]:h-auto">
               <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
               <AdCard ad={byPlacement("r1")} />
               <AdCard ad={byPlacement("r2")} />
@@ -353,7 +405,7 @@ export default function HomePage() {
                 <span className="text-xs font-semibold text-[#006B3F]">Explore local services →</span>
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
               <AdCard ad={byPlacement("b1")} />
               <AdCard ad={byPlacement("b2")} />
               <AdCard ad={byPlacement("b3")} />
