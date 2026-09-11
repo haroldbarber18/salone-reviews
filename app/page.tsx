@@ -201,6 +201,14 @@ export default function HomePage() {
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     setAds(data.filter(isAdVisible));
   };
+  const loadFeaturedBiz = async () => {
+    const snap = await getDocs(collection(db, "businesses"));
+    const list = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter(isFeaturedBiz)
+      .slice(0, 6);
+    setFeaturedBiz(list);
+  };
   const byPlacement = (key: string) =>
     ads.find((a) => normalizePlacement(a.placement) === key);
   const leftFeed = useMemo(() => {
@@ -356,7 +364,7 @@ export default function HomePage() {
                       <p className="text-gray-600 text-sm">Tap a card for the full listing.</p>
                     </div>
                     <Link href="/explore" className="text-sm font-semibold text-[#006B3F] shrink-0">
-                      See all →
+                      See all
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
@@ -367,7 +375,7 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <aside className="space-y-3 [&>a]:h-auto">
+            <aside className="space-y-3">
               <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
               <AdCard ad={byPlacement("r1")} />
               <AdCard ad={byPlacement("r2")} />
