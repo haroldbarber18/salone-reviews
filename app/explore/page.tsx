@@ -135,7 +135,7 @@ function BusinessCard({
   return (
     <Link
       href={`/business/${biz.id}`}
-      className={`block bg-white rounded-2xl p-4 sm:p-5 hover:shadow-md transition ${
+      className={`block h-full min-h-[168px] bg-white rounded-2xl p-4 sm:p-5 hover:shadow-md transition overflow-hidden ${
         featured ? "border-2 border-amber-300 bg-amber-50/70" : "border border-gray-200"
       }`}
     >
@@ -174,12 +174,6 @@ function BusinessCard({
           ) : (
             <p className="text-sm text-gray-500 mt-0.5">
               Location hidden · Register free to view
-            </p>
-          )}
-
-          {biz.description && (
-            <p className="hidden sm:block text-sm text-gray-600 mt-1.5 line-clamp-2">
-              {biz.description}
             </p>
           )}
 
@@ -318,7 +312,7 @@ export default function ExplorePage() {
 
               {featured.length > 0 && (
                 <section className="mb-8">
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4 items-stretch">
                     {featured.map((biz) => (
                       <BusinessCard
                         key={biz.id}
@@ -342,7 +336,7 @@ export default function ExplorePage() {
                       <div className="h-px flex-1 bg-gray-200" />
                     </div>
                   )}
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4 items-stretch">
                     {pageItems.map((biz) => (
                       <BusinessCard
                         key={biz.id}
