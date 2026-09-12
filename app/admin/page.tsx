@@ -93,21 +93,27 @@ export default function AdminPage() {
       setStaffMessage("That email is already staff.");
       return;
     }
-    await addDoc(collection(db, "staffHelpers"), {
-      email,
-      canEdit: staffCanEdit,
-      createdAt: serverTimestamp(),
-    });
-    await addDoc(collection(db, "staffActivity"), {
-      actorEmail: normEmail(user?.email),
-      action: "staff-added",
-      details: `${email} · ${staffCanEdit ? "can edit" : "add only"}`,
-      createdAt: serverTimestamp(),
-      createdAtMs: Date.now(),
-    });
-    setStaffEmail("");
-    setStaffMessage("Staff helper added. They must sign up / log in with that same email.");
-    loadStaff();
+    try {
+      await addDoc(collection(db, "staffHelpers"), {
+        email,
+        canEdit: staffCanEdit,
+        createdAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: normEmail(user?.email),
+        action: "staff-added",
+        details: `${email} · ${staffCanEdit ? "can edit" : "add only"}`,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      setStaffEmail("");
+      setStaffMessage("Staff helper added. They must sign up / log in with that same email.");
+      loadStaff();
+    } catch (err: any) {
+      setStaffMessage(err?.code === "permission-denied"
+        ? "Firebase blocked this. Open Firestore Rules and allow staffHelpers + staffActivity."
+        : (err?.message || "Could not add staff."));
+    }
   };
   const removeStaffHelper = async (helper: any) => {
     await deleteDoc(doc(db, "staffHelpers", helper.id));
@@ -202,6 +208,7 @@ export default function AdminPage() {
             <Link href="/admin/ads" className="text-[#006B3F] font-medium">Flyers & Events</Link>
             <Link href="/admin/requests" className="text-[#006B3F] font-medium">Listing requests</Link>
             <Link href="/admin/claims" className="text-[#006B3F] font-medium">Claims</Link>
+            <Link href="/admin/materials" className="text-[#006B3F] font-medium">Materials jobs</Link>
             <Link href="/admin/import" className="text-[#006B3F] font-medium">CSV import</Link>
             <Link href="/admin/services" className="text-[#006B3F] font-medium">Essential services</Link>
             <Link href="/pricing" className="text-[#006B3F] font-medium">Pricing page</Link>
