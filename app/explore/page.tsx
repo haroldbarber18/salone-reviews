@@ -170,6 +170,7 @@ function BusinessCard({
           {loggedIn ? (
             <p className="text-sm text-gray-500 mt-0.5 truncate">
               {[biz.area, biz.district].filter(Boolean).join(" · ")}
+              {biz.photos && biz.photos.length > 1 ? ` · ${biz.photos.length} photos` : ""}
             </p>
           ) : (
             <p className="text-sm text-gray-500 mt-0.5">
@@ -194,6 +195,8 @@ export default function ExplorePage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [subFilter, setSubFilter] = useState("");
   const [page, setPage] = useState(1);
 
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
@@ -208,7 +211,7 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) setDistrict("All");
+    if (isAdmin) setDistrict("Western Area Urban");
   }, [isAdmin]);
 
   useEffect(() => {
@@ -230,11 +233,31 @@ export default function ExplorePage() {
     })();
   }, []);
 
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    businesses.forEach((b) => {
+      if (b.category) set.add(b.category);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [businesses]);
+
+  const subOptions = useMemo(() => {
+    const set = new Set<string>();
+    businesses.forEach((b) => {
+      if (!b.subcategory) return;
+      if (categoryFilter && b.category !== categoryFilter) return;
+      set.add(b.subcategory);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [businesses, categoryFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return businesses.filter((biz) => {
       const districtOk = (isAdmin && district === "All") || biz.district === district;
       if (!districtOk) return false;
+      if (categoryFilter && String(biz.category || "") !== categoryFilter) return false;
+      if (subFilter && String(biz.subcategory || "") !== subFilter) return false;
       if (!q) return true;
       return [biz.name, biz.category, biz.subcategory, biz.area, biz.district, biz.description]
         .filter(Boolean)
@@ -242,7 +265,7 @@ export default function ExplorePage() {
         .toLowerCase()
         .includes(q);
     });
-  }, [businesses, query, district, isAdmin]);
+  }, [businesses, query, district, categoryFilter, subFilter, isAdmin]);
 
   const ranks = useMemo(() => rankMapFor(businesses, reviews), [businesses, reviews]);
   const featured = filtered.filter((biz) => isFeatured(biz));
@@ -261,7 +284,7 @@ export default function ExplorePage() {
 
   useEffect(() => {
     setPage(1);
-  }, [query, district]);
+  }, [query, district, categoryFilter, subFilter]);
 
   const goTo = (next: number) => {
     setPage(next);
@@ -274,16 +297,19 @@ export default function ExplorePage() {
       <main className="flex-1 px-4 py-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Explore businesses</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Hiring from abroad? Filter by district and trade, then open the photos before you call.
+          </p>
           <p className="flex items-center gap-1.5 text-sm text-[#006B3F] mt-1 mb-4">
             <span aria-hidden>📍</span>
             {district === "All" ? "All districts" : district}
           </p>
 
-          <div className="grid md:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, category, area..."
+              placeholder="Search name, trade, area..."
               className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white"
             />
             <select
@@ -298,7 +324,48 @@ export default function ExplorePage() {
                 </option>
               ))}
             </select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setSubFilter("");
+              }}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white"
+            >
+              <option value="">All categories</option>
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <select
+              value={subFilter}
+              onChange={(e) => setSubFilter(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white"
+            >
+              <option value="">All sub-categories</option>
+              {subOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
+          {(query || district !== "Western Area Urban" || categoryFilter || subFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setDistrict("Western Area Urban");
+                setCategoryFilter("");
+                setSubFilter("");
+              }}
+              className="mb-6 text-sm font-semibold text-[#006B3F]"
+            >
+              Clear filters
+            </button>
+          )}
 
           {authLoading || dataLoading ? (
             <p className="text-gray-500">Loading...</p>
