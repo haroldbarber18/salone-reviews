@@ -356,6 +356,23 @@ export default function HomePage() {
                   </Link>
                 ))}
               </div>
+              <Link
+                href="/materials"
+                className="mt-6 block rounded-2xl border bg-white overflow-hidden hover:shadow-sm"
+              >
+                <div className="p-4 sm:p-5">
+                  <p className="text-sm font-semibold text-[#006B3F]">Diaspora building</p>
+                  <h2 className="text-lg font-bold text-gray-900 mt-0.5">
+                    Building materials for diaspora
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Pick Urban or Rural zone, get a 6-digit job code. Payment in Freetown.
+                  </p>
+                  <span className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#006B3F] text-white text-sm font-medium">
+                    Request materials quote
+                  </span>
+                </div>
+              </Link>
               {featuredBiz.length > 0 && (
                 <div className="mt-8">
                   <div className="flex items-end justify-between gap-3 mb-3">
