@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * DROP-IN: replace app/claim/page.tsx
+ * Type 2+ letters → list of shops appears. Tap one to lock the official name.
+ */
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,8 +13,21 @@ import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
+type Biz = { id: string; name: string; area?: string; district?: string };
+
+function normName(s: string) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/['’`´]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function ClaimPage() {
+  const [list, setList] = useState<Biz[]>([]);
   const [businessName, setBusinessName] = useState("");
+  const [picked, setPicked] = useState<Biz | null>(null);
+  const [showSuggest, setShowSuggest] = useState(false);
   const [ownerName, setOwnerName] = useState("");
   const [ownerWhatsapp, setOwnerWhatsapp] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -18,25 +36,81 @@ export default function ClaimPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    getDocs(collection(db, "businesses")).then((snap) => {
+      setList(
+        snap.docs
+          .map((d) => {
+            const x = d.data() as any;
+            return {
+              id: d.id,
+              name: String(x.name || ""),
+              area: x.area || "",
+              district: x.district || "",
+            };
+          })
+          .filter((b) => b.name)
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+    });
+  }, []);
+
+  const suggestions = useMemo(() => {
+    const q = normName(businessName);
+    if (q.length < 2) return [];
+    return list
+      .filter((b) => {
+        const n = normName(b.name);
+        const place = normName(`${b.area} ${b.district}`);
+        return n.includes(q) || place.includes(q);
+      })
+      .slice(0, 8);
+  }, [businessName, list]);
+
+  const pick = (b: Biz) => {
+    setPicked(b);
+    setBusinessName(b.name);
+    setShowSuggest(false);
+    setMessage("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim() || !ownerName.trim() || !ownerWhatsapp.trim()) {
-      setMessage("Please enter the business name as listed, your name and WhatsApp.");
+    if (!ownerName.trim() || !ownerWhatsapp.trim()) {
+      setMessage("Please enter your name and WhatsApp.");
       return;
     }
+    const typed = normName(businessName);
+    let match = picked && normName(picked.name) === typed ? picked : null;
+    if (!match) {
+      const exact = list.filter((b) => normName(b.name) === typed);
+      if (exact.length === 1) match = exact[0];
+      else if (exact.length > 1) {
+        setMessage("More than one shop has that name. Type more or pick from the list.");
+        setShowSuggest(true);
+        return;
+      }
+    }
+    if (!match && typed.length >= 3) {
+      const close = list.filter(
+        (b) => normName(b.name).includes(typed) || typed.includes(normName(b.name))
+      );
+      if (close.length === 1) match = close[0];
+      else if (close.length > 1) {
+        setMessage("Pick the shop from the list under the name box.");
+        setShowSuggest(true);
+        return;
+      }
+    }
+    if (!match) {
+      setMessage("Type 2 letters and tap your shop in the list.");
+      setShowSuggest(true);
+      return;
+    }
+
     setLoading(true);
     setMessage("");
     try {
-      const snap = await getDocs(collection(db, "businesses"));
-      const typed = businessName.trim().toLowerCase();
-      const match = snap.docs.find(
-        (d) => String(d.data().name || "").trim().toLowerCase() === typed
-      );
-      if (!match) {
-        setMessage("We could not find that exact name. Copy it from the listing page.");
-        setLoading(false);
-        return;
-      }
       let proofUrl = "";
       if (proof) {
         const fileRef = ref(storage, `claim-proofs/${Date.now()}-${proof.name}`);
@@ -45,7 +119,7 @@ export default function ClaimPage() {
       }
       await addDoc(collection(db, "claimRequests"), {
         businessId: match.id,
-        businessName: match.data().name || businessName.trim(),
+        businessName: match.name,
         ownerName: ownerName.trim(),
         ownerWhatsapp: ownerWhatsapp.trim(),
         ownerEmail: ownerEmail.trim(),
@@ -55,6 +129,7 @@ export default function ClaimPage() {
         createdAt: serverTimestamp(),
       });
       setBusinessName("");
+      setPicked(null);
       setOwnerName("");
       setOwnerWhatsapp("");
       setOwnerEmail("");
@@ -73,21 +148,51 @@ export default function ClaimPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <div className="max-w-2xl mx-auto px-4 py-10">
-          <Link href="/" className="text-sm text-[#006B3F] font-medium">← Back to Home</Link>
-          <h1 className="text-3xl font-bold mt-4 mb-2">Claim your business</h1>
-          <p className="text-gray-600 mb-6">
-            Type the business name exactly as it appears on SaloneReviews.
-            After we approve, you can add the free photo and paid extra photos.
+        <div className="max-w-xl mx-auto px-4 py-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Claim your business</h1>
+          <p className="text-sm text-gray-600 mb-6">
+            Type part of the name (even “rabie”) and tap the shop. You do not need the exact spelling.
           </p>
-          <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 space-y-4">
-            <input
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Business name as listed"
-              className="w-full border rounded-xl px-4 py-3"
-              required
-            />
+          <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
+            <div className="relative">
+              <input
+                value={businessName}
+                onChange={(e) => {
+                  setBusinessName(e.target.value);
+                  setPicked(null);
+                  setShowSuggest(true);
+                }}
+                onFocus={() => setShowSuggest(true)}
+                placeholder="Start typing the shop name"
+                className="w-full border rounded-xl px-4 py-3"
+                autoComplete="off"
+                required
+              />
+              {picked && (
+                <p className="text-xs text-[#006B3F] mt-1">
+                  Selected: {picked.name}
+                  {picked.district ? ` · ${picked.district}` : ""}
+                </p>
+              )}
+              {showSuggest && suggestions.length > 0 && !picked && (
+                <ul className="absolute z-20 left-0 right-0 mt-1 bg-white border rounded-xl shadow-md max-h-56 overflow-y-auto">
+                  {suggestions.map((b) => (
+                    <li key={b.id}>
+                      <button
+                        type="button"
+                        onClick={() => pick(b)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b last:border-b-0"
+                      >
+                        <span className="block text-sm font-medium text-gray-900">{b.name}</span>
+                        <span className="block text-xs text-gray-500">
+                          {[b.area, b.district].filter(Boolean).join(" · ")}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <input
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
@@ -125,7 +230,18 @@ export default function ClaimPage() {
               />
             </div>
             {message && (
-              <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("please") || message.toLowerCase().includes("could not") ? "text-red-500" : "text-green-600"}`}>
+              <p
+                className={`text-sm ${
+                  message.toLowerCase().includes("fail") ||
+                  message.toLowerCase().includes("please") ||
+                  message.toLowerCase().includes("could not") ||
+                  message.toLowerCase().includes("more than") ||
+                  message.toLowerCase().includes("type 2") ||
+                  message.toLowerCase().includes("pick the")
+                    ? "text-red-500"
+                    : "text-green-600"
+                }`}
+              >
                 {message}
               </p>
             )}
