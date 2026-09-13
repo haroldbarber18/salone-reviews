@@ -629,14 +629,12 @@ export default function BusinessPage() {
 
             {user && (
               <div>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">Call</a>
-                  <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">WhatsApp</a>
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">Maps</a>
-                  {business.website ? (
-                    <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center text-xs font-semibold py-2 px-1 rounded-lg">Website</a>
-                  ) : (
-                    <span className="hidden sm:block" />
+                <div className={`grid gap-2 ${business.website ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-3 sm:grid-cols-5"}`}>
+                  <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">📞 Call</a>
+                  <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">WhatsApp</a>
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">Maps</a>
+                  {business.website && (
+                    <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center text-sm font-semibold py-2 px-1 rounded-lg">Website</a>
                   )}
                   <button
                     type="button"
@@ -644,41 +642,22 @@ export default function BusinessPage() {
                       const text = `Check out ${business.name} on SaloneReviews: ${window.location.href}`;
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
                     }}
-                    className="bg-gray-800 text-white text-center text-xs font-semibold py-2 px-1 rounded-lg"
+                    className="bg-gray-800 text-white text-center text-sm font-semibold py-2 px-1 rounded-lg"
                   >
                     Share
                   </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-                  {(!business.claimStatus || business.claimStatus === "Unclaimed") ? (
-                    <Link href="/claim" className="text-center text-xs font-semibold py-2 px-2 rounded-lg border border-[#006B3F] text-[#006B3F]">
-                      Claim this listing
-                    </Link>
-                  ) : (
-                    <span className="hidden sm:block" />
-                  )}
-                  {canReplyAsBusiness && (
-                    <button
-                      type="button"
-                      onClick={handleInviteCustomer}
-                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-[#006B3F] text-[#006B3F]"
-                    >
-                      Invite to review
-                    </button>
-                  )}
                   {canReplyAsBusiness && (
                     <button
                       type="button"
                       onClick={() => setShowQr((v) => !v)}
-                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-gray-300 text-gray-800"
+                      className="bg-white border border-gray-300 text-gray-800 text-center text-sm font-semibold py-2 px-1 rounded-lg"
                     >
-                      {showQr ? "Hide QR" : "Get QR code"}
+                      {showQr ? "Hide QR" : "Get QR"}
                     </button>
                   )}
                 </div>
-                {inviteMsg && <p className="text-xs text-[#006B3F] mt-2">{inviteMsg}</p>}
                 {showQr && canReplyAsBusiness && (
-                  <div className="mt-3 flex flex-col items-start">
+                  <div className="mt-3">
                     <p className="text-xs text-gray-600 mb-2">Screenshot or print for the counter. Scan opens the review page.</p>
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
@@ -687,7 +666,27 @@ export default function BusinessPage() {
                     />
                   </div>
                 )}
+                <div className="mt-4 space-y-2">
+                  {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
+                    <Link href="/claim" className="block text-sm font-semibold text-[#006B3F]">
+                      Is this your business? Claim this listing
+                    </Link>
+                  )}
+                  {canReplyAsBusiness && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleInviteCustomer}
+                        className="text-sm font-semibold text-[#006B3F]"
+                      >
+                        Invite a customer to review
+                      </button>
+                      {inviteMsg && <p className="text-xs text-[#006B3F] mt-1">{inviteMsg}</p>}
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
             )}
           </div>
 
