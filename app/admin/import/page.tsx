@@ -89,8 +89,15 @@ export default function AdminImportPage() {
         description: r[idx("description")] || "",
         hours: r[idx("hours")] || "",
         phone: r[idx("phone")] || r[idx("whatsapp_or_phone")] || "",
+        whatsapp: r[idx("whatsapp")] || r[idx("phone")] || r[idx("whatsapp_or_phone")] || "",
         email: r[idx("email")] || "",
         website: r[idx("website")] || "",
+        photo_1: r[idx("photo_1")] || r[idx("photo1")] || "",
+        photo_2: r[idx("photo_2")] || r[idx("photo2")] || "",
+        photo_3: r[idx("photo_3")] || r[idx("photo3")] || "",
+        photo_4: r[idx("photo_4")] || r[idx("photo4")] || "",
+        photo_5: r[idx("photo_5")] || r[idx("photo5")] || "",
+        photo_6: r[idx("photo_6")] || r[idx("photo6")] || "",
       }))
       .filter((x) => x.name);
     setRows(parsed);
@@ -124,9 +131,17 @@ export default function AdminImportPage() {
           description: r.description,
           hours: r.hours,
           phone: String(r.phone).replace(/\D/g, ""),
+          whatsapp: String(r.whatsapp || r.phone).replace(/\D/g, ""),
           email: r.email,
           website: r.website,
         };
+        const photos = [r.photo_1, r.photo_2, r.photo_3, r.photo_4, r.photo_5, r.photo_6]
+          .map((u: string) => String(u || "").trim())
+          .filter((u: string) => /^https?:\/\//i.test(u));
+        if (photos.length) {
+          (payload as any).photos = photos;
+          (payload as any).isPremium = photos.length > 1;
+        }
         const existingId =
           byId.get(String(r.listing_id || "").trim().toUpperCase()) ||
           byName.get(r.name.trim().toLowerCase());
@@ -136,8 +151,8 @@ export default function AdminImportPage() {
         } else {
           await addDoc(collection(db, "businesses"), {
             ...payload,
-            photos: [],
-            isPremium: false,
+            photos: photos,
+            isPremium: photos.length > 1,
             claimStatus: "Unclaimed",
             source: "Excel batch",
             createdAt: serverTimestamp(),
@@ -170,7 +185,9 @@ export default function AdminImportPage() {
           <Link href="/admin" className="text-sm text-[#006B3F] font-medium">← Back to Admin</Link>
           <h1 className="text-2xl font-bold mt-3 mb-2">Import listings</h1>
           <p className="text-sm text-gray-600 mb-4">
-            Existing businesses are updated. New names are added.
+            CSV only. Existing businesses are updated. New names are added.
+            Photo_1 is the cover photo. Paste up to 6 public image links (https://...).
+            Empty photo cells do not delete photos already on the site.
           </p>
           <input
             type="file"
@@ -195,6 +212,8 @@ export default function AdminImportPage() {
                       <th className="p-2">ID</th>
                       <th className="p-2">Name</th>
                       <th className="p-2">Description</th>
+                      <th className="p-2">Photos</th>
+                      <th className="p-2">Website</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -203,6 +222,8 @@ export default function AdminImportPage() {
                         <td className="p-2">{r.listing_id}</td>
                         <td className="p-2">{r.name}</td>
                         <td className="p-2">{r.description ? r.description.slice(0, 80) : "MISSING"}</td>
+                        <td className="p-2">{[r.photo_1,r.photo_2,r.photo_3,r.photo_4,r.photo_5,r.photo_6].filter(Boolean).length}</td>
+                        <td className="p-2">{r.website || "-"}</td>
                       </tr>
                     ))}
                   </tbody>
