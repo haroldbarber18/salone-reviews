@@ -687,7 +687,6 @@ export default function BusinessPage() {
                 </div>
               </div>
             )}
-            )}
           </div>
 
           {user && photos.length > 0 && (
