@@ -110,6 +110,7 @@ export default function BusinessPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [invitedFromLink, setInvitedFromLink] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [showQr, setShowQr] = useState(false);
   const [reviewSort, setReviewSort] = useState<"recommended" | "newest" | "highest" | "lowest">("recommended");
   const [staffEmails, setStaffEmails] = useState<string[]>([]);
   const [flagNote, setFlagNote] = useState<Record<string, string>>({});
@@ -627,50 +628,65 @@ export default function BusinessPage() {
             </div>
 
             {user && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
-                <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl">📍 Open in Maps</a>
-                {business.website && (
-                  <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center font-semibold py-3 rounded-xl">🔗 Website</a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const text = `Check out ${business.name} on SaloneReviews: ${window.location.href}`;
-                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                  }}
-                  className="bg-gray-800 text-white text-center font-semibold py-3 rounded-xl"
-                >
-                  📤 Share
-                </button>
-                {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
-                  <Link href="/claim" className="inline-block mt-3 text-sm font-semibold text-[#006B3F]">
-                    Is this your business? Claim this listing
-                  </Link>
-                )}
-              </div>
-            )}
-            {canReplyAsBusiness && (
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={handleInviteCustomer}
-                  className="w-full sm:w-auto bg-white border border-[#006B3F] text-[#006B3F] font-semibold px-5 py-3 rounded-xl"
-                >
-                  Invite a customer to review
-                </button>
-                {inviteMsg && <p className="text-sm text-[#006B3F] mt-2">{inviteMsg}</p>}
-                <p className="text-xs text-gray-600 mt-1">Copies a WhatsApp message with the review link.</p>
-                <div className="mt-5 border-t pt-4">
-                  <p className="text-sm font-semibold text-gray-900">Counter QR</p>
-                  <p className="text-xs text-gray-600 mb-3">Screenshot or print. Customer scan opens the review page.</p>
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
-                    alt="Review QR"
-                    className="w-40 h-40 border rounded-xl bg-white p-2"
-                  />
+              <div>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">Call</a>
+                  <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">WhatsApp</a>
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center text-xs font-semibold py-2 px-1 rounded-lg">Maps</a>
+                  {business.website ? (
+                    <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center text-xs font-semibold py-2 px-1 rounded-lg">Website</a>
+                  ) : (
+                    <span className="hidden sm:block" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `Check out ${business.name} on SaloneReviews: ${window.location.href}`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                    }}
+                    className="bg-gray-800 text-white text-center text-xs font-semibold py-2 px-1 rounded-lg"
+                  >
+                    Share
+                  </button>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+                  {(!business.claimStatus || business.claimStatus === "Unclaimed") ? (
+                    <Link href="/claim" className="text-center text-xs font-semibold py-2 px-2 rounded-lg border border-[#006B3F] text-[#006B3F]">
+                      Claim this listing
+                    </Link>
+                  ) : (
+                    <span className="hidden sm:block" />
+                  )}
+                  {canReplyAsBusiness && (
+                    <button
+                      type="button"
+                      onClick={handleInviteCustomer}
+                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-[#006B3F] text-[#006B3F]"
+                    >
+                      Invite to review
+                    </button>
+                  )}
+                  {canReplyAsBusiness && (
+                    <button
+                      type="button"
+                      onClick={() => setShowQr((v) => !v)}
+                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-gray-300 text-gray-800"
+                    >
+                      {showQr ? "Hide QR" : "Get QR code"}
+                    </button>
+                  )}
+                </div>
+                {inviteMsg && <p className="text-xs text-[#006B3F] mt-2">{inviteMsg}</p>}
+                {showQr && canReplyAsBusiness && (
+                  <div className="mt-3 flex flex-col items-start">
+                    <p className="text-xs text-gray-600 mb-2">Screenshot or print for the counter. Scan opens the review page.</p>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
+                      alt="Review QR"
+                      className="w-36 h-36 border rounded-xl bg-white p-2"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
