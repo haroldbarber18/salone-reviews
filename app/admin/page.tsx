@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [hours, setHours] = useState("");
+  const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
   const [isPremium, setIsPremium] = useState(false);
   const [featuredUntil, setFeaturedUntil] = useState("");
@@ -149,14 +150,14 @@ export default function AdminPage() {
   const resetForm = () => {
     setEditingId(null); setName(""); setCategory("Tradesmen"); setCustomCategory("");
     setSubcategory(""); setDistrict("Western Area Urban"); setArea(""); setPhone("");
-    setWhatsapp(""); setHours(""); setDescription(""); setIsPremium(false);
+    setWhatsapp(""); setHours(""); setWebsite(""); setDescription(""); setIsPremium(false);
     setFeaturedUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
   };
   const startEdit = (b: any) => {
     setEditingId(b.id); setName(b.name || ""); setCategory(b.category || "Tradesmen");
     setCustomCategory(b.customCategory || ""); setSubcategory(b.subcategory || "");
     setDistrict(b.district || "Western Area Urban"); setArea(b.area || "");
-    setPhone(b.phone || ""); setWhatsapp(b.whatsapp || ""); setHours(b.hours || "");
+    setPhone(b.phone || ""); setWhatsapp(b.whatsapp || ""); setHours(b.hours || ""); setWebsite(b.website || "");
     setDescription(b.description || ""); setIsPremium(!!b.isPremium);
     setFeaturedUntil(b.featuredUntil || ""); setVideoUrl(b.videoUrl || "");
     setVideoUntil(b.videoUntil || "");
@@ -179,7 +180,7 @@ export default function AdminPage() {
         name: name.trim(),
         category: category === "Other" && customCategory.trim() ? customCategory.trim() : category,
         customCategory: customCategory.trim(), subcategory: subcategory.trim(), district,
-        area: area.trim(), phone: phone.trim(), whatsapp: whatsapp.trim(), hours: hours.trim(),
+        area: area.trim(), phone: phone.trim(), whatsapp: whatsapp.trim(), hours: hours.trim(), website: website.trim(),
         description: description.trim(), isPremium,
         featuredUntil: featuredUntil || "", videoUrl: videoUrl.trim(), videoUntil: videoUntil || "",
         photos,
@@ -291,6 +292,7 @@ export default function AdminPage() {
               <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp" className="w-full border rounded-xl px-4 py-3" />
             </div>
             <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Opening hours" className="w-full border rounded-xl px-4 py-3" />
+            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website or Facebook page" className="w-full border rounded-xl px-4 py-3" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full border rounded-xl px-4 py-3" required />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} />

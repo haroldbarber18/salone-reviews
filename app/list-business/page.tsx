@@ -27,7 +27,7 @@ const CATEGORIES = [
 ];
 
 const SUBCATEGORIES: Record<string, string[]> = {
-  Tradesmen: ["Electrician", "Painter", "Tiler", "Welder", "Carpenter", "Plumber"],
+  Tradesmen: ["Electrician","Painter","Tiler","Welder","Carpenter","Plumber","Builder","Mason","Bricklayer","Roofer","Plasterer","Ceiling / gypsum","AC technician","Generator","Solar","Aluminium / glass","Labourer","Other"],
   Auto: ["Mechanic", "Car wash", "Spare parts", "Taxi"],
   Food: ["Restaurant", "Bar", "Cafe", "Takeaway", "Bakery"],
   Hotels: ["Hotel", "Guest house", "Lodge"],
@@ -66,6 +66,7 @@ export default function ListBusinessPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
   const [subcategory, setSubcategory] = useState("");
+  const [customSub, setCustomSub] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
   const [area, setArea] = useState("");
@@ -114,7 +115,7 @@ export default function ListBusinessPage() {
       await addDoc(collection(db, "businessRequests"), {
         name: name.trim(),
         category: category === "Other" ? customCategory.trim() || "Other" : category,
-        subcategory: category === "Other" ? "" : subcategory.trim(),
+        subcategory: category === "Other" ? "" : (subcategory === "Other" ? customSub.trim() : subcategory.trim()),
         district,
         area: area.trim(),
         phone: phone.trim(),
@@ -133,7 +134,7 @@ export default function ListBusinessPage() {
         createdAt: serverTimestamp(),
       });
 
-      setName(""); setCategory("Tradesmen"); setSubcategory(""); setCustomCategory("");
+      setName(""); setCategory("Tradesmen"); setSubcategory(""); setCustomSub(""); setCustomCategory("");
       setDistrict("Western Area Urban"); setArea(""); setPhone(""); setWhatsapp("");
       setWebsite(""); setDescription(""); setFreePhoto(null); setShowPaid(false);
       setPhotoPack("none"); setExtraPhotos([]); setPaymentShot(null);
@@ -161,7 +162,7 @@ export default function ListBusinessPage() {
           </p>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
-            <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(""); }} className="w-full border rounded-xl px-4 py-3">
+            <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(""); setCustomSub(""); }} className="w-full border rounded-xl px-4 py-3">
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={district} onChange={(e) => setDistrict(e.target.value)} className="w-full border rounded-xl px-4 py-3">
@@ -172,6 +173,9 @@ export default function ListBusinessPage() {
                 <option value="">Subcategory optional — leave blank</option>
                 {subcategoryOptions.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+            )}
+            {subcategory === "Other" && category !== "Other" && (
+              <input value={customSub} onChange={(e) => setCustomSub(e.target.value)} placeholder="Type the trade / subcategory" className="w-full border rounded-xl px-4 py-3" />
             )}
             {category === "Other" && (
               <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Enter category" maxLength={15} className="w-full border rounded-xl px-4 py-3" />
