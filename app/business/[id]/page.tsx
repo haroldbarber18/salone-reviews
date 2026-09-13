@@ -609,6 +609,13 @@ export default function BusinessPage() {
                 <span className="font-medium">Hours:</span> {business.hours}
               </p>
             )}
+            {business.website && (
+              <p className="text-sm mb-4">
+                <a href={business.website} target="_blank" rel="noreferrer" className="text-[#006B3F] font-semibold break-all">
+                  {business.website}
+                </a>
+              </p>
+            )}
             <div className="flex items-center gap-3 mb-5">
               <div className="flex items-center gap-1">
                 <span className="text-amber-500 text-xl">★</span>
@@ -624,6 +631,9 @@ export default function BusinessPage() {
                 <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
                 <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl">📍 Open in Maps</a>
+                {business.website && (
+                  <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center font-semibold py-3 rounded-xl">🔗 Website</a>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -651,7 +661,16 @@ export default function BusinessPage() {
                   Invite a customer to review
                 </button>
                 {inviteMsg && <p className="text-sm text-[#006B3F] mt-2">{inviteMsg}</p>}
-                <p className="text-xs text-gray-600 mt-1">Copies a WhatsApp message with your listing link.</p>
+                <p className="text-xs text-gray-600 mt-1">Copies a WhatsApp message with the review link.</p>
+                <div className="mt-5 border-t pt-4">
+                  <p className="text-sm font-semibold text-gray-900">Counter QR</p>
+                  <p className="text-xs text-gray-600 mb-3">Screenshot or print. Customer scan opens the review page.</p>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
+                    alt="Review QR"
+                    className="w-40 h-40 border rounded-xl bg-white p-2"
+                  />
+                </div>
               </div>
             )}
           </div>

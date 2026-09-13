@@ -10,8 +10,54 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+
+
+function phoneDigits(s: string) {
+  return String(s || "").replace(/\D/g, "");
+}
+function phoneVariants(s: string) {
+  let d = phoneDigits(s);
+  if (d.startsWith("00")) d = d.slice(2);
+  const out = new Set<string>([d]);
+  if (d.startsWith("232") && d.length > 3) {
+    out.add(d.slice(3));
+    out.add("0" + d.slice(3));
+  }
+  if (d.startsWith("0") && d.length >= 8) {
+    out.add("232" + d.slice(1));
+    out.add(d.slice(1));
+  }
+  if (d.length >= 8 && !d.startsWith("232") && !d.startsWith("0")) {
+    out.add("232" + d);
+    out.add("0" + d);
+  }
+  return [...out].filter(Boolean);
+}
+
+async function attachShopsByPhone(uid: string, email: string, displayName: string, phone: string) {
+  const variants = phoneVariants(phone);
+  if (!variants.length) return 0;
+  const snap = await getDocs(collection(db, "businesses"));
+  let n = 0;
+  for (const d of snap.docs) {
+    const b = d.data() as any;
+    if (b.claimStatus === "Claimed" && b.ownerUid && b.ownerUid !== uid) continue;
+    const nums = phoneVariants(`${b.whatsapp || ""} ${b.phone || ""} ${b.ownerWhatsapp || ""}`);
+    if (!nums.some((x) => variants.includes(x))) continue;
+    await updateDoc(doc(db, "businesses", d.id), {
+      ownerUid: uid,
+      ownerEmail: email,
+      ownerName: displayName || b.ownerName || "",
+      ownerWhatsapp: b.ownerWhatsapp || b.whatsapp || b.phone || phone,
+      claimStatus: "Claimed",
+      attachedAt: serverTimestamp(),
+    });
+    n += 1;
+  }
+  return n;
+}
 
 const countryCodes = [
   { code: "+232", country: "Sierra Leone" },
@@ -260,6 +306,11 @@ export default function SignupPage() {
         whatsappUpdates,
         createdAt: serverTimestamp(),
       });
+      try {
+        await attachShopsByPhone(userCredential.user.uid, email, name, fullPhone);
+      } catch (attachErr) {
+        console.log(attachErr);
+      }
       router.push("/");
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {

@@ -76,6 +76,9 @@ export default function AdminRequestsPage() {
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
+  const [website, setWebsite] = useState("");
+  const [ownerNote, setOwnerNote] = useState("");
+  const [ownerNoteLabel, setOwnerNoteLabel] = useState("");
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
@@ -112,6 +115,7 @@ export default function AdminRequestsPage() {
     setDescription(req.description || "");
     setAddress(req.address || "");
     setArea(req.area || "");
+    setWebsite(req.website || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -125,6 +129,7 @@ export default function AdminRequestsPage() {
     setDescription("");
     setAddress("");
     setArea("");
+    setWebsite("");
   };
 
   const handleSaveEdit = async () => {
@@ -143,6 +148,7 @@ export default function AdminRequestsPage() {
         description: description.trim(),
         address: address.trim(),
         area: area.trim(),
+        website: website.trim(),
       });
       setMessage("Request updated.");
       cancelEdit();
@@ -186,7 +192,7 @@ export default function AdminRequestsPage() {
     if (!window.confirm(note)) return;
     setMessage("");
     try {
-      await addDoc(collection(db, "businesses"), {
+      const created = await addDoc(collection(db, "businesses"), {
         name: req.name || "",
         category: req.category || "Other",
         subcategory: req.subcategory || "",
@@ -196,6 +202,7 @@ export default function AdminRequestsPage() {
         description: req.description || "",
         address: req.address || "",
         area: req.area || "",
+        website: req.website || "",
         hours: "",
         isPremium: req.paymentStatus === "confirmed" && (req.photoPack === "plus2" || req.photoPack === "plus5"),
         photos,
@@ -207,8 +214,15 @@ export default function AdminRequestsPage() {
       await updateDoc(doc(db, "businessRequests", req.id), {
         status: "approved",
         reviewedAt: serverTimestamp(),
+        publishedBusinessId: created.id,
       });
-      setMessage(`Approved: ${req.name}`);
+      const page = `https://www.salonereviews.com/business/${created.id}`;
+      const review = `${page}?invite=1`;
+      const note = `Your shop is on SaloneReviews.\n\nPAGE (Status / share):\n${page}\n\nASK FOR A REVIEW (send this after they pay):\n${review}\n\nHow to use:\n1. After the customer pays, WhatsApp them the REVIEW link. Write: Please tap and leave a short review.\n2. Save that REVIEW link. The QR on your page is the same link — print it for the counter.\n3. Do not send the List QR. That one is only to add a new shop.`;
+      setOwnerNote(note);
+      setOwnerNoteLabel(req.name || "shop");
+      try { if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(note); } catch {}
+      setMessage(`Approved: ${req.name}. Owner WhatsApp note copied — send it now.`);
       if (editingId === req.id) cancelEdit();
       loadRequests();
     } catch (error) {
@@ -263,6 +277,23 @@ export default function AdminRequestsPage() {
               {message}
             </p>
           )}
+          {ownerNote && (
+            <div className="bg-white border rounded-2xl p-5 mb-6">
+              <h2 className="font-semibold mb-2">Send this on WhatsApp to {ownerNoteLabel}</h2>
+              <textarea readOnly value={ownerNote} rows={12} className="w-full border rounded-xl px-3 py-2 text-sm font-mono" />
+              <button
+                type="button"
+                onClick={async () => {
+                  try { if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(ownerNote); } catch {}
+                  const wa = "";
+                  window.open(`https://wa.me/?text=${encodeURIComponent(ownerNote)}`, "_blank");
+                }}
+                className="mt-3 bg-[#25D366] text-white font-semibold px-5 py-2.5 rounded-xl"
+              >
+                Copy & open WhatsApp
+              </button>
+            </div>
+          )}
 
           {editingId && (
             <div className="bg-white border rounded-2xl p-5 mb-8 space-y-3">
@@ -284,6 +315,7 @@ export default function AdminRequestsPage() {
                 <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Area / town" className="w-full border rounded-xl px-4 py-3" />
                 <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" className="w-full border rounded-xl px-4 py-3" />
               </div>
+              <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website or Facebook page" className="w-full border rounded-xl px-4 py-3" />
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full border rounded-xl px-4 py-3" />
               <div className="flex flex-wrap gap-3">
                 <button onClick={handleSaveEdit} className="bg-[#006B3F] text-white font-semibold px-5 py-2.5 rounded-xl">Save changes</button>
@@ -307,6 +339,11 @@ export default function AdminRequestsPage() {
                   </p>
                   <p className="text-sm text-gray-700 mt-2">{req.description}</p>
                   <p className="text-sm mt-2">Phone: {req.phone || "-"} | WhatsApp: {req.whatsapp || "-"}</p>
+                  {req.website ? (
+                    <p className="text-sm mt-1">Website: <a href={req.website} target="_blank" rel="noreferrer" className="text-[#006B3F] font-medium break-all">{req.website}</a></p>
+                  ) : (
+                    <p className="text-sm mt-1 text-gray-400">Website: not given</p>
+                  )}
                   <p className="text-sm text-gray-600 mt-2">
                     Photo pack: {req.photoPack === "plus2" ? "2 extra · NLe 500" : req.photoPack === "plus5" ? "5 extra · NLe 1,000" : "Free photo only"}
                     {req.paymentStatus ? ` · Payment: ${req.paymentStatus}` : ""}
