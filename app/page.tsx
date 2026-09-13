@@ -24,6 +24,20 @@ const categories = [
   { name: "Pharmacy", desc: "Chemist", icon: "💊", q: "Pharmacy" },
   { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
+const NEWS_LINE =
+  "Building materials for diaspora — 6-digit job code — pay in Freetown   ·   Request a quote on /materials   ·   Shop numbers stay private   ·   ";
+function weatherWord(code?: number) {
+  if (code == null) return "";
+  if (code === 0) return "Clear";
+  if (code <= 3) return "Partly cloudy";
+  if (code <= 48) return "Fog";
+  if (code <= 57) return "Drizzle";
+  if (code <= 67) return "Rain";
+  if (code <= 77) return "Showers";
+  if (code <= 82) return "Rain";
+  if (code <= 99) return "Storm";
+  return "";
+}
 function parseAdDate(dateStr?: string) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
@@ -186,9 +200,37 @@ export default function HomePage() {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [featuredBiz, setFeaturedBiz] = useState<any[]>([]);
+  const [freetownClock, setFreetownClock] = useState("");
+  const [freetownTemp, setFreetownTemp] = useState<string>("");
+  const [freetownSky, setFreetownSky] = useState("");
   useEffect(() => {
     loadAds();
     loadFeaturedBiz();
+  }, []);
+  useEffect(() => {
+    const tick = () => {
+      const t = new Date().toLocaleTimeString("en-GB", {
+        timeZone: "Africa/Freetown",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setFreetownClock(t);
+    };
+    tick();
+    const id = setInterval(tick, 30 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=8.484&longitude=-13.23&current=temperature_2m,weather_code"
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        const temp = d?.current?.temperature_2m;
+        if (typeof temp === "number") setFreetownTemp(`${Math.round(temp)}°C`);
+        setFreetownSky(weatherWord(d?.current?.weather_code));
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -277,6 +319,32 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        <div className="bg-[#004d2e] text-white">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3">
+            <p className="shrink-0 text-xs sm:text-sm font-semibold">
+              Freetown {freetownClock || "--:--"}
+              {freetownTemp ? ` · ${freetownTemp}` : ""}
+              {freetownSky ? ` ${freetownSky}` : ""}
+            </p>
+            <div className="flex-1 overflow-hidden">
+              <div className="sr-marquee text-xs sm:text-sm text-white/90">
+                {NEWS_LINE}
+                {NEWS_LINE}
+              </div>
+            </div>
+          </div>
+        </div>
+        <style>{`
+          @keyframes sr-marquee {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          .sr-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: sr-marquee 28s linear infinite;
+          }
+        `}</style>
         <section className="px-3 sm:px-4 py-8 bg-gray-50">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
             <aside className="bg-white border border-gray-200 rounded-2xl p-3">
@@ -360,17 +428,24 @@ export default function HomePage() {
                 href="/materials"
                 className="mt-6 block rounded-2xl border bg-white overflow-hidden hover:shadow-sm"
               >
-                <div className="p-4 sm:p-5">
-                  <p className="text-sm font-semibold text-[#006B3F]">Diaspora building</p>
-                  <h2 className="text-lg font-bold text-gray-900 mt-0.5">
-                    Building materials for diaspora
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Pick Urban or Rural zone, get a 6-digit job code. Payment in Freetown.
-                  </p>
-                  <span className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#006B3F] text-white text-sm font-medium">
-                    Request materials quote
-                  </span>
+                <div className="flex flex-col sm:flex-row">
+                  <img
+                    src="/materials-banner.jpg"
+                    alt="Cement and building materials"
+                    className="w-full sm:w-44 h-36 sm:h-auto object-cover shrink-0 bg-gray-100"
+                  />
+                  <div className="p-4 sm:p-5">
+                    <p className="text-sm font-semibold text-[#006B3F]">Diaspora building</p>
+                    <h2 className="text-lg font-bold text-gray-900 mt-0.5">
+                      Building materials for diaspora
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Pick Urban or Rural zone, get a 6-digit job code. Payment in Freetown.
+                    </p>
+                    <span className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#006B3F] text-white text-sm font-medium">
+                      Request materials quote
+                    </span>
+                  </div>
                 </div>
               </Link>
               {featuredBiz.length > 0 && (
