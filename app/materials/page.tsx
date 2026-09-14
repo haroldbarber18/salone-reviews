@@ -90,6 +90,9 @@ export default function MaterialsPage() {
   const [wantItems, setWantItems] = useState<
     Record<string, { chips: string[]; qty: string }>
   >({});
+  const [extraItems, setExtraItems] = useState<{ name: string; qty: string }[]>(
+    []
+  );
   const [file, setFile] = useState<File | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -163,11 +166,21 @@ export default function MaterialsPage() {
         supervisorWhatsapp: supervisorWa.trim(),
         contractorName: contractorName.trim(),
         contractorWhatsapp: contractorWa.trim(),
-        items: Object.entries(wantItems).map(([name, v]) => ({
-          name,
-          chips: v.chips,
-          qty: v.qty.trim(),
-        })),
+        items: [
+          ...Object.entries(wantItems).map(([name, v]) => ({
+            name,
+            chips: v.chips,
+            qty: v.qty.trim(),
+          })),
+          ...extraItems
+            .filter((x) => x.name.trim())
+            .map((x) => ({
+              name: x.name.trim(),
+              chips: [] as string[],
+              qty: x.qty.trim(),
+              other: true,
+            })),
+        ],
         notes: notes.trim(),
         proformaUrl,
         acceptedBuyerTerms: true,
@@ -211,6 +224,7 @@ export default function MaterialsPage() {
               onClick={() => {
                 setDoneCode("");
                 setWantItems({});
+                setExtraItems([]);
                 setFile(null);
                 setAccepted(false);
               }}
@@ -294,6 +308,55 @@ export default function MaterialsPage() {
                     </div>
                   );
                 })}
+                <div className="rounded-xl border px-3 py-3 bg-[#F7F8F5]">
+                  <p className="text-sm font-medium mb-1">Other</p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Name not on the list? Add it here. It goes on this job only.
+                    Harold can add popular names to the tick list later.
+                  </p>
+                  {extraItems.map((row, i) => (
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                      <input
+                        className="border rounded-lg px-3 py-2 w-full text-sm bg-white"
+                        placeholder="Item name (e.g. 3/4 inch stone)"
+                        value={row.name}
+                        onChange={(e) =>
+                          setExtraItems((prev) =>
+                            prev.map((p, j) => (j === i ? { ...p, name: e.target.value } : p))
+                          )
+                        }
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          className="border rounded-lg px-3 py-2 w-full text-sm bg-white"
+                          placeholder="Quantity / size"
+                          value={row.qty}
+                          onChange={(e) =>
+                            setExtraItems((prev) =>
+                              prev.map((p, j) => (j === i ? { ...p, qty: e.target.value } : p))
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="text-xs text-gray-500 px-2"
+                          onClick={() =>
+                            setExtraItems((prev) => prev.filter((_, j) => j !== i))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setExtraItems((prev) => [...prev, { name: "", qty: "" }])}
+                    className="text-sm font-semibold text-[#006B3F]"
+                  >
+                    + Add another item
+                  </button>
+                </div>
               </div>
             </section>
 
