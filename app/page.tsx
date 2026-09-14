@@ -25,7 +25,7 @@ const categories = [
   { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
 const NEWS_LINE =
-  "Building materials for diaspora — 6-digit job code — pay in Freetown   ·   Request a quote on /materials   ·   Shop numbers stay private   ·   ";
+  "Building materials for diaspora - 6-digit job code - Pay in Freetown   ·   Request a quote on materials   ·   Quality goods & Competitive price   ·   Shop with Pride   ·   ";
 function weatherWord(code?: number) {
   if (code == null) return "";
   if (code === 0) return "Clear";
