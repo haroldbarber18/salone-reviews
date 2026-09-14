@@ -215,7 +215,7 @@ export default function MaterialsPage() {
               SR-{doneCode}
             </p>
             <p className="text-gray-700">
-              Save this number. Use it on the Freetown payment and with your caretaker. Harold
+              Save this number. Use it on the Freetown payment and with your caretaker. SaloneReviews
               will WhatsApp you on the number you sent.
             </p>
             <button
@@ -312,7 +312,7 @@ export default function MaterialsPage() {
                   <p className="text-sm font-medium mb-1">Other</p>
                   <p className="text-xs text-gray-500 mb-2">
                     Name not on the list? Add it here. It goes on this job only.
-                    Harold can add popular names to the tick list later.
+                    SaloneReviews can add popular names to the tick list later.
                   </p>
                   {extraItems.map((row, i) => (
                     <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
