@@ -25,7 +25,7 @@ const categories = [
   { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
 const NEWS_LINE =
-  "Building materials for diaspora - 6-digit job code - Pay in Freetown   ·   Request a quote on materials   ·   Quality goods & Competitive price   ·   Shop with Pride   ·   ";
+  "Building materials for diaspora — 6-digit job code — pay in Freetown   ·   Request a quote on /materials   ·   Shop numbers stay private   ·   ";
 function weatherWord(code?: number) {
   if (code == null) return "";
   if (code === 0) return "Clear";
@@ -463,3 +463,91 @@ export default function HomePage() {
               >
                 <div className="flex flex-col sm:flex-row">
                   <img
+                    src="/materials-banner.jpg"
+                    alt="Cement and building materials"
+                    className="w-full sm:w-44 h-36 sm:h-auto object-cover shrink-0 bg-gray-100"
+                  />
+                  <div className="p-4 sm:p-5">
+                    <p className="text-sm font-semibold text-[#006B3F]">Diaspora building</p>
+                    <h2 className="text-lg font-bold text-gray-900 mt-0.5">
+                      Building materials for diaspora
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Pick Urban or Rural zone, get a 6-digit job code. Payment in Freetown.
+                    </p>
+                    <span className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#006B3F] text-white text-sm font-medium">
+                      Request materials quote
+                    </span>
+                  </div>
+                </div>
+              </Link>
+              {featuredBiz.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-end justify-between gap-3 mb-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 mb-1">Featured businesses</h2>
+                      <p className="text-gray-600 text-sm">Tap a card for the full listing.</p>
+                    </div>
+                    <Link href="/explore" className="text-sm font-semibold text-[#006B3F] shrink-0">
+                      See all
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+                    {featuredBiz.map((biz) => (
+                      <HomeBizCard key={biz.id} biz={biz} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <aside className="space-y-3">
+              <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
+              <AdCard ad={byPlacement("r1")} />
+              <AdCard ad={byPlacement("r2")} />
+              <AdCard ad={byPlacement("r3")} />
+            </aside>
+          </div>
+        </section>
+        <section className="px-3 sm:px-4 py-10">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Why SaloneReviews?</h2>
+            <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto text-sm">
+              Too many people rely only on “my friend recommended him.” We are building a place
+              where real customers share real experiences so you can choose with confidence.
+            </p>
+            <div className="grid md:grid-cols-3 gap-3 mb-8">
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Real Reviews</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Read honest feedback from people who actually used the service.
+                </p>
+                <span className="text-xs font-semibold text-[#006B3F]">See latest reviews →</span>
+              </Link>
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Easy Contact</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Find businesses and contact them directly by call or WhatsApp.
+                </p>
+                <span className="text-xs font-semibold text-[#006B3F]">Find & message businesses →</span>
+              </Link>
+              <Link href="/explore" className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+                <h3 className="font-semibold mb-1 text-sm text-gray-900">Built for Salone</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Made for how people across Sierra Leone actually find trusted local services.
+                </p>
+                <span className="text-xs font-semibold text-[#006B3F]">Explore local services →</span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
+              <AdCard ad={byPlacement("b1")} />
+              <AdCard ad={byPlacement("b2")} />
+              <AdCard ad={byPlacement("b3")} />
+              <AdCard ad={byPlacement("b4")} />
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}
