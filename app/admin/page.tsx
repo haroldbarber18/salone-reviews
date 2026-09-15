@@ -206,14 +206,15 @@ export default function AdminPage() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-4">{editingId ? "Edit business" : "Admin"}</h1>
           <div className="flex flex-wrap gap-3 text-sm mb-6">
-            <Link href="/admin/ads" className="text-[#006B3F] font-medium">Flyers & Events</Link>
+            <Link href="/admin/ads" className="text-[#006B3F] font-medium">Sponsors</Link>
+            <Link href="/admin/events" className="text-[#006B3F] font-medium">Event flyers</Link>
             <Link href="/admin/requests" className="text-[#006B3F] font-medium">Listing requests</Link>
             <Link href="/admin/claims" className="text-[#006B3F] font-medium">Claims</Link>
             <Link href="/admin/materials" className="text-[#006B3F] font-medium">Materials jobs</Link>
             <Link href="/admin/import" className="text-[#006B3F] font-medium">CSV import</Link>
             <Link href="/admin/services" className="text-[#006B3F] font-medium">Essential services</Link>
             <Link href="/pricing" className="text-[#006B3F] font-medium">Pricing page</Link>
-            <Link href="/staff" className="text-[#006B3F] font-medium">Staff page</Link>
+            <Link href="/staff" className="text-[#006B3F] font-medium">IT staff page</Link>
           </div>
           <div className="bg-white border rounded-2xl p-6 mb-8">
             <h2 className="text-lg font-bold mb-1">Staff helpers</h2>

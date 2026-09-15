@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
@@ -7,7 +6,6 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { isAdminEmail, isHardcodedStaff, normEmail } from "@/lib/roles";
-
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [staffEmails, setStaffEmails] = useState<string[]>([]);
@@ -15,14 +13,12 @@ export default function Navbar() {
   const email = normEmail(user?.email);
   const isAdmin = isAdminEmail(email);
   const isStaff = !!(email && (isHardcodedStaff(email) || staffEmails.includes(email)));
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
     return () => unsubscribe();
   }, []);
-
   useEffect(() => {
     (async () => {
       try {
@@ -33,14 +29,11 @@ export default function Navbar() {
       }
     })();
   }, [user]);
-
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/");
   };
-
   const firstName = user?.displayName?.trim()?.split(/\s+/)[0] || "User";
-
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
@@ -54,6 +47,12 @@ export default function Navbar() {
           </div>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <Link
+            href="/events"
+            className="text-sm font-medium text-gray-800 hover:text-[#006B3F]"
+          >
+            Events
+          </Link>
           {user ? (
             <>
               {isAdmin && (
@@ -69,7 +68,7 @@ export default function Navbar() {
                   href="/staff"
                   className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-full hover:bg-[#005a35]"
                 >
-                  Staff
+                  IT staff
                 </Link>
               )}
               <Link
