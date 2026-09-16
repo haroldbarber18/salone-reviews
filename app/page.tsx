@@ -277,8 +277,8 @@ export default function HomePage() {
         eventDate: e.date,
         startDate: e.date,
         endDate: e.date,
-        feeType: e.fee === "paid" ? "paid" : "free",
-        price: e.feeAmount || "",
+        feeType: (e.price || e.fee === "paid") ? "paid" : "free",
+        price: e.price || e.feeAmount || "",
         placement: "left",
         href: "/events",
         source: "event",
@@ -334,12 +334,6 @@ export default function HomePage() {
                   List your business
                 </Link>
                 <Link
-                  href="/events/new"
-                  className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl border border-white/30"
-                >
-                  Post an event
-                </Link>
-                <Link
                   href="/contact"
                   className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
                 >
@@ -382,7 +376,12 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
             <aside className="bg-white border border-gray-200 rounded-2xl p-3">
               <div className="mb-3">
-                <p className="text-sm font-bold text-gray-900 mb-2">Events & Flyers</p>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="text-sm font-bold text-gray-900">Events & Flyers</p>
+                  <Link href="/events/new" className="text-xs font-semibold text-[#006B3F] shrink-0">
+                    Post a free event
+                  </Link>
+                </div>
                 <select
                   value={eventFilter}
                   onChange={(e) => {

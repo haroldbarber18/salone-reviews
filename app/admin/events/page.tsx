@@ -39,19 +39,28 @@ export default function AdminEventsPage() {
         <h1 className="text-2xl font-bold mt-2 mb-4">Event flyers</h1>
         <div className="space-y-3">
           {rows.map((e) => (
-            <div key={e.id} className="bg-white border rounded-xl p-4">
+            <div key={e.id} className="bg-white border rounded-xl p-4 space-y-2">
               <div className="flex justify-between gap-2">
                 <div>
                   <p className="font-semibold">{e.name}</p>
                   <p className="text-sm text-gray-500">
                     {e.date} · {e.venue} · {e.district} · {e.status}
                   </p>
+                  <p className="text-sm text-gray-600">
+                    Price: {e.price || "—"} · Photos: {e.photoFee || e.photoPack}
+                  </p>
                 </div>
                 <div className="flex gap-2 text-sm">
-                  <button onClick={() => setStatus(e.id, "approved")} className="text-[#006B3F] font-semibold">Approve</button>
-                  <button onClick={() => setStatus(e.id, "refused")} className="text-red-600">Refuse</button>
+                  <button type="button" onClick={() => setStatus(e.id, "approved")} className="text-[#006B3F] font-semibold">Approve</button>
+                  <button type="button" onClick={() => setStatus(e.id, "refused")} className="text-red-600">Refuse</button>
                 </div>
               </div>
+              {e.photos?.[0] && <img src={e.photos[0]} alt="" className="h-24 object-contain" />}
+              {e.receiptUrl && (
+                <p className="text-sm">
+                  Receipt: <a className="text-[#006B3F] font-semibold" href={e.receiptUrl} target="_blank" rel="noreferrer">Open</a>
+                </p>
+              )}
             </div>
           ))}
         </div>

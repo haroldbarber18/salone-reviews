@@ -47,12 +47,6 @@ export default function Navbar() {
           </div>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <Link
-            href="/events"
-            className="text-sm font-medium text-gray-800 hover:text-[#006B3F]"
-          >
-            Events
-          </Link>
           {user ? (
             <>
               {isAdmin && (
