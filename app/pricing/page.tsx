@@ -11,7 +11,7 @@ export default function PricingPage() {
         <section className="bg-[#006B3F] text-white px-4 py-12 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">List your business</h1>
           <p className="max-w-2xl mx-auto text-white/90">
-            Standard listing is free for 1 year and includes 1 photo.
+            Standard listing is free for 1 year and includes 2 photos.
             Pay only if you want extra photos, to appear first, or to add a video.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
@@ -28,7 +28,7 @@ export default function PricingPage() {
               <p className="text-sm text-gray-500 mb-4">1 year</p>
               <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
                 <li>Business page on SaloneReviews</li>
-                <li>1 photo included</li>
+                <li>2 photos included</li>
                 <li>Reviews from customers</li>
                 <li>Shown in your district</li>
               </ul>
@@ -40,8 +40,8 @@ export default function PricingPage() {
               <p className="text-3xl font-bold mb-1">NLe 500</p>
               <p className="text-sm text-gray-500 mb-4">or NLe 1,000</p>
               <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
-                <li>NLe 500 = 2 extra photos (3 total)</li>
-                <li>NLe 1,000 = 5 extra photos (6 total)</li>
+                <li>NLe 500 = 3 extra photos (5 total)</li>
+                <li>NLe 1,000 = 7 extra photos (9 total)</li>
                 <li>Photos stay on the listing</li>
                 <li>Need the free listing first</li>
               </ul>
@@ -76,14 +76,29 @@ export default function PricingPage() {
           </div>
         </section>
         <section className="px-4 pb-12">
-          <div className="max-w-4xl mx-auto bg-[#006B3F] text-white rounded-2xl p-6 sm:p-8">
-            <h2 className="text-xl font-bold mb-2">How to pay</h2>
-            <p className="text-white/90 mb-4">Pay by Orange Money, then WhatsApp the screenshot and your business name.</p>
-            <p className="font-semibold mb-1">Orange Money: 075 294 553</p>
-            <p className="mb-6">WhatsApp: +232 75 294 553</p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/list-business" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-xl text-center">List your business free</Link>
-              <a href={WA} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white font-semibold px-6 py-3 rounded-xl text-center">Send payment on WhatsApp</a>
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-4 items-stretch">
+            <div className="bg-white border rounded-2xl p-6 flex flex-col">
+              <p className="text-xs font-semibold text-[#006B3F] mb-2">EVENTS</p>
+              <h2 className="text-xl font-bold mb-1">Post an event</h2>
+              <p className="text-3xl font-bold mb-1">NLe 0</p>
+              <p className="text-sm text-gray-500 mb-4">or NLe 200 a month</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
+                <li>1 flyer photo free</li>
+                <li>3 photos — NLe 200 a month</li>
+                <li>Shows in Events & Flyers after approval</li>
+                <li>Comes down after the event date</li>
+              </ul>
+              <Link href="/events/new" className="text-center bg-[#006B3F] text-white font-semibold py-3 rounded-xl">Post an event</Link>
+            </div>
+            <div className="bg-[#006B3F] text-white rounded-2xl p-6 sm:p-8 flex flex-col">
+              <h2 className="text-xl font-bold mb-2">How to pay</h2>
+              <p className="text-white/90 mb-4">Pay by Orange Money, then WhatsApp the screenshot and your business or event name.</p>
+              <p className="font-semibold mb-1">Orange Money: 075 294 553</p>
+              <p className="mb-6">WhatsApp: +232 75 294 553</p>
+              <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+                <Link href="/list-business" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-xl text-center">List your business free</Link>
+                <a href={WA} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white font-semibold px-6 py-3 rounded-xl text-center">Send payment on WhatsApp</a>
+              </div>
             </div>
           </div>
         </section>
