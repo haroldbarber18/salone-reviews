@@ -5,13 +5,20 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { isAdminEmail } from "@/lib/roles";
 
 const DISTRICTS = [
   "Western Area Urban","Western Area Rural","Bo","Kenema","Bombali","Port Loko","Kono",
   "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
 ];
+
+function waLink(raw?: string) {
+  const n = String(raw || "").replace(/\D/g, "");
+  if (!n) return "";
+  const full = n.startsWith("232") ? n : n.startsWith("0") ? `232${n.slice(1)}` : `232${n}`;
+  return `https://wa.me/${full}`;
+}
 
 export default function AdminEventsPage() {
   const [ok, setOk] = useState(false);
@@ -76,9 +83,17 @@ export default function AdminEventsPage() {
     load();
   }
 
+  async function remove(id: string) {
+    if (!confirm("Delete this event flyer?")) return;
+    await deleteDoc(doc(db, "events", id));
+    setOpenId(null);
+    load();
+  }
+
   if (!ok) return <div className="min-h-screen flex items-center justify-center">Admin only</div>;
 
   const current = rows.find((r) => r.id === openId);
+  const senderWa = waLink(form.contact);
 
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
@@ -115,7 +130,20 @@ export default function AdminEventsPage() {
               {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
             </select>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-            <input className="w-full border rounded-xl px-3 py-2" placeholder="Contact" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
+            <input className="w-full border rounded-xl px-3 py-2" placeholder="Sender's WhatsApp if we need to contact you" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
+            <div className="flex flex-wrap gap-3 text-sm font-semibold">
+              {senderWa && (
+                <a href={senderWa} target="_blank" rel="noreferrer" className="text-[#006B3F]">
+                  WhatsApp sender (private)
+                </a>
+              )}
+              {form.contact && (
+                <a href={`tel:${String(form.contact).replace(/\s/g, "")}`} className="text-gray-700">
+                  Call sender
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">Only you see this. It is not a public button on the flyer.</p>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Link" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
             <textarea className="w-full border rounded-xl px-3 py-2" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <p className="text-sm text-gray-600">Pack: {form.photoFee || form.photoPack} · Status: {form.status}</p>
@@ -136,6 +164,7 @@ export default function AdminEventsPage() {
               <button type="button" onClick={save} className="bg-gray-200 font-semibold px-4 py-2 rounded-xl">Save</button>
               <button type="button" onClick={() => setStatus(openId!, "approved")} className="bg-[#006B3F] text-white font-semibold px-4 py-2 rounded-xl">Approve</button>
               <button type="button" onClick={() => setStatus(openId!, "refused")} className="text-red-600 font-semibold px-4 py-2">Refuse</button>
+              <button type="button" onClick={() => remove(openId!)} className="text-red-700 font-semibold px-4 py-2">Delete</button>
               <button type="button" onClick={() => setOpenId(null)} className="px-4 py-2">Close</button>
             </div>
           </div>

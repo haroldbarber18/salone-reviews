@@ -42,7 +42,7 @@ export default function NewEventPage() {
     e.preventDefault();
     setErr("");
     if (!name.trim() || !date || !venue.trim() || !contact.trim()) {
-      return setErr("Name, date, venue and contact are required.");
+      return setErr("Name, date, venue and sender WhatsApp are required.");
     }
     if (files.length === 0) return setErr("Add the flyer photo.");
     if (files.length > maxPhotos) {
@@ -107,7 +107,8 @@ export default function NewEventPage() {
               {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
             </select>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Price (optional)" value={price} onChange={(e) => setPrice(e.target.value)} />
-            <input className="w-full border rounded-xl px-3 py-2" placeholder="Contact / WhatsApp" value={contact} onChange={(e) => setContact(e.target.value)} />
+            <input className="w-full border rounded-xl px-3 py-2" placeholder="Sender's WhatsApp if we need to contact you" value={contact} onChange={(e) => setContact(e.target.value)} />
+            <p className="text-xs text-gray-500">Private. SaloneReviews uses this if we need to reach you about this flyer.</p>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
             <textarea className="w-full border rounded-xl px-3 py-2" rows={4} placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="border rounded-xl p-3 space-y-2 text-sm">
