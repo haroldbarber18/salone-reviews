@@ -163,24 +163,39 @@ function FlyerCard({ ad }: { ad?: any }) {
     </Link>
   );
 }
-function SponsorCard({ ad }: { ad?: any }) {
+function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
   if (!ad) return <EmptySlot />;
   const href = ad.link || ad.href || `/ad/${ad.id}`;
-  const inner = (
+  const title = ad.title || "Sponsor";
+  const extra = String(ad.description || ad.caption || "").trim();
+  const showExtra = !compact && extra && extra.toLowerCase() !== title.toLowerCase();
+  const inner = compact ? (
+    <div className="rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition overflow-hidden h-full">
+      <div className="h-28 bg-white flex items-center justify-center p-3">
+        {ad.imageUrl ? (
+          <img src={ad.imageUrl} alt={title} className="max-h-24 max-w-full object-contain" />
+        ) : (
+          <span className="text-xs text-gray-400">Ad</span>
+        )}
+      </div>
+      <div className="px-3 pb-3 pt-1 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Sponsored</p>
+        <h3 className="font-semibold text-sm text-gray-900 leading-snug mt-0.5">{title}</h3>
+      </div>
+    </div>
+  ) : (
     <div className="flex items-stretch gap-3 p-2 rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition h-full">
       <div className="w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] shrink-0 rounded-xl overflow-hidden bg-gray-50">
         {ad.imageUrl ? (
-          <img src={ad.imageUrl} alt={ad.title || "Sponsor"} className="w-full h-full object-contain bg-white" />
+          <img src={ad.imageUrl} alt={title} className="w-full h-full object-contain bg-white" />
         ) : (
           <div className="w-full h-full grid place-items-center text-xs text-gray-400">Ad</div>
         )}
       </div>
       <div className="min-w-0 flex-1 py-1 pr-1">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-1">Sponsored</p>
-        <h3 className="font-semibold text-[15px] text-gray-900 leading-snug line-clamp-2">{ad.title}</h3>
-        {ad.description || ad.caption ? (
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{ad.description || ad.caption}</p>
-        ) : null}
+        <h3 className="font-semibold text-[15px] text-gray-900 leading-snug">{title}</h3>
+        {showExtra ? <p className="text-xs text-gray-500 mt-1 line-clamp-2">{extra}</p> : null}
       </div>
     </div>
   );
@@ -336,8 +351,11 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4 items-start">
+            <div className="order-2 lg:order-1">
+              <SponsorCard ad={byPlacement("top1")} compact />
+            </div>
+            <div className="order-1 lg:order-2 text-center">
               <h1 className="text-3xl sm:text-5xl font-bold mb-4">
                 Find di best businesses in Salone.
               </h1>
@@ -374,9 +392,8 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl mx-auto">
-              <SponsorCard ad={byPlacement("top1")} />
-              <SponsorCard ad={byPlacement("top2")} />
+            <div className="order-3">
+              <SponsorCard ad={byPlacement("top2")} compact />
             </div>
           </div>
         </section>
