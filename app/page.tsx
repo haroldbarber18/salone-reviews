@@ -170,10 +170,10 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
   const extra = String(ad.description || ad.caption || "").trim();
   const showExtra = !compact && extra && extra.toLowerCase() !== title.toLowerCase();
   const inner = compact ? (
-    <div className="rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition overflow-hidden h-full">
-      <div className="h-28 bg-white flex items-center justify-center p-3">
+    <div className="rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition overflow-hidden h-full flex flex-col">
+      <div className="flex-1 min-h-[112px] bg-white flex items-center justify-center p-3">
         {ad.imageUrl ? (
-          <img src={ad.imageUrl} alt={title} className="max-h-24 max-w-full object-contain" />
+          <img src={ad.imageUrl} alt={title} className="max-h-full max-w-full object-contain" />
         ) : (
           <span className="text-xs text-gray-400">Ad</span>
         )}
@@ -351,8 +351,8 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4 items-start">
-            <div className="order-2 lg:order-1">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4 items-stretch">
+            <div className="order-2 lg:order-1 h-full">
               <SponsorCard ad={byPlacement("top1")} compact />
             </div>
             <div className="order-1 lg:order-2 text-center">
@@ -392,7 +392,7 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="order-3">
+            <div className="order-3 h-full">
               <SponsorCard ad={byPlacement("top2")} compact />
             </div>
           </div>
