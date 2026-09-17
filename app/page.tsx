@@ -336,11 +336,8 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-stretch">
-            <div className="order-2 lg:order-1">
-              <SponsorCard ad={byPlacement("top1")} />
-            </div>
-            <div className="order-1 lg:order-2 text-center">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center">
               <h1 className="text-3xl sm:text-5xl font-bold mb-4">
                 Find di best businesses in Salone.
               </h1>
@@ -377,7 +374,8 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="order-3">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl mx-auto">
+              <SponsorCard ad={byPlacement("top1")} />
               <SponsorCard ad={byPlacement("top2")} />
             </div>
           </div>
