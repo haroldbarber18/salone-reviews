@@ -113,55 +113,90 @@ function formatDate(dateStr?: string) {
 }
 function formatEventRange(ad: any) {
   if (ad.eventDate && ad.eventEndDate) {
-    return `${formatDate(ad.eventDate)} – ${formatDate(ad.eventEndDate)}`;
+    return `${formatDate(ad.eventDate)} - ${formatDate(ad.eventEndDate)}`;
   }
   return formatDate(ad.eventDate || ad.eventEndDate);
 }
 function EmptySlot() {
   return (
-    <div className="min-h-[120px] border border-dashed border-gray-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-500 p-3">
+    <div className="min-h-[112px] border-2 border-dashed border-amber-300 rounded-2xl bg-white flex items-center justify-center text-xs text-gray-500 p-3">
       Sponsor space available
     </div>
   );
 }
-function AdCard({ ad }: { ad?: any }) {
+function FlyerCard({ ad }: { ad?: any }) {
   if (!ad) return <EmptySlot />;
+  const href = ad.link || ad.href || `/ad/${ad.id}`;
+  const dateLabel = formatEventRange(ad);
+  const showRegister = !!(ad.link && String(ad.link).startsWith("http"));
   return (
     <Link
-      href={ad.href || `/ad/${ad.id}`}
-      className="block h-full bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition"
+      href={href}
+      className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex items-stretch gap-3 p-2 hover:shadow-sm transition"
     >
-      <div className="bg-gray-50 h-36 flex items-center justify-center">
+      <div className="w-[112px] h-[112px] shrink-0 rounded-xl overflow-hidden bg-gray-100">
         {ad.imageUrl ? (
-          <img src={ad.imageUrl} alt={ad.title} className="w-full h-36 object-contain" />
+          <img src={ad.imageUrl} alt={ad.title || "Flyer"} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-xs text-gray-400">Flyer</span>
+          <div className="w-full h-full grid place-items-center text-xs text-gray-400">Flyer</div>
         )}
       </div>
-      <div className="p-3 bg-white">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          {(ad.eventDate || ad.eventEndDate) ? (
-            <p className="text-xs text-gray-500 truncate">{formatEventRange(ad)}</p>
-          ) : (
-            <span />
-          )}
-          {ad.feeType === "free" && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800 shrink-0">
-              Free
-            </span>
-          )}
-          {ad.feeType === "paid" && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800 shrink-0">
-              {ad.price || "Paid"}
-            </span>
-          )}
-        </div>
-        <h3 className="font-bold text-sm leading-snug text-gray-900 line-clamp-2">{ad.title}</h3>
+      <div className="min-w-0 flex-1 py-1 pr-1">
+        {dateLabel ? <p className="text-xs text-gray-500 mb-1">{dateLabel}</p> : null}
+        <h3 className="font-semibold text-sm text-gray-900 leading-snug line-clamp-3">{ad.title}</h3>
+        {ad.feeType === "free" && (
+          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800">
+            Free
+          </span>
+        )}
+        {ad.feeType === "paid" && (
+          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800">
+            {ad.price || "Paid"}
+          </span>
+        )}
+        {showRegister && (
+          <span className="inline-block mt-2 ml-1 text-[11px] font-semibold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
+            Register to Join
+          </span>
+        )}
       </div>
     </Link>
   );
 }
-
+function SponsorCard({ ad }: { ad?: any }) {
+  if (!ad) return <EmptySlot />;
+  const href = ad.link || ad.href || `/ad/${ad.id}`;
+  const inner = (
+    <div className="flex items-stretch gap-3 p-2 rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition h-full">
+      <div className="w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] shrink-0 rounded-xl overflow-hidden bg-gray-50">
+        {ad.imageUrl ? (
+          <img src={ad.imageUrl} alt={ad.title || "Sponsor"} className="w-full h-full object-contain bg-white" />
+        ) : (
+          <div className="w-full h-full grid place-items-center text-xs text-gray-400">Ad</div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 py-1 pr-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-1">Sponsored</p>
+        <h3 className="font-semibold text-[15px] text-gray-900 leading-snug line-clamp-2">{ad.title}</h3>
+        {ad.description || ad.caption ? (
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{ad.description || ad.caption}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+  if (String(href).startsWith("http")) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className="block h-full">
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className="block h-full">
+      {inner}
+    </Link>
+  );
+}
 function isFeaturedBiz(biz: any) {
   if (!biz?.featuredUntil) return false;
   const until = new Date(biz.featuredUntil);
@@ -277,10 +312,11 @@ export default function HomePage() {
         eventDate: e.date,
         startDate: e.date,
         endDate: e.date,
-        feeType: (e.price || e.fee === "paid") ? "paid" : "free",
+        feeType: e.price || e.fee === "paid" ? "paid" : "free",
         price: e.price || e.feeAmount || "",
         placement: "left",
-        href: "/events",
+        href: e.link || "/events",
+        link: e.link || "",
         source: "event",
         active: true,
       }));
@@ -302,7 +338,7 @@ export default function HomePage() {
         <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-stretch">
             <div className="order-2 lg:order-1">
-              <AdCard ad={byPlacement("top1")} />
+              <SponsorCard ad={byPlacement("top1")} />
             </div>
             <div className="order-1 lg:order-2 text-center">
               <h1 className="text-3xl sm:text-5xl font-bold mb-4">
@@ -342,7 +378,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="order-3">
-              <AdCard ad={byPlacement("top2")} />
+              <SponsorCard ad={byPlacement("top2")} />
             </div>
           </div>
         </section>
@@ -398,7 +434,9 @@ export default function HomePage() {
                 {visibleLeftFeed.length === 0 ? (
                   <EmptySlot />
                 ) : (
-                  visibleLeftFeed.map((ad) => <AdCard key={`${ad.source || "ad"}-${ad.id}`} ad={ad} />)
+                  visibleLeftFeed.map((ad) => (
+                    <FlyerCard key={`${ad.source || "ad"}-${ad.id}`} ad={ad} />
+                  ))
                 )}
               </div>
               {isMobile && leftFeed.length > 10 && !showAllEvents && (
@@ -501,9 +539,9 @@ export default function HomePage() {
             </div>
             <aside className="space-y-3">
               <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
-              <AdCard ad={byPlacement("r1")} />
-              <AdCard ad={byPlacement("r2")} />
-              <AdCard ad={byPlacement("r3")} />
+              <SponsorCard ad={byPlacement("r1")} />
+              <SponsorCard ad={byPlacement("r2")} />
+              <SponsorCard ad={byPlacement("r3")} />
             </aside>
           </div>
         </section>
@@ -537,11 +575,11 @@ export default function HomePage() {
                 <span className="text-xs font-semibold text-[#006B3F]">Explore local services →</span>
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
-              <AdCard ad={byPlacement("b1")} />
-              <AdCard ad={byPlacement("b2")} />
-              <AdCard ad={byPlacement("b3")} />
-              <AdCard ad={byPlacement("b4")} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
+              <SponsorCard ad={byPlacement("b1")} />
+              <SponsorCard ad={byPlacement("b2")} />
+              <SponsorCard ad={byPlacement("b3")} />
+              <SponsorCard ad={byPlacement("b4")} />
             </div>
           </div>
         </section>
