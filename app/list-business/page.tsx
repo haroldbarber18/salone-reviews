@@ -2,7 +2,10 @@
 
 /**
  * DROP-IN: replace app/list-business/page.tsx
- * Short form + optional website. Extra paid photos stay folded until opened.
+ * New photo packs:
+ *   2 photos free
+ *   3 extra — NLe 500 (5 total)
+ *   7 extra — NLe 1,000 (9 total)
  */
 
 import { useState } from "react";
@@ -74,17 +77,18 @@ export default function ListBusinessPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [freePhoto, setFreePhoto] = useState<File | null>(null);
+  const [freePhoto1, setFreePhoto1] = useState<File | null>(null);
+  const [freePhoto2, setFreePhoto2] = useState<File | null>(null);
   const [showPaid, setShowPaid] = useState(false);
-  const [photoPack, setPhotoPack] = useState<"none" | "plus2" | "plus5">("none");
+  const [photoPack, setPhotoPack] = useState<"none" | "plus3" | "plus7">("none");
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
   const [paymentShot, setPaymentShot] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const subcategoryOptions = SUBCATEGORIES[category] || [];
-  const extraNeeded = photoPack === "plus2" ? 2 : photoPack === "plus5" ? 5 : 0;
-  const packPrice = photoPack === "plus2" ? "NLe 500" : photoPack === "plus5" ? "NLe 1,000" : "";
+  const extraNeeded = photoPack === "plus3" ? 3 : photoPack === "plus7" ? 7 : 0;
+  const packPrice = photoPack === "plus3" ? "NLe 500" : photoPack === "plus7" ? "NLe 1,000" : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,8 +107,9 @@ export default function ListBusinessPage() {
     setLoading(true);
     setMessage("");
     try {
-      let freePhotoUrl = "";
-      if (freePhoto) freePhotoUrl = await uploadOne("listing-requests", freePhoto);
+      const freePhotoUrls: string[] = [];
+      if (freePhoto1) freePhotoUrls.push(await uploadOne("listing-requests", freePhoto1));
+      if (freePhoto2) freePhotoUrls.push(await uploadOne("listing-requests", freePhoto2));
       const extraPhotoUrls: string[] = [];
       for (const file of extraPhotos.slice(0, extraNeeded)) {
         extraPhotoUrls.push(await uploadOne("listing-requests", file));
@@ -122,7 +127,8 @@ export default function ListBusinessPage() {
         whatsapp: whatsapp.trim() || phone.trim(),
         website: cleanWebsite(website),
         description: description.trim(),
-        freePhotoUrl,
+        freePhotoUrl: freePhotoUrls[0] || "",
+        freePhotoUrls,
         extraPhotoUrls,
         photoPack,
         packPrice,
@@ -136,7 +142,7 @@ export default function ListBusinessPage() {
 
       setName(""); setCategory("Tradesmen"); setSubcategory(""); setCustomSub(""); setCustomCategory("");
       setDistrict("Western Area Urban"); setArea(""); setPhone(""); setWhatsapp("");
-      setWebsite(""); setDescription(""); setFreePhoto(null); setShowPaid(false);
+      setWebsite(""); setDescription(""); setFreePhoto1(null); setFreePhoto2(null); setShowPaid(false);
       setPhotoPack("none"); setExtraPhotos([]); setPaymentShot(null);
       setMessage("Request submitted. We will review and contact you.");
     } catch (error) {
@@ -158,7 +164,7 @@ export default function ListBusinessPage() {
         <div className="max-w-xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">List your business</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Name, area, phone, a short description and one photo. Website is optional.
+            Name, area, phone, a short description and up to 2 photos free.
           </p>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
@@ -188,8 +194,12 @@ export default function ListBusinessPage() {
             <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website or Facebook page (optional)" className="w-full border rounded-xl px-4 py-3" inputMode="url" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description of your business" rows={4} className="w-full border rounded-xl px-4 py-3" required />
             <div>
-              <label className="block text-sm font-medium mb-1">1st photo (free, optional)</label>
-              <input type="file" accept="image/*" onChange={(e) => setFreePhoto(e.target.files?.[0] || null)} className="w-full border rounded-xl px-4 py-3 bg-white" />
+              <label className="block text-sm font-medium mb-1">Photo 1 (free — shop front)</label>
+              <input type="file" accept="image/*" onChange={(e) => setFreePhoto1(e.target.files?.[0] || null)} className="w-full border rounded-xl px-4 py-3 bg-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Photo 2 (free, optional)</label>
+              <input type="file" accept="image/*" onChange={(e) => setFreePhoto2(e.target.files?.[0] || null)} className="w-full border rounded-xl px-4 py-3 bg-white" />
             </div>
             <button type="button" onClick={() => setShowPaid((v) => !v)} className="text-sm font-medium text-[#006B3F]">
               {showPaid ? "Hide extra photos" : "Add extra photos (paid, optional)"}
@@ -198,8 +208,8 @@ export default function ListBusinessPage() {
               <div className="border rounded-2xl p-4 space-y-3 bg-gray-50">
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "none"} onChange={() => { setPhotoPack("none"); setExtraPhotos([]); }} /> No extra photos</label>
-                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus2"} onChange={() => setPhotoPack("plus2")} /> 2 extra photos — NLe 500</label>
-                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus5"} onChange={() => setPhotoPack("plus5")} /> 5 extra photos — NLe 1,000</label>
+                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus3"} onChange={() => setPhotoPack("plus3")} /> 3 extra photos — NLe 500 (5 total)</label>
+                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus7"} onChange={() => setPhotoPack("plus7")} /> 7 extra photos — NLe 1,000 (9 total)</label>
                 </div>
                 {extraNeeded > 0 && (
                   <>
