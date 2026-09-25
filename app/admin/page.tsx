@@ -89,6 +89,7 @@ export default function AdminPage() {
   const [staffCanEdit, setStaffCanEdit] = useState(false);
   const [staffActivity, setStaffActivity] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState("");
+  const [paidPhotoIds, setPaidPhotoIds] = useState<Record<string, boolean>>({});
   const isAdmin = isAdminEmail(user?.email);
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setChecking(false); });
@@ -187,8 +188,12 @@ export default function AdminPage() {
     setFeaturedUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
   };
   const fillForm = (b: any) => {
-    setName(b.name || ""); setCategory(b.category || "Tradesmen");
-    setCustomCategory(b.customCategory || ""); setSubcategory(b.subcategory || "");
+    const cat = String(b.category || "Tradesmen");
+    const known = categories.includes(cat);
+    setName(b.name || "");
+    setCategory(known ? cat : "Tradesmen");
+    setCustomCategory(b.customCategory || (!known ? cat : ""));
+    setSubcategory(b.subcategory || (!known ? cat : ""));
     setDistrict(b.district || "Western Area Urban"); setArea(b.area || "");
     setPhone(b.phone || ""); setWhatsapp(b.whatsapp || ""); setHours(b.hours || ""); setWebsite(b.website || "");
     setDescription(b.description || ""); setIsPremium(!!b.isPremium);
@@ -206,11 +211,20 @@ export default function AdminPage() {
     setEditingId(null);
     setEditingRequestId(r.id);
     fillForm(r);
+    setMessage(`Editing pending: ${r.name || ""}. Form is at the top. Save pending, then Approve.`);
+    setTimeout(() => {
+      document.getElementById("admin-listing-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
   const approveRequest = async (r: any) => {
     try {
+      const base = requestPayload(r);
+      const paidPhotos = !!paidPhotoIds[r.id] || !!r.isPremium;
+      const photos = (base.photos || []).slice(0, paidPhotos ? 6 : 2);
       await addDoc(collection(db, "businesses"), {
-        ...requestPayload(r),
+        ...base,
+        photos,
+        isPremium: paidPhotos,
         createdAt: serverTimestamp(),
         createdByStaff: r.submittedBy || "",
       });
@@ -377,6 +391,15 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-500">{r.subcategory || r.category} · {r.district} · {r.area}</p>
                     <p className="text-xs text-gray-500 mt-1">From {r.submittedBy || "staff"}</p>
                     <p className="text-sm mt-2 whitespace-pre-wrap">{r.description}</p>
+                    <p className="text-xs text-gray-500 mt-2">{Array.isArray(r.photos) ? r.photos.length : 0} photo(s) attached. Approve shows 2 unless paid is ticked.</p>
+                    <label className="flex items-center gap-2 text-sm mt-2">
+                      <input
+                        type="checkbox"
+                        checked={!!paidPhotoIds[r.id]}
+                        onChange={(e) => setPaidPhotoIds((prev) => ({ ...prev, [r.id]: e.target.checked }))}
+                      />
+                      Paid - show up to 6 photos
+                    </label>
                     <div className="flex flex-wrap gap-3 mt-3">
                       <button type="button" onClick={() => approveRequest(r)} className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-lg">Approve</button>
                       <button type="button" onClick={() => startEditRequest(r)} className="text-sm font-semibold text-[#006B3F]">Edit</button>
@@ -388,7 +411,12 @@ export default function AdminPage() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
+          <form id="admin-listing-form" onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
+            {editingRequestId && (
+              <p className="text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+                Editing a staff pending listing. Press Save pending, then Approve when ready.
+              </p>
+            )}
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
             <div className="grid sm:grid-cols-2 gap-4">
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl px-4 py-3">

@@ -131,11 +131,13 @@ export default function StaffPage() {
 
   const startEditPending = (r: any) => {
     if (r.status && r.status !== "pending") return;
+    const cat = String(r.category || "Tradesmen");
+    const known = categories.includes(cat);
     setEditingPendingId(r.id);
     setName(r.name || "");
-    setCategory(r.category || "Tradesmen");
-    setCustomCategory(r.customCategory || "");
-    setSubcategory(r.subcategory || "");
+    setCategory(known ? cat : "Tradesmen");
+    setCustomCategory(r.customCategory || (!known ? cat : ""));
+    setSubcategory(r.subcategory || (!known ? cat : ""));
     setDistrict(r.district || "Western Area Urban");
     setArea(r.area || "");
     setPhone(r.phone || "");
@@ -145,7 +147,10 @@ export default function StaffPage() {
     setDescription(r.description || "");
     setExistingPhotos(Array.isArray(r.photos) ? r.photos : []);
     setPhotoFiles([]);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMessage("Editing pending listing. Change the form at the top, then Update pending.");
+    setTimeout(() => {
+      document.getElementById("listing-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,7 +168,7 @@ export default function StaffPage() {
         await uploadBytes(r, file);
         uploaded.push(await getDownloadURL(r));
       }
-      const photos = [...existingPhotos, ...uploaded].slice(0, 2);
+      const photos = [...existingPhotos, ...uploaded].slice(0, 6);
       const payload = {
         name: name.trim(),
         category: category === "Other" && customCategory.trim() ? customCategory.trim() : category,
@@ -190,7 +195,7 @@ export default function StaffPage() {
           status: "pending",
           updatedAtMs: Date.now(),
         });
-        setMessage("Pending listing updated. Still waiting for Admin.");
+        setMessage("Sent and will be live within hours.");
       } else {
         await addDoc(collection(db, "businessRequests"), payload);
         await addDoc(collection(db, "staffActivity"), {
@@ -201,7 +206,7 @@ export default function StaffPage() {
           createdAt: serverTimestamp(),
           createdAtMs: Date.now(),
         });
-        setMessage("Sent to Admin. It is not live until approved.");
+        setMessage("Sent and will be live within hours.");
       }
       resetForm();
       const rq = query(collection(db, "businessRequests"), where("submittedBy", "==", email));
@@ -239,8 +244,13 @@ export default function StaffPage() {
             Add a listing for Admin to approve. Search one name at a time. You cannot publish live.
           </p>
 
-          <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
+          <form id="listing-form" onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <h2 className="text-lg font-bold">{editingPendingId ? "Edit pending listing" : "Submit a listing"}</h2>
+            {editingPendingId && (
+              <p className="text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+                You are editing a pending listing. Scroll is at this form. Press Update pending when done.
+              </p>
+            )}
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
             <div className="grid sm:grid-cols-2 gap-4">
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl px-4 py-3">
@@ -280,7 +290,13 @@ export default function StaffPage() {
                 ))}
               </div>
             )}
-            <input type="file" accept="image/*" multiple onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setPhotoFiles(Array.from(e.target.files || []).slice(0, 6))}
+            />
+            <p className="text-xs text-gray-500">Up to 6 photos. 2 show free after Admin approves. Extra photos after payment.</p>
             {message && <p className="text-sm text-green-700">{message}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl">
@@ -307,7 +323,7 @@ export default function StaffPage() {
                     <p className="text-xs mt-1">
                       {r.status === "approved" && <span className="text-green-700 font-semibold">Live</span>}
                       {r.status === "rejected" && <span className="text-red-600 font-semibold">Rejected</span>}
-                      {(!r.status || r.status === "pending") && <span className="text-amber-700 font-semibold">Pending Admin</span>}
+                      {(!r.status || r.status === "pending") && <span className="text-amber-700 font-semibold">Pending</span>}
                     </p>
                   </div>
                   {(!r.status || r.status === "pending") && (
