@@ -177,8 +177,9 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
   const extra = String(ad.description || ad.caption || "").trim();
   const showExtra = !compact && extra && extra.toLowerCase() !== title.toLowerCase();
   const inner = compact ? (
-    <div className="rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition overflow-hidden h-full flex flex-col">
-      <div className="flex-1 min-h-[112px] bg-white flex items-center justify-center p-3">
+    <div className="relative rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition h-full flex flex-col">
+      <span className="absolute -top-2 -left-2 z-10 w-6 h-6 rounded-full bg-amber-400 text-white text-sm font-extrabold grid place-items-center">★</span>
+      <div className="flex-1 min-h-[112px] bg-white flex items-center justify-center p-3 rounded-2xl overflow-hidden">
         {ad.imageUrl ? (
           <img src={ad.imageUrl} alt={title} className="max-h-full max-w-full object-contain" />
         ) : (
@@ -186,12 +187,12 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
         )}
       </div>
       <div className="px-3 pb-3 pt-1 text-center">
-        <p className="text-xs font-extrabold uppercase tracking-wide text-amber-500">★ Sponsored</p>
-        <h3 className="font-semibold text-sm text-gray-900 leading-snug mt-0.5">{title}</h3>
+        <h3 className="font-semibold text-sm text-gray-900 leading-snug">{title}</h3>
       </div>
     </div>
   ) : (
-    <div className="flex items-stretch gap-3 p-2 rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition h-full">
+    <div className="relative flex items-stretch gap-3 p-2 rounded-2xl bg-white border-2 border-amber-400 shadow-[0_0_0_1px_rgba(212,175,55,0.45)] hover:shadow-md transition h-full">
+      <span className="absolute -top-2 -left-2 z-10 w-6 h-6 rounded-full bg-amber-400 text-white text-sm font-extrabold grid place-items-center">★</span>
       <div className="w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] shrink-0 rounded-xl overflow-hidden bg-gray-50">
         {ad.imageUrl ? (
           <img src={ad.imageUrl} alt={title} className="w-full h-full object-contain bg-white" />
@@ -200,7 +201,6 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
         )}
       </div>
       <div className="min-w-0 flex-1 py-1 pr-1">
-        <p className="text-xs font-extrabold uppercase tracking-wide text-amber-500 mb-1">★ Sponsored</p>
         <h3 className="font-semibold text-[15px] text-gray-900 leading-snug">{title}</h3>
         {showExtra ? <p className="text-xs text-gray-500 mt-1 line-clamp-2">{extra}</p> : null}
       </div>
@@ -261,16 +261,16 @@ function ProfileCard({ biz }: { biz: any }) {
   return (
     <Link
       href={`/business/${biz.id}`}
-      className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm h-full min-h-[200px]"
+      className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm"
     >
       {photo ? (
         <img
           src={photo}
           alt={biz.name || ""}
-          className="w-full flex-1 min-h-[140px] object-cover object-top bg-gray-100"
+          className="w-full h-36 object-cover object-top bg-gray-100"
         />
       ) : (
-        <div className="w-full flex-1 min-h-[140px] bg-gray-100" />
+        <div className="w-full h-36 bg-gray-100" />
       )}
       <div className="p-3 shrink-0">
         <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
@@ -287,12 +287,12 @@ function SideFeaturedCard({ biz }: { biz: any }) {
   return (
     <Link
       href={`/business/${biz.id}`}
-      className="flex flex-col bg-white border border-amber-300 rounded-2xl overflow-hidden hover:shadow-sm h-full min-h-[200px]"
+      className="flex flex-col bg-white border border-amber-300 rounded-2xl overflow-hidden hover:shadow-sm"
     >
       {photo ? (
-        <img src={photo} alt="" className="w-full flex-1 min-h-[140px] object-cover object-top bg-gray-100" />
+        <img src={photo} alt="" className="w-full h-36 object-cover object-top bg-gray-100" />
       ) : (
-        <div className="w-full flex-1 min-h-[140px] bg-gray-100" />
+        <div className="w-full h-36 bg-gray-100" />
       )}
       <div className="p-3 shrink-0">
         <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
@@ -710,8 +710,11 @@ export default function HomePage() {
             </aside>
           </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-stretch mt-4">
-            <div className="h-full flex flex-col gap-3">
-              {leftProfile ? <ProfileCard biz={leftProfile} /> : <div className="hidden lg:block flex-1" />}
+            <div className="flex flex-col gap-2">
+              {leftProfile && (
+                <p className="text-sm font-bold text-gray-900 px-1">Featured tradesmen</p>
+              )}
+              {leftProfile ? <ProfileCard biz={leftProfile} /> : null}
               {leftFeat ? <SideFeaturedCard biz={leftFeat} /> : null}
             </div>
             <div>
@@ -734,15 +737,18 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <div className="h-full flex flex-col gap-3">
-              {rightProfile ? <ProfileCard biz={rightProfile} /> : <div className="hidden lg:block flex-1" />}
+            <div className="flex flex-col gap-2">
+              {rightProfile && (
+                <p className="text-sm font-bold text-gray-900 px-1">Featured tradesmen</p>
+              )}
+              {rightProfile ? <ProfileCard biz={rightProfile} /> : null}
               {rightFeat ? <SideFeaturedCard biz={rightFeat} /> : null}
             </div>
           </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-center mt-3">
             <Link
               href="/list-business"
-              className="flex items-center justify-center gap-2 border rounded-xl px-3 py-3 text-sm font-semibold text-[#006B3F] bg-white"
+              className="flex items-center justify-center border rounded-xl px-2 py-1.5 text-xs font-semibold text-[#006B3F] bg-white"
             >
               QR List your business
             </Link>
@@ -751,10 +757,10 @@ export default function HomePage() {
               href="https://wa.me/23275294553"
               target="_blank"
               rel="noreferrer"
-              className="block border-2 border-dashed border-amber-300 rounded-2xl p-4 text-center bg-white"
+              className="block border border-dashed border-amber-300 rounded-xl px-2 py-1.5 text-center bg-white"
             >
-              <p className="font-semibold text-sm text-gray-900">Advertise here</p>
-              <p className="text-xs text-[#006B3F] mt-1">WhatsApp</p>
+              <p className="font-semibold text-xs text-gray-900">Advertise here</p>
+              <p className="text-[10px] text-[#006B3F]">WhatsApp</p>
             </a>
           </div>
         </section>
