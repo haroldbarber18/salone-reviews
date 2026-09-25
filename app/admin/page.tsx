@@ -36,15 +36,37 @@ function isFeaturedActive(b: any) {
   d.setHours(23, 59, 59, 999);
   return d >= new Date();
 }
+function requestPayload(r: any) {
+  return {
+    name: r.name || "",
+    category: r.category || "Tradesmen",
+    customCategory: r.customCategory || "",
+    subcategory: r.subcategory || "",
+    district: r.district || "Western Area Urban",
+    area: r.area || "",
+    phone: r.phone || "",
+    whatsapp: r.whatsapp || "",
+    hours: r.hours || "",
+    website: r.website || "",
+    description: r.description || "",
+    isPremium: !!r.isPremium,
+    featuredUntil: r.featuredUntil || "",
+    videoUrl: r.videoUrl || "",
+    videoUntil: r.videoUntil || "",
+    photos: Array.isArray(r.photos) ? r.photos : [],
+  };
+}
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [checking, setChecking] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [pendingStaff, setPendingStaff] = useState<any[]>([]);
   const [listQuery, setListQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
   const [customCategory, setCustomCategory] = useState("");
@@ -64,7 +86,7 @@ export default function AdminPage() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [staffHelpers, setStaffHelpers] = useState<any[]>([]);
   const [staffEmail, setStaffEmail] = useState("");
-  const [staffCanEdit, setStaffCanEdit] = useState(true);
+  const [staffCanEdit, setStaffCanEdit] = useState(false);
   const [staffActivity, setStaffActivity] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState("");
   const isAdmin = isAdminEmail(user?.email);
@@ -72,7 +94,7 @@ export default function AdminPage() {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setChecking(false); });
     return () => unsub();
   }, []);
-  useEffect(() => { if (isAdmin) { loadBusinesses(); loadStaff(); } }, [isAdmin]);
+  useEffect(() => { if (isAdmin) { loadBusinesses(); loadStaff(); loadPendingStaff(); } }, [isAdmin]);
   const loadStaff = async () => {
     const [helpersSnap, activitySnap] = await Promise.all([
       getDocs(collection(db, "staffHelpers")),
@@ -82,6 +104,17 @@ export default function AdminPage() {
     const logs = activitySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     logs.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
     setStaffActivity(logs.slice(0, 40));
+  };
+  const loadPendingStaff = async () => {
+    try {
+      const snap = await getDocs(collection(db, "businessRequests"));
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const pending = rows.filter((r: any) => r.source === "staff" && (!r.status || r.status === "pending"));
+      pending.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+      setPendingStaff(pending);
+    } catch {
+      setPendingStaff([]);
+    }
   };
   const addStaffHelper = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,13 +181,13 @@ export default function AdminPage() {
     );
   }, [businesses, listQuery]);
   const resetForm = () => {
-    setEditingId(null); setName(""); setCategory("Tradesmen"); setCustomCategory("");
+    setEditingId(null); setEditingRequestId(null); setName(""); setCategory("Tradesmen"); setCustomCategory("");
     setSubcategory(""); setDistrict("Western Area Urban"); setArea(""); setPhone("");
     setWhatsapp(""); setHours(""); setWebsite(""); setDescription(""); setIsPremium(false);
     setFeaturedUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
   };
-  const startEdit = (b: any) => {
-    setEditingId(b.id); setName(b.name || ""); setCategory(b.category || "Tradesmen");
+  const fillForm = (b: any) => {
+    setName(b.name || ""); setCategory(b.category || "Tradesmen");
     setCustomCategory(b.customCategory || ""); setSubcategory(b.subcategory || "");
     setDistrict(b.district || "Western Area Urban"); setArea(b.area || "");
     setPhone(b.phone || ""); setWhatsapp(b.whatsapp || ""); setHours(b.hours || ""); setWebsite(b.website || "");
@@ -163,6 +196,62 @@ export default function AdminPage() {
     setVideoUntil(b.videoUntil || "");
     setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
     setPhotoFiles([]); window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const startEdit = (b: any) => {
+    setEditingId(b.id);
+    setEditingRequestId(null);
+    fillForm(b);
+  };
+  const startEditRequest = (r: any) => {
+    setEditingId(null);
+    setEditingRequestId(r.id);
+    fillForm(r);
+  };
+  const approveRequest = async (r: any) => {
+    try {
+      await addDoc(collection(db, "businesses"), {
+        ...requestPayload(r),
+        createdAt: serverTimestamp(),
+        createdByStaff: r.submittedBy || "",
+      });
+      await updateDoc(doc(db, "businessRequests", r.id), {
+        status: "approved",
+        reviewedAtMs: Date.now(),
+      });
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: normEmail(user?.email),
+        action: "admin-approved-staff-listing",
+        businessName: r.name,
+        details: r.submittedBy || "",
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      setMessage(`Approved: ${r.name}`);
+      loadBusinesses();
+      loadPendingStaff();
+    } catch {
+      setMessage("Approve failed. Check Firestore rules.");
+    }
+  };
+  const rejectRequest = async (r: any) => {
+    try {
+      await updateDoc(doc(db, "businessRequests", r.id), {
+        status: "rejected",
+        reviewedAtMs: Date.now(),
+      });
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: normEmail(user?.email),
+        action: "admin-rejected-staff-listing",
+        businessName: r.name,
+        details: r.submittedBy || "",
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      setMessage(`Rejected: ${r.name}`);
+      loadPendingStaff();
+    } catch {
+      setMessage("Reject failed.");
+    }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +274,15 @@ export default function AdminPage() {
         featuredUntil: featuredUntil || "", videoUrl: videoUrl.trim(), videoUntil: videoUntil || "",
         photos,
       };
-      if (editingId) {
+      if (editingRequestId) {
+        await updateDoc(doc(db, "businessRequests", editingRequestId), {
+          ...payload,
+          status: "pending",
+          updatedAtMs: Date.now(),
+        });
+        setMessage("Pending staff listing updated. Approve it when ready.");
+        loadPendingStaff();
+      } else if (editingId) {
         await updateDoc(doc(db, "businesses", editingId), payload);
         setMessage("Updated.");
       } else {
@@ -204,7 +301,7 @@ export default function AdminPage() {
       <Navbar />
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-4">{editingId ? "Edit business" : "Admin"}</h1>
+          <h1 className="text-2xl font-bold mb-4">{editingId || editingRequestId ? "Edit business" : "Admin"}</h1>
           <div className="flex flex-wrap gap-3 text-sm mb-6">
             <Link href="/admin/ads" className="text-[#006B3F] font-medium">Sponsors</Link>
             <Link href="/admin/events" className="text-[#006B3F] font-medium">Event flyers</Link>
@@ -219,7 +316,7 @@ export default function AdminPage() {
           <div className="bg-white border rounded-2xl p-6 mb-8">
             <h2 className="text-lg font-bold mb-1">Staff helpers</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Add their personal login email later. They can add listings. Tick edit if they may change existing ones.
+              Add their personal login email later. Leave edit unticked. Their listings wait here for Approve.
             </p>
             <form onSubmit={addStaffHelper} className="flex flex-col sm:flex-row gap-2 mb-3">
               <input
@@ -266,6 +363,31 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+
+          <div className="bg-white border rounded-2xl p-6 mb-8">
+            <h2 className="text-lg font-bold mb-1">Staff listings waiting</h2>
+            <p className="text-sm text-gray-600 mb-4">Nothing here goes live until you Approve.</p>
+            {pendingStaff.length === 0 ? (
+              <p className="text-sm text-gray-500">No pending staff listings.</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingStaff.map((r) => (
+                  <div key={r.id} className="border rounded-xl p-4">
+                    <h3 className="font-semibold">{r.name}</h3>
+                    <p className="text-sm text-gray-500">{r.subcategory || r.category} · {r.district} · {r.area}</p>
+                    <p className="text-xs text-gray-500 mt-1">From {r.submittedBy || "staff"}</p>
+                    <p className="text-sm mt-2 whitespace-pre-wrap">{r.description}</p>
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      <button type="button" onClick={() => approveRequest(r)} className="text-sm font-semibold text-white bg-[#006B3F] px-3 py-1.5 rounded-lg">Approve</button>
+                      <button type="button" onClick={() => startEditRequest(r)} className="text-sm font-semibold text-[#006B3F]">Edit</button>
+                      <button type="button" onClick={() => rejectRequest(r)} className="text-sm font-semibold text-red-600">Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
             <div className="grid sm:grid-cols-2 gap-4">
@@ -339,9 +461,9 @@ export default function AdminPage() {
             {message && <p className="text-sm text-green-700">{message}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl">
-                {loading ? "Saving..." : editingId ? "Update" : "Add business"}
+                {loading ? "Saving..." : editingRequestId ? "Save pending" : editingId ? "Update" : "Add business"}
               </button>
-              {editingId && <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">Cancel</button>}
+              {(editingId || editingRequestId) && <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">Cancel</button>}
             </div>
           </form>
           <h2 className="text-lg font-bold mb-3">

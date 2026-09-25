@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,8 +12,8 @@ import {
   addDoc,
   getDocs,
   serverTimestamp,
-  orderBy,
   query,
+  where,
   doc,
   updateDoc,
 } from "firebase/firestore";
@@ -30,31 +31,18 @@ const districts = [
   "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
 ];
 
-async function logActivity(entry: {
-  actorEmail: string;
-  action: string;
-  businessId?: string;
-  businessName?: string;
-  details?: string;
-}) {
-  await addDoc(collection(db, "staffActivity"), {
-    ...entry,
-    createdAt: serverTimestamp(),
-    createdAtMs: Date.now(),
-  });
-}
-
 export default function StaffPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [checking, setChecking] = useState(true);
-  const [allowed, setAllowed] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
+  const [staffEmails, setStaffEmails] = useState<string[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
   const [listQuery, setListQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPendingId, setEditingPendingId] = useState<string | null>(null);
+
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
   const [customCategory, setCustomCategory] = useState("");
@@ -64,69 +52,68 @@ export default function StaffPage() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [hours, setHours] = useState("");
+  const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
 
+  const email = normEmail(user?.email);
+  const isAdmin = isAdminEmail(email);
+  const isStaff = !!(email && (isHardcodedStaff(email) || staffEmails.includes(email)));
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (!u) {
-        setAllowed(false);
-        setChecking(false);
-        return;
-      }
-      const email = normEmail(u.email);
-      if (isAdminEmail(email) || isHardcodedStaff(email)) {
-        setAllowed(true);
-        setCanEdit(true);
-        setChecking(false);
-        return;
-      }
-      try {
-        const snap = await getDocs(collection(db, "staffHelpers"));
-        const match = snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as any) }))
-          .find((s) => normEmail(s.email) === email);
-        setAllowed(!!match);
-        setCanEdit(!!match?.canEdit);
-      } catch {
-        setAllowed(false);
-      }
       setChecking(false);
     });
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    if (allowed) loadBusinesses();
-  }, [allowed]);
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "staffHelpers"));
+        setStaffEmails(snap.docs.map((d) => normEmail((d.data() as any).email)));
+      } catch {
+        setStaffEmails([]);
+      }
+    })();
+  }, [user]);
 
-  const loadBusinesses = async () => {
-    const qy = query(collection(db, "businesses"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(qy);
-    setBusinesses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  };
+  useEffect(() => {
+    if (!email || (!isStaff && !isAdmin)) return;
+    (async () => {
+      const bSnap = await getDocs(collection(db, "businesses"));
+      setBusinesses(bSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      try {
+        const rq = query(collection(db, "businessRequests"), where("submittedBy", "==", email));
+        const rSnap = await getDocs(rq);
+        const rows = rSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        rows.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+        setMyRequests(rows.slice(0, 4));
+      } catch {
+        setMyRequests([]);
+      }
+    })();
+  }, [email, isStaff, isAdmin]);
 
-  const visibleBusinesses = useMemo(() => {
+  const searchHits = useMemo(() => {
     const q = listQuery.trim().toLowerCase();
-    const filtered = q
-      ? businesses.filter((b) =>
-          [b.name, b.category, b.subcategory, b.district, b.area, b.phone]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(q)
-        )
-      : businesses;
-    return [...filtered].sort((a, b) =>
-      String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" })
-    );
+    if (q.length < 3) return [];
+    return businesses
+      .filter((b) =>
+        [b.name, b.category, b.subcategory, b.district, b.area, b.phone, b.whatsapp]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      )
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }))
+      .slice(0, 15);
   }, [businesses, listQuery]);
 
   const resetForm = () => {
-    setEditingId(null);
+    setEditingPendingId(null);
     setName("");
     setCategory("Tradesmen");
     setCustomCategory("");
@@ -136,30 +123,27 @@ export default function StaffPage() {
     setPhone("");
     setWhatsapp("");
     setHours("");
+    setWebsite("");
     setDescription("");
-    setIsPremium(false);
     setPhotoFiles([]);
     setExistingPhotos([]);
   };
 
-  const startEdit = (b: any) => {
-    if (!canEdit) {
-      setMessage("Your account can add listings only. Ask admin for edit access.");
-      return;
-    }
-    setEditingId(b.id);
-    setName(b.name || "");
-    setCategory(b.category || "Tradesmen");
-    setCustomCategory(b.customCategory || "");
-    setSubcategory(b.subcategory || "");
-    setDistrict(b.district || "Western Area Urban");
-    setArea(b.area || "");
-    setPhone(b.phone || "");
-    setWhatsapp(b.whatsapp || "");
-    setHours(b.hours || "");
-    setDescription(b.description || "");
-    setIsPremium(!!b.isPremium);
-    setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
+  const startEditPending = (r: any) => {
+    if (r.status && r.status !== "pending") return;
+    setEditingPendingId(r.id);
+    setName(r.name || "");
+    setCategory(r.category || "Tradesmen");
+    setCustomCategory(r.customCategory || "");
+    setSubcategory(r.subcategory || "");
+    setDistrict(r.district || "Western Area Urban");
+    setArea(r.area || "");
+    setPhone(r.phone || "");
+    setWhatsapp(r.whatsapp || "");
+    setHours(r.hours || "");
+    setWebsite(r.website || "");
+    setDescription(r.description || "");
+    setExistingPhotos(Array.isArray(r.photos) ? r.photos : []);
     setPhotoFiles([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -170,20 +154,16 @@ export default function StaffPage() {
       setMessage("Name and description are required.");
       return;
     }
-    if (editingId && !canEdit) {
-      setMessage("Your account can add listings only.");
-      return;
-    }
     setLoading(true);
     setMessage("");
     try {
       const uploaded: string[] = [];
       for (const file of photoFiles) {
-        const r = ref(storage, `businesses/${Date.now()}-${file.name}`);
+        const r = ref(storage, `business-requests/${Date.now()}-${file.name}`);
         await uploadBytes(r, file);
         uploaded.push(await getDownloadURL(r));
       }
-      const photos = [...existingPhotos, ...uploaded].slice(0, isPremium ? 6 : 1);
+      const photos = [...existingPhotos, ...uploaded].slice(0, 2);
       const payload = {
         name: name.trim(),
         category: category === "Other" && customCategory.trim() ? customCategory.trim() : category,
@@ -194,39 +174,43 @@ export default function StaffPage() {
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
         hours: hours.trim(),
+        website: website.trim(),
         description: description.trim(),
         photos,
+        status: "pending",
+        source: "staff",
+        submittedBy: email,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
       };
-      if (editingId) {
-        await updateDoc(doc(db, "businesses", editingId), payload);
-        await logActivity({
-          actorEmail: normEmail(user?.email),
-          action: "updated",
-          businessId: editingId,
-          businessName: payload.name,
+      if (editingPendingId) {
+        const { createdAt, createdAtMs, submittedBy, source, ...rest } = payload as any;
+        await updateDoc(doc(db, "businessRequests", editingPendingId), {
+          ...rest,
+          status: "pending",
+          updatedAtMs: Date.now(),
         });
-        setMessage("Updated.");
+        setMessage("Pending listing updated. Still waiting for Admin.");
       } else {
-        const created = await addDoc(collection(db, "businesses"), {
-          ...payload,
-          isPremium: false,
-          featuredUntil: "",
-          videoUrl: "",
-          videoUntil: "",
+        await addDoc(collection(db, "businessRequests"), payload);
+        await addDoc(collection(db, "staffActivity"), {
+          actorEmail: email,
+          action: "staff-submitted-listing",
+          businessName: name.trim(),
+          details: "pending - not live",
           createdAt: serverTimestamp(),
+          createdAtMs: Date.now(),
         });
-        await logActivity({
-          actorEmail: normEmail(user?.email),
-          action: "added",
-          businessId: created.id,
-          businessName: payload.name,
-        });
-        setMessage("Saved.");
+        setMessage("Sent to Admin. It is not live until approved.");
       }
       resetForm();
-      loadBusinesses();
-    } catch {
-      setMessage("Failed to save.");
+      const rq = query(collection(db, "businessRequests"), where("submittedBy", "==", email));
+      const rSnap = await getDocs(rq);
+      const rows = rSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      rows.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+      setMyRequests(rows.slice(0, 4));
+    } catch (err: any) {
+      setMessage(err?.message || "Could not save. Ask Admin to check Firebase rules.");
     } finally {
       setLoading(false);
     }
@@ -237,18 +221,26 @@ export default function StaffPage() {
     router.push("/login");
     return null;
   }
-  if (!allowed) return <div className="min-h-screen flex items-center justify-center">Staff access only</div>;
+  if (!isStaff && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        IT staff access only
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-1">{editingId ? "Edit business" : "Staff"}</h1>
+          <h1 className="text-2xl font-bold mb-1">IT Staff</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Add listing details and photos. You cannot change Featured, Video, ads or site settings.
+            Add a listing for Admin to approve. Search one name at a time. You cannot publish live.
           </p>
+
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
+            <h2 className="text-lg font-bold">{editingPendingId ? "Edit pending listing" : "Submit a listing"}</h2>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
             <div className="grid sm:grid-cols-2 gap-4">
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl px-4 py-3">
@@ -270,65 +262,99 @@ export default function StaffPage() {
               <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp" className="w-full border rounded-xl px-4 py-3" />
             </div>
             <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Opening hours" className="w-full border rounded-xl px-4 py-3" />
+            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website or Facebook page" className="w-full border rounded-xl px-4 py-3" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full border rounded-xl px-4 py-3" required />
             {existingPhotos.length > 0 && (
-              <div className="border rounded-xl p-4 bg-gray-50">
-                <p className="font-semibold text-sm mb-3">Current photos ({existingPhotos.length}/{isPremium ? 6 : 1})</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {existingPhotos.map((url, index) => (
-                    <div key={`${url}-${index}`} className="relative">
-                      <img src={url} alt="" className="w-full h-28 object-cover rounded-xl border bg-white" />
-                      <button
-                        type="button"
-                        onClick={() => setExistingPhotos((prev) => prev.filter((_, i) => i !== index))}
-                        className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-lg"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                {existingPhotos.map((url, index) => (
+                  <div key={`${url}-${index}`} className="relative">
+                    <img src={url} alt="" className="w-full h-28 object-cover rounded-xl border" />
+                    <button
+                      type="button"
+                      onClick={() => setExistingPhotos((prev) => prev.filter((_, i) => i !== index))}
+                      className="absolute top-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-lg"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             <input type="file" accept="image/*" multiple onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
             {message && <p className="text-sm text-green-700">{message}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={loading} className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl">
-                {loading ? "Saving..." : editingId ? "Update" : "Add business"}
+                {loading ? "Saving..." : editingPendingId ? "Update pending" : "Send to Admin"}
               </button>
-              {editingId && (
-                <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">Cancel</button>
+              {editingPendingId && (
+                <button type="button" onClick={resetForm} className="bg-gray-200 px-6 py-3 rounded-xl font-semibold">
+                  Cancel
+                </button>
               )}
             </div>
           </form>
 
-          <h2 className="text-lg font-bold mb-3">
-            Current businesses ({listQuery.trim() ? `${visibleBusinesses.length} of ${businesses.length}` : businesses.length})
-          </h2>
+          <h2 className="text-lg font-bold mb-3">Your last 4 submissions</h2>
+          <div className="space-y-3 mb-10">
+            {myRequests.length === 0 ? (
+              <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">Nothing submitted yet.</div>
+            ) : (
+              myRequests.map((r) => (
+                <div key={r.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">{r.name}</h3>
+                    <p className="text-sm text-gray-500">{r.subcategory || r.category} · {r.district}</p>
+                    <p className="text-xs mt-1">
+                      {r.status === "approved" && <span className="text-green-700 font-semibold">Live</span>}
+                      {r.status === "rejected" && <span className="text-red-600 font-semibold">Rejected</span>}
+                      {(!r.status || r.status === "pending") && <span className="text-amber-700 font-semibold">Pending Admin</span>}
+                    </p>
+                  </div>
+                  {(!r.status || r.status === "pending") && (
+                    <button type="button" onClick={() => startEditPending(r)} className="text-sm text-[#006B3F] font-medium">
+                      Edit
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          <h2 className="text-lg font-bold mb-3">Find a live business</h2>
+          <p className="text-sm text-gray-600 mb-3">Type at least 3 letters of one name. No full list.</p>
           <form className="flex flex-col sm:flex-row gap-2 mb-4" onSubmit={(e) => e.preventDefault()}>
             <input
               value={listQuery}
               onChange={(e) => setListQuery(e.target.value)}
-              placeholder="Search name, area, category, phone..."
+              placeholder="Type one name..."
               className="flex-1 border rounded-xl px-4 py-3 bg-white"
             />
-            <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">Search</button>
+            {listQuery && (
+              <button type="button" onClick={() => setListQuery("")} className="bg-gray-200 font-semibold px-5 py-3 rounded-xl">
+                Clear
+              </button>
+            )}
           </form>
           <div className="space-y-3">
-            {visibleBusinesses.map((b) => (
-              <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold">{b.name}</h3>
-                  <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  {canEdit && (
-                    <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
-                  )}
+            {listQuery.trim().length < 3 ? (
+              <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
+                Type 3 or more letters to search.
+              </div>
+            ) : searchHits.length === 0 ? (
+              <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
+                No live business matches that name.
+              </div>
+            ) : (
+              searchHits.map((b) => (
+                <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">{b.name}</h3>
+                    <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
+                  </div>
                   <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </main>
