@@ -24,6 +24,13 @@ const categories = [
   { name: "Pharmacy", desc: "Chemist", icon: "💊", q: "Pharmacy" },
   { name: "Lawyer", desc: "Legal", icon: "⚖️", q: "Lawyer" },
 ];
+const districts = [
+  "Western Area Urban","Western Area Rural","Bo","Kenema","Bombali","Port Loko","Kono",
+  "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
+];
+const FIND_TRADES = [
+  "Mason","Electrician","Plumber","Painter","Tiler","Welder","Carpenter","Auto","Surveyor","Mastic",
+];
 const NEWS_LINE =
   "Building materials for diaspora — 6-digit job code — pay in Freetown   ·   Request a quote on /materials   ·   Shop numbers stay private   ·   ";
 function weatherWord(code?: number) {
@@ -219,6 +226,31 @@ function isFeaturedBiz(biz: any) {
   until.setHours(23, 59, 59, 999);
   return until >= new Date();
 }
+function profileImage(biz: any) {
+  return biz.profilePhoto || biz.photos?.[0] || "";
+}
+function ProfileCard({ biz }: { biz: any }) {
+  if (!biz) return null;
+  const photo = profileImage(biz);
+  return (
+    <Link
+      href={`/business/${biz.id}`}
+      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm"
+    >
+      {photo ? (
+        <img src={photo} alt={biz.name || ""} className="w-full h-40 object-cover bg-gray-100" />
+      ) : (
+        <div className="w-full h-40 bg-gray-100" />
+      )}
+      <div className="p-3">
+        <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
+        <p className="text-xs text-[#006B3F] mt-0.5">{biz.subcategory || biz.category}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
+        <p className="text-[10px] font-semibold text-amber-700 mt-1">Featured</p>
+      </div>
+    </Link>
+  );
+}
 function HomeBizCard({ biz }: { biz: any }) {
   const photo = biz.photos?.[0];
   const category = biz.subcategory || biz.category;
@@ -249,8 +281,13 @@ export default function HomePage() {
   const [publicEvents, setPublicEvents] = useState<any[]>([]);
   const [eventFilter, setEventFilter] = useState<"all" | "week">("all");
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [showAllCats, setShowAllCats] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [featuredBiz, setFeaturedBiz] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [slide, setSlide] = useState(0);
+  const [findTrade, setFindTrade] = useState("");
+  const [findArea, setFindArea] = useState("");
   const [freetownClock, setFreetownClock] = useState("");
   const [freetownTemp, setFreetownTemp] = useState<string>("");
   const [freetownSky, setFreetownSky] = useState("");
@@ -290,6 +327,11 @@ export default function HomePage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+  useEffect(() => {
+    if (profiles.length < 2) return;
+    const id = setInterval(() => setSlide((n) => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [profiles.length]);
   const loadAds = async () => {
     const snap = await getDocs(collection(db, "ads"));
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -301,11 +343,11 @@ export default function HomePage() {
   };
   const loadFeaturedBiz = async () => {
     const snap = await getDocs(collection(db, "businesses"));
-    const list = snap.docs
+    const featured = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
-      .filter(isFeaturedBiz)
-      .slice(0, 6);
-    setFeaturedBiz(list);
+      .filter(isFeaturedBiz);
+    setFeaturedBiz(featured.slice(0, 6));
+    setProfiles(featured.filter((b) => profileImage(b)));
   };
   const byPlacement = (key: string) =>
     ads.find((a) => normalizePlacement(a.placement) === key);
@@ -341,10 +383,23 @@ export default function HomePage() {
   }, [ads, publicEvents, eventFilter]);
   const visibleLeftFeed =
     !isMobile || showAllEvents ? leftFeed : leftFeed.slice(0, 10);
+  const visibleCats = showAllCats ? categories : categories.slice(0, 8);
+  const leftProfile = profiles.length ? profiles[slide % profiles.length] : null;
+  const rightProfile =
+    profiles.length > 1
+      ? profiles[(slide + 1) % profiles.length]
+      : profiles.length === 1
+      ? profiles[0]
+      : null;
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = search.trim();
     router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
+  };
+  const handleAreaFind = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parts = [findTrade, findArea].map((s) => s.trim()).filter(Boolean);
+    router.push(parts.length ? `/explore?q=${encodeURIComponent(parts.join(" "))}` : "/explore");
   };
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -472,6 +527,27 @@ export default function HomePage() {
                   Show less
                 </button>
               )}
+              {leftProfile && (
+                <div className="mt-3">
+                  <ProfileCard biz={leftProfile} />
+                  {profiles.length > 1 && (
+                    <div className="flex justify-center gap-1 mt-2">
+                      {profiles.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full ${i === slide % profiles.length ? "bg-[#006B3F]" : "bg-gray-300"}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <Link
+                href="/list-business"
+                className="mt-3 flex items-center justify-center gap-2 border rounded-xl px-3 py-3 text-sm font-semibold text-[#006B3F] bg-white"
+              >
+                QR List your business
+              </Link>
             </aside>
             <div>
               <div className="mb-6">
@@ -497,7 +573,7 @@ export default function HomePage() {
               <h2 className="text-xl font-bold text-gray-900 mb-1">Popular Categories</h2>
               <p className="text-gray-600 text-sm mb-3">What are you looking for today?</p>
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2 items-stretch">
-                {categories.map((cat) => (
+                {visibleCats.map((cat) => (
                   <Link
                     key={cat.name}
                     href={`/explore?q=${encodeURIComponent(cat.q)}`}
@@ -509,6 +585,13 @@ export default function HomePage() {
                   </Link>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setShowAllCats((v) => !v)}
+                className="mt-2 text-sm font-semibold text-[#006B3F]"
+              >
+                {showAllCats ? "See less" : "See more"}
+              </button>
               <Link
                 href="/materials"
                 className="mt-6 block rounded-2xl border bg-white overflow-hidden hover:shadow-sm"
@@ -533,6 +616,32 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
+              <form onSubmit={handleAreaFind} className="mt-4 bg-white border rounded-2xl p-3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                <p className="text-sm font-semibold text-gray-900 shrink-0 px-1">Looking in your area?</p>
+                <select
+                  value={findTrade}
+                  onChange={(e) => setFindTrade(e.target.value)}
+                  className="flex-1 border rounded-xl px-3 py-2 text-sm bg-white"
+                >
+                  <option value="">Trade</option>
+                  {FIND_TRADES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <select
+                  value={findArea}
+                  onChange={(e) => setFindArea(e.target.value)}
+                  className="flex-1 border rounded-xl px-3 py-2 text-sm bg-white"
+                >
+                  <option value="">Area</option>
+                  {districts.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-2 rounded-xl">
+                  Find
+                </button>
+              </form>
               {featuredBiz.length > 0 && (
                 <div className="mt-8">
                   <div className="flex items-end justify-between gap-3 mb-3">
@@ -557,6 +666,16 @@ export default function HomePage() {
               <SponsorCard ad={byPlacement("r1")} />
               <SponsorCard ad={byPlacement("r2")} />
               <SponsorCard ad={byPlacement("r3")} />
+              {rightProfile && <ProfileCard biz={rightProfile} />}
+              <a
+                href="https://wa.me/23275294553"
+                target="_blank"
+                rel="noreferrer"
+                className="block border-2 border-dashed border-amber-300 rounded-2xl p-4 text-center bg-white"
+              >
+                <p className="font-semibold text-sm text-gray-900">Advertise here</p>
+                <p className="text-xs text-[#006B3F] mt-1">WhatsApp</p>
+              </a>
             </aside>
           </div>
         </section>

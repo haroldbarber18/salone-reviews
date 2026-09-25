@@ -54,6 +54,7 @@ function requestPayload(r: any) {
     videoUrl: r.videoUrl || "",
     videoUntil: r.videoUntil || "",
     photos: Array.isArray(r.photos) ? r.photos : [],
+    profilePhoto: r.profilePhoto || "",
   };
 }
 export default function AdminPage() {
@@ -84,6 +85,8 @@ export default function AdminPage() {
   const [videoUntil, setVideoUntil] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+  const [profilePhoto, setProfilePhoto] = useState("");
+  const [profileFile, setProfileFile] = useState<File | null>(null);
   const [staffHelpers, setStaffHelpers] = useState<any[]>([]);
   const [staffEmail, setStaffEmail] = useState("");
   const [staffCanEdit, setStaffCanEdit] = useState(false);
@@ -186,6 +189,7 @@ export default function AdminPage() {
     setSubcategory(""); setDistrict("Western Area Urban"); setArea(""); setPhone("");
     setWhatsapp(""); setHours(""); setWebsite(""); setDescription(""); setIsPremium(false);
     setFeaturedUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
+    setProfilePhoto(""); setProfileFile(null);
   };
   const fillForm = (b: any) => {
     const cat = String(b.category || "Tradesmen");
@@ -200,6 +204,8 @@ export default function AdminPage() {
     setFeaturedUntil(b.featuredUntil || ""); setVideoUrl(b.videoUrl || "");
     setVideoUntil(b.videoUntil || "");
     setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
+    setProfilePhoto(b.profilePhoto || "");
+    setProfileFile(null);
     setPhotoFiles([]); window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const startEdit = (b: any) => {
@@ -279,8 +285,15 @@ export default function AdminPage() {
         uploaded.push(await getDownloadURL(r));
       }
       const photos = [...existingPhotos, ...uploaded].slice(0, isPremium ? 6 : 1);
+      let nextProfile = profilePhoto;
+      if (profileFile) {
+        const pr = ref(storage, `businesses/profile-${Date.now()}-${profileFile.name}`);
+        await uploadBytes(pr, profileFile);
+        nextProfile = await getDownloadURL(pr);
+      }
       const payload = {
         name: name.trim(),
+        profilePhoto: nextProfile,
         category: category === "Other" && customCategory.trim() ? customCategory.trim() : category,
         customCategory: customCategory.trim(), subcategory: subcategory.trim(), district,
         area: area.trim(), phone: phone.trim(), whatsapp: whatsapp.trim(), hours: hours.trim(), website: website.trim(),
@@ -479,6 +492,11 @@ export default function AdminPage() {
               <p className="font-semibold text-sm">Featured add-on</p>
               <label className="block text-sm">Featured until</label>
               <input type="date" value={featuredUntil} onChange={(e) => setFeaturedUntil(e.target.value)} className="w-full border rounded-xl px-4 py-3 bg-white" />
+              <label className="block text-sm">Monthly profile photo (slider). Separate from shop photos.</label>
+              {profilePhoto && (
+                <img src={profilePhoto} alt="" className="w-28 h-28 object-cover rounded-xl border" />
+              )}
+              <input type="file" accept="image/*" onChange={(e) => setProfileFile(e.target.files?.[0] || null)} />
             </div>
             <div className="border rounded-xl p-4 space-y-3 bg-gray-50">
               <p className="font-semibold text-sm">Video add-on</p>
