@@ -32,7 +32,7 @@ const FIND_TRADES = [
   "Mason","Electrician","Plumber","Painter","Tiler","Welder","Carpenter","Auto","Surveyor","Mastic",
 ];
 const NEWS_LINE =
-  "Building materials for diaspora — 6-digit job code — pay in Freetown   ·   Request a quote on /materials   ·   Shop numbers stay private   ·   ";
+  "List for free or find businesses.  salonereviews.sl  -  salonereviews.com  ·  WhatsApp +232 75 294 553  ·  Building materials for diaspora - 6-digit job code - pay in Freetown  ·  Shop numbers stay private  ·  ";
 function weatherWord(code?: number) {
   if (code == null) return "";
   if (code === 0) return "Clear";
@@ -531,7 +531,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        <div className="bg-[#004d2e] text-white">
+        <div className="sr-bluebar text-white">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3">
             <p className="shrink-0 text-xs sm:text-sm font-semibold">
               Freetown {freetownClock || "--:--"}
@@ -539,7 +539,7 @@ export default function HomePage() {
               {freetownSky ? ` ${freetownSky}` : ""}
             </p>
             <div className="flex-1 overflow-hidden">
-              <div className="sr-marquee text-xs sm:text-sm text-white/90">
+              <div className="sr-marquee text-xs sm:text-sm text-cyan-100 font-semibold">
                 {NEWS_LINE}
                 {NEWS_LINE}
               </div>
@@ -555,6 +555,15 @@ export default function HomePage() {
             display: inline-block;
             white-space: nowrap;
             animation: sr-marquee 28s linear infinite;
+          }
+          .sr-bluebar {
+            background:
+              linear-gradient(90deg, rgba(8,24,72,0.55), rgba(0,80,180,0.25), rgba(8,24,72,0.55)),
+              repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(80,180,255,0.12) 18px, rgba(80,180,255,0.12) 19px),
+              repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(80,180,255,0.1) 14px, rgba(80,180,255,0.1) 15px),
+              linear-gradient(90deg, #06143a, #0b3d91, #06143a);
+            border-top: 1px solid #3ec6ff;
+            border-bottom: 1px solid #3ec6ff;
           }
         `}</style>
         <section className="px-3 sm:px-4 py-8 bg-gray-50">
