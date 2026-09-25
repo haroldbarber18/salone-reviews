@@ -99,16 +99,17 @@ export default function StaffPage() {
 
   const searchHits = useMemo(() => {
     const q = listQuery.trim().toLowerCase();
-    if (q.length < 3) return [];
+    if (q.length < 1) return [];
     return businesses
-      .filter((b) =>
-        [b.name, b.category, b.subcategory, b.district, b.area, b.phone, b.whatsapp]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(q)
-      )
-      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }))
+      .filter((b) => String(b.name || "").toLowerCase().includes(q))
+      .sort((a, b) => {
+        const an = String(a.name || "").toLowerCase();
+        const bn = String(b.name || "").toLowerCase();
+        const aStart = an.startsWith(q) ? 0 : 1;
+        const bStart = bn.startsWith(q) ? 0 : 1;
+        if (aStart !== bStart) return aStart - bStart;
+        return an.localeCompare(bn, undefined, { sensitivity: "base" });
+      })
       .slice(0, 15);
   }, [businesses, listQuery]);
 
@@ -337,7 +338,7 @@ export default function StaffPage() {
           </div>
 
           <h2 className="text-lg font-bold mb-3">Find a live business</h2>
-          <p className="text-sm text-gray-600 mb-3">Type at least 3 letters of one name. No full list.</p>
+          <p className="text-sm text-gray-600 mb-3">Type a letter to see matching names. No full list.</p>
           <form className="flex flex-col sm:flex-row gap-2 mb-4" onSubmit={(e) => e.preventDefault()}>
             <input
               value={listQuery}
@@ -352,9 +353,9 @@ export default function StaffPage() {
             )}
           </form>
           <div className="space-y-3">
-            {listQuery.trim().length < 3 ? (
+            {listQuery.trim().length < 1 ? (
               <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
-                Type 3 or more letters to search.
+                Type a letter to find a live business.
               </div>
             ) : searchHits.length === 0 ? (
               <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
