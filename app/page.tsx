@@ -261,18 +261,43 @@ function ProfileCard({ biz }: { biz: any }) {
   return (
     <Link
       href={`/business/${biz.id}`}
-      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm h-full"
+      className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm h-full min-h-[200px]"
     >
       {photo ? (
-        <img src={photo} alt={biz.name || ""} className="w-full h-40 object-cover bg-gray-100" />
+        <img
+          src={photo}
+          alt={biz.name || ""}
+          className="w-full flex-1 min-h-[140px] object-cover object-top bg-gray-100"
+        />
       ) : (
-        <div className="w-full h-40 bg-gray-100" />
+        <div className="w-full flex-1 min-h-[140px] bg-gray-100" />
       )}
-      <div className="p-3">
+      <div className="p-3 shrink-0">
         <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
         <p className="text-xs text-[#006B3F] mt-0.5">{biz.subcategory || biz.category}</p>
         <p className="text-xs text-gray-500 mt-0.5">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
         {until ? <p className="text-xs text-gray-700 mt-1">Until {until}</p> : null}
+      </div>
+    </Link>
+  );
+}
+function SideFeaturedCard({ biz }: { biz: any }) {
+  if (!biz) return null;
+  const photo = biz.photos?.[0] || biz.profilePhoto || "";
+  return (
+    <Link
+      href={`/business/${biz.id}`}
+      className="flex flex-col bg-white border border-amber-300 rounded-2xl overflow-hidden hover:shadow-sm h-full min-h-[200px]"
+    >
+      {photo ? (
+        <img src={photo} alt="" className="w-full flex-1 min-h-[140px] object-cover object-top bg-gray-100" />
+      ) : (
+        <div className="w-full flex-1 min-h-[140px] bg-gray-100" />
+      )}
+      <div className="p-3 shrink-0">
+        <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
+        <p className="text-xs text-[#006B3F] mt-0.5">{biz.subcategory || biz.category}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
       </div>
     </Link>
   );
@@ -326,6 +351,8 @@ export default function HomePage() {
   const [featuredBiz, setFeaturedBiz] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [slide, setSlide] = useState(0);
+  const [featSlide, setFeatSlide] = useState(0);
+  const [featuredAll, setFeaturedAll] = useState<any[]>([]);
   const [findTrade, setFindTrade] = useState("");
   const [findArea, setFindArea] = useState("");
   const [freetownClock, setFreetownClock] = useState("");
@@ -372,6 +399,11 @@ export default function HomePage() {
     const id = setInterval(() => setSlide((n) => n + 1), 5000);
     return () => clearInterval(id);
   }, [profiles.length]);
+  useEffect(() => {
+    if (featuredAll.length <= 2) return;
+    const id = setInterval(() => setFeatSlide((n) => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [featuredAll.length]);
   const loadAds = async () => {
     const snap = await getDocs(collection(db, "ads"));
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -384,7 +416,9 @@ export default function HomePage() {
   const loadFeaturedBiz = async () => {
     const snap = await getDocs(collection(db, "businesses"));
     const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    setFeaturedBiz(all.filter(isFeaturedBiz).slice(0, 6));
+    const featured = all.filter(isFeaturedBiz);
+    setFeaturedAll(featured);
+    setFeaturedBiz(featured.slice(0, 6));
     setProfiles(all.filter(isSliderProfile));
   };
   const byPlacement = (key: string) =>
@@ -428,6 +462,13 @@ export default function HomePage() {
       ? profiles[(slide + 1) % profiles.length]
       : profiles.length === 1
       ? profiles[0]
+      : null;
+  const leftFeat = featuredAll.length ? featuredAll[featSlide % featuredAll.length] : null;
+  const rightFeat =
+    featuredAll.length > 1
+      ? featuredAll[(featSlide + 1) % featuredAll.length]
+      : featuredAll.length === 1
+      ? featuredAll[0]
       : null;
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -668,19 +709,10 @@ export default function HomePage() {
               <SponsorCard ad={byPlacement("r3")} />
             </aside>
           </div>
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start mt-4">
-            <div>
-              {leftProfile ? <ProfileCard biz={leftProfile} /> : <div className="hidden lg:block" />}
-              {profiles.length > 2 && (
-                <div className="flex justify-center gap-1 mt-2">
-                  {profiles.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${i === slide % profiles.length ? "bg-[#006B3F]" : "bg-gray-300"}`}
-                    />
-                  ))}
-                </div>
-              )}
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-stretch mt-4">
+            <div className="h-full flex flex-col gap-3">
+              {leftProfile ? <ProfileCard biz={leftProfile} /> : <div className="hidden lg:block flex-1" />}
+              {leftFeat ? <SideFeaturedCard biz={leftFeat} /> : null}
             </div>
             <div>
               {featuredBiz.length > 0 && (
@@ -702,8 +734,9 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <div>
-              {rightProfile ? <ProfileCard biz={rightProfile} /> : <div className="hidden lg:block" />}
+            <div className="h-full flex flex-col gap-3">
+              {rightProfile ? <ProfileCard biz={rightProfile} /> : <div className="hidden lg:block flex-1" />}
+              {rightFeat ? <SideFeaturedCard biz={rightFeat} /> : null}
             </div>
           </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-center mt-3">
