@@ -186,7 +186,7 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
         )}
       </div>
       <div className="px-3 pb-3 pt-1 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Sponsored</p>
+        <p className="text-xs font-extrabold uppercase tracking-wide text-amber-500">★ Sponsored</p>
         <h3 className="font-semibold text-sm text-gray-900 leading-snug mt-0.5">{title}</h3>
       </div>
     </div>
@@ -200,7 +200,7 @@ function SponsorCard({ ad, compact = false }: { ad?: any; compact?: boolean }) {
         )}
       </div>
       <div className="min-w-0 flex-1 py-1 pr-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-1">Sponsored</p>
+        <p className="text-xs font-extrabold uppercase tracking-wide text-amber-500 mb-1">★ Sponsored</p>
         <h3 className="font-semibold text-[15px] text-gray-900 leading-snug">{title}</h3>
         {showExtra ? <p className="text-xs text-gray-500 mt-1 line-clamp-2">{extra}</p> : null}
       </div>
@@ -226,16 +226,42 @@ function isFeaturedBiz(biz: any) {
   until.setHours(23, 59, 59, 999);
   return until >= new Date();
 }
+function isDateLive(value?: string) {
+  if (!value) return false;
+  const until = new Date(value);
+  if (Number.isNaN(until.getTime())) return false;
+  until.setHours(23, 59, 59, 999);
+  return until >= new Date();
+}
+function isSliderProfile(biz: any) {
+  if (!biz?.showOnSlider) return false;
+  if (!isDateLive(biz.profileUntil || biz.featuredUntil)) return false;
+  return !!(biz.profilePhoto || biz.photos?.[0]);
+}
 function profileImage(biz: any) {
   return biz.profilePhoto || biz.photos?.[0] || "";
+}
+function formatUntil(value?: string) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function waDigits(raw?: string) {
+  const d = String(raw || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("232")) return d;
+  if (d.startsWith("0")) return "232" + d.slice(1);
+  return d;
 }
 function ProfileCard({ biz }: { biz: any }) {
   if (!biz) return null;
   const photo = profileImage(biz);
+  const until = formatUntil(biz.profileUntil || biz.featuredUntil);
   return (
     <Link
       href={`/business/${biz.id}`}
-      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm"
+      className="block bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-sm h-full"
     >
       {photo ? (
         <img src={photo} alt={biz.name || ""} className="w-full h-40 object-cover bg-gray-100" />
@@ -246,7 +272,7 @@ function ProfileCard({ biz }: { biz: any }) {
         <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
         <p className="text-xs text-[#006B3F] mt-0.5">{biz.subcategory || biz.category}</p>
         <p className="text-xs text-gray-500 mt-0.5">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
-        <p className="text-[10px] font-semibold text-amber-700 mt-1">Featured</p>
+        {until ? <p className="text-xs text-gray-700 mt-1">Until {until}</p> : null}
       </div>
     </Link>
   );
@@ -254,6 +280,7 @@ function ProfileCard({ biz }: { biz: any }) {
 function HomeBizCard({ biz }: { biz: any }) {
   const photo = biz.photos?.[0];
   const category = biz.subcategory || biz.category;
+  const wa = waDigits(biz.whatsapp || biz.phone);
   return (
     <Link
       href={`/business/${biz.id}`}
@@ -265,11 +292,24 @@ function HomeBizCard({ biz }: { biz: any }) {
         ) : (
           <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm text-gray-900 line-clamp-2">{biz.name || "Business"}</p>
           {category && <p className="text-xs text-[#006B3F] mt-0.5 truncate">{category}</p>}
           <p className="text-xs text-gray-500 mt-0.5 truncate">{[biz.area, biz.district].filter(Boolean).join(" · ")}</p>
         </div>
+        {wa ? (
+          <span
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(`https://wa.me/${wa}`, "_blank");
+            }}
+            className="shrink-0 w-8 h-8 rounded-full bg-[#25D366] text-white grid place-items-center text-[10px] font-bold"
+            title="WhatsApp"
+          >
+            WA
+          </span>
+        ) : null}
       </div>
     </Link>
   );
@@ -328,7 +368,7 @@ export default function HomePage() {
     return () => window.removeEventListener("resize", check);
   }, []);
   useEffect(() => {
-    if (profiles.length < 2) return;
+    if (profiles.length <= 2) return;
     const id = setInterval(() => setSlide((n) => n + 1), 5000);
     return () => clearInterval(id);
   }, [profiles.length]);
@@ -343,11 +383,9 @@ export default function HomePage() {
   };
   const loadFeaturedBiz = async () => {
     const snap = await getDocs(collection(db, "businesses"));
-    const featured = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      .filter(isFeaturedBiz);
-    setFeaturedBiz(featured.slice(0, 6));
-    setProfiles(featured.filter((b) => profileImage(b)));
+    const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    setFeaturedBiz(all.filter(isFeaturedBiz).slice(0, 6));
+    setProfiles(all.filter(isSliderProfile));
   };
   const byPlacement = (key: string) =>
     ads.find((a) => normalizePlacement(a.placement) === key);
@@ -527,27 +565,6 @@ export default function HomePage() {
                   Show less
                 </button>
               )}
-              {leftProfile && (
-                <div className="mt-3">
-                  <ProfileCard biz={leftProfile} />
-                  {profiles.length > 1 && (
-                    <div className="flex justify-center gap-1 mt-2">
-                      {profiles.map((_, i) => (
-                        <span
-                          key={i}
-                          className={`w-1.5 h-1.5 rounded-full ${i === slide % profiles.length ? "bg-[#006B3F]" : "bg-gray-300"}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <Link
-                href="/list-business"
-                className="mt-3 flex items-center justify-center gap-2 border rounded-xl px-3 py-3 text-sm font-semibold text-[#006B3F] bg-white"
-              >
-                QR List your business
-              </Link>
             </aside>
             <div>
               <div className="mb-6">
@@ -616,12 +633,13 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
-              <form onSubmit={handleAreaFind} className="mt-4 bg-white border rounded-2xl p-3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                <p className="text-sm font-semibold text-gray-900 shrink-0 px-1">Looking in your area?</p>
+              <form onSubmit={handleAreaFind} className="mt-4 bg-white border border-gray-200 rounded-2xl px-3 py-2 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                <p className="text-sm font-bold text-black shrink-0">Looking in your area</p>
+                <span className="hidden sm:inline text-[#006B3F]">📍</span>
                 <select
                   value={findTrade}
                   onChange={(e) => setFindTrade(e.target.value)}
-                  className="flex-1 border rounded-xl px-3 py-2 text-sm bg-white"
+                  className="flex-1 border-0 bg-transparent text-sm text-gray-800 outline-none"
                 >
                   <option value="">Trade</option>
                   {FIND_TRADES.map((t) => (
@@ -631,19 +649,42 @@ export default function HomePage() {
                 <select
                   value={findArea}
                   onChange={(e) => setFindArea(e.target.value)}
-                  className="flex-1 border rounded-xl px-3 py-2 text-sm bg-white"
+                  className="flex-1 border-0 bg-transparent text-sm text-gray-800 outline-none"
                 >
                   <option value="">Area</option>
                   {districts.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-2 rounded-xl">
+                <button type="submit" className="bg-[#006B3F] text-white font-semibold px-4 py-2 rounded-xl inline-flex items-center justify-center gap-1">
                   Find
                 </button>
               </form>
+            </div>
+            <aside className="space-y-3">
+              <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
+              <SponsorCard ad={byPlacement("r1")} />
+              <SponsorCard ad={byPlacement("r2")} />
+              <SponsorCard ad={byPlacement("r3")} />
+            </aside>
+          </div>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start mt-4">
+            <div>
+              {leftProfile ? <ProfileCard biz={leftProfile} /> : <div className="hidden lg:block" />}
+              {profiles.length > 2 && (
+                <div className="flex justify-center gap-1 mt-2">
+                  {profiles.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full ${i === slide % profiles.length ? "bg-[#006B3F]" : "bg-gray-300"}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
               {featuredBiz.length > 0 && (
-                <div className="mt-8">
+                <div>
                   <div className="flex items-end justify-between gap-3 mb-3">
                     <div>
                       <h2 className="text-xl font-bold text-gray-900 mb-1">Featured businesses</h2>
@@ -661,22 +702,27 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <aside className="space-y-3">
-              <p className="text-sm font-bold text-gray-900 px-1">Sponsored</p>
-              <SponsorCard ad={byPlacement("r1")} />
-              <SponsorCard ad={byPlacement("r2")} />
-              <SponsorCard ad={byPlacement("r3")} />
-              {rightProfile && <ProfileCard biz={rightProfile} />}
-              <a
-                href="https://wa.me/23275294553"
-                target="_blank"
-                rel="noreferrer"
-                className="block border-2 border-dashed border-amber-300 rounded-2xl p-4 text-center bg-white"
-              >
-                <p className="font-semibold text-sm text-gray-900">Advertise here</p>
-                <p className="text-xs text-[#006B3F] mt-1">WhatsApp</p>
-              </a>
-            </aside>
+            <div>
+              {rightProfile ? <ProfileCard biz={rightProfile} /> : <div className="hidden lg:block" />}
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-center mt-3">
+            <Link
+              href="/list-business"
+              className="flex items-center justify-center gap-2 border rounded-xl px-3 py-3 text-sm font-semibold text-[#006B3F] bg-white"
+            >
+              QR List your business
+            </Link>
+            <div />
+            <a
+              href="https://wa.me/23275294553"
+              target="_blank"
+              rel="noreferrer"
+              className="block border-2 border-dashed border-amber-300 rounded-2xl p-4 text-center bg-white"
+            >
+              <p className="font-semibold text-sm text-gray-900">Advertise here</p>
+              <p className="text-xs text-[#006B3F] mt-1">WhatsApp</p>
+            </a>
           </div>
         </section>
         <section className="px-3 sm:px-4 py-10">

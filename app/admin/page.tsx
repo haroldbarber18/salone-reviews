@@ -51,6 +51,8 @@ function requestPayload(r: any) {
     description: r.description || "",
     isPremium: !!r.isPremium,
     featuredUntil: r.featuredUntil || "",
+    showOnSlider: !!r.showOnSlider,
+    profileUntil: r.profileUntil || "",
     videoUrl: r.videoUrl || "",
     videoUntil: r.videoUntil || "",
     photos: Array.isArray(r.photos) ? r.photos : [],
@@ -81,6 +83,8 @@ export default function AdminPage() {
   const [description, setDescription] = useState("");
   const [isPremium, setIsPremium] = useState(false);
   const [featuredUntil, setFeaturedUntil] = useState("");
+  const [showOnSlider, setShowOnSlider] = useState(false);
+  const [profileUntil, setProfileUntil] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [videoUntil, setVideoUntil] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
@@ -188,7 +192,7 @@ export default function AdminPage() {
     setEditingId(null); setEditingRequestId(null); setName(""); setCategory("Tradesmen"); setCustomCategory("");
     setSubcategory(""); setDistrict("Western Area Urban"); setArea(""); setPhone("");
     setWhatsapp(""); setHours(""); setWebsite(""); setDescription(""); setIsPremium(false);
-    setFeaturedUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
+    setFeaturedUntil(""); setShowOnSlider(false); setProfileUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
     setProfilePhoto(""); setProfileFile(null);
   };
   const fillForm = (b: any) => {
@@ -201,7 +205,10 @@ export default function AdminPage() {
     setDistrict(b.district || "Western Area Urban"); setArea(b.area || "");
     setPhone(b.phone || ""); setWhatsapp(b.whatsapp || ""); setHours(b.hours || ""); setWebsite(b.website || "");
     setDescription(b.description || ""); setIsPremium(!!b.isPremium);
-    setFeaturedUntil(b.featuredUntil || ""); setVideoUrl(b.videoUrl || "");
+    setFeaturedUntil(b.featuredUntil || "");
+    setShowOnSlider(!!b.showOnSlider);
+    setProfileUntil(b.profileUntil || "");
+    setVideoUrl(b.videoUrl || "");
     setVideoUntil(b.videoUntil || "");
     setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
     setProfilePhoto(b.profilePhoto || "");
@@ -298,7 +305,10 @@ export default function AdminPage() {
         customCategory: customCategory.trim(), subcategory: subcategory.trim(), district,
         area: area.trim(), phone: phone.trim(), whatsapp: whatsapp.trim(), hours: hours.trim(), website: website.trim(),
         description: description.trim(), isPremium,
-        featuredUntil: featuredUntil || "", videoUrl: videoUrl.trim(), videoUntil: videoUntil || "",
+        featuredUntil: featuredUntil || "",
+        showOnSlider,
+        profileUntil: profileUntil || "",
+        videoUrl: videoUrl.trim(), videoUntil: videoUntil || "",
         photos,
       };
       if (editingRequestId) {
@@ -490,8 +500,14 @@ export default function AdminPage() {
             )}
             <div className="border rounded-xl p-4 space-y-3 bg-gray-50">
               <p className="font-semibold text-sm">Featured add-on</p>
-              <label className="block text-sm">Featured until</label>
+              <label className="block text-sm">Featured until (gold cards in the middle)</label>
               <input type="date" value={featuredUntil} onChange={(e) => setFeaturedUntil(e.target.value)} className="w-full border rounded-xl px-4 py-3 bg-white" />
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={showOnSlider} onChange={(e) => setShowOnSlider(e.target.checked)} />
+                Show on tradesmen slider
+              </label>
+              <label className="block text-sm">Profile until (slider expiry, separate from Featured until)</label>
+              <input type="date" value={profileUntil} onChange={(e) => setProfileUntil(e.target.value)} className="w-full border rounded-xl px-4 py-3 bg-white" />
               <label className="block text-sm">Monthly profile photo (slider). Separate from shop photos.</label>
               {profilePhoto && (
                 <img src={profilePhoto} alt="" className="w-28 h-28 object-cover rounded-xl border" />
