@@ -416,10 +416,11 @@ export default function HomePage() {
   const loadFeaturedBiz = async () => {
     const snap = await getDocs(collection(db, "businesses"));
     const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const featured = all.filter(isFeaturedBiz);
+    const publicBiz = all.filter((b: any) => b.showOnExplore !== false);
+    const featured = publicBiz.filter(isFeaturedBiz);
     setFeaturedAll(featured);
     setFeaturedBiz(featured.slice(0, 6));
-    setProfiles(all.filter(isSliderProfile));
+    setProfiles(publicBiz.filter(isSliderProfile));
   };
   const byPlacement = (key: string) =>
     ads.find((a) => normalizePlacement(a.placement) === key);
@@ -620,7 +621,7 @@ export default function HomePage() {
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Essential Services</h2>
                 <p className="text-gray-600 text-sm mb-3">
-                  Government, financial and emergency services by district.
+                  Government and emergency services by district. Banks sit on Explore.
                 </p>
                 <select
                   defaultValue=""
@@ -633,7 +634,7 @@ export default function HomePage() {
                     Choose a service type
                   </option>
                   <option value="/services/government">Government Services</option>
-                  <option value="/services/financial">Financial Services</option>
+                  <option value="/explore?category=Money%20%26%20Insurance">Financial Services</option>
                   <option value="/services/emergency">Emergency Services</option>
                 </select>
               </div>
