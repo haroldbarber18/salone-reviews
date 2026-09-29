@@ -292,7 +292,12 @@ function SideFeaturedCard({ biz }: { biz: any }) {
       {photo ? (
         <img src={photo} alt="" className="w-full h-36 object-cover object-top bg-gray-100" />
       ) : (
-        <div className="w-full h-36 bg-gray-100" />
+        <div className="w-full h-36 bg-white relative">
+          <span className="absolute top-2 left-2 text-[10px] font-extrabold bg-[#006B3F] text-white px-1.5 py-0.5 rounded-sm">SL</span>
+          <span className="absolute inset-0 grid place-items-center text-5xl font-bold text-[#006B3F]">
+            {String(biz.name || "S").trim().charAt(0).toUpperCase()}
+          </span>
+        </div>
       )}
       <div className="p-3 shrink-0">
         <p className="font-semibold text-sm text-gray-900 leading-snug">{biz.name}</p>
@@ -315,7 +320,12 @@ function HomeBizCard({ biz }: { biz: any }) {
         {photo ? (
           <img src={photo} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 bg-gray-100" />
         ) : (
-          <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
+          <div className="w-16 h-16 rounded-xl shrink-0 bg-white border-2 border-[#006B3F] relative overflow-hidden">
+            <span className="absolute top-0.5 left-0.5 text-[8px] font-extrabold bg-[#006B3F] text-white px-1 rounded-sm">SL</span>
+            <span className="absolute inset-0 grid place-items-center text-xl font-bold text-[#006B3F]">
+              {String(biz.name || "S").trim().charAt(0).toUpperCase()}
+            </span>
+          </div>
         )}
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm text-gray-900 line-clamp-2">{biz.name || "Business"}</p>

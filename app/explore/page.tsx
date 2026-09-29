@@ -107,6 +107,35 @@ function rankMapFor(businesses: Business[], reviews: Review[]) {
   });
   return map;
 }
+function PhotoSlot({
+  photo,
+  name,
+  showLetter,
+  size = "md",
+}: {
+  photo?: string;
+  name?: string;
+  showLetter: boolean;
+  size?: "sm" | "md";
+}) {
+  const box = size === "sm" ? "w-16 h-16" : "w-[88px] h-[88px] sm:w-28 sm:h-28";
+  const letter = String(name || "S").trim().charAt(0).toUpperCase() || "S";
+  if (photo) {
+    return <img src={photo} alt="" className={`${box} rounded-xl object-cover shrink-0 bg-gray-100`} />;
+  }
+  return (
+    <div className={`${box} rounded-xl shrink-0 bg-white border-2 border-[#006B3F] relative overflow-hidden`}>
+      <span className="absolute top-1 left-1 text-[9px] sm:text-[10px] font-extrabold leading-none bg-[#006B3F] text-white px-1 py-0.5 rounded-sm">
+        SL
+      </span>
+      {showLetter ? (
+        <span className="absolute inset-0 grid place-items-center text-3xl sm:text-4xl font-bold text-[#006B3F]">
+          {letter}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 function BusinessCard({
   biz,
   loggedIn,
@@ -130,15 +159,7 @@ function BusinessCard({
       }`}
     >
       <div className="flex gap-3.5 sm:gap-4">
-        {photo ? (
-          <img
-            src={photo}
-            alt=""
-            className="w-[88px] h-[88px] sm:w-28 sm:h-28 rounded-xl object-cover shrink-0 bg-gray-100"
-          />
-        ) : (
-          <div className="w-[88px] h-[88px] sm:w-28 sm:h-28 rounded-xl bg-gray-100 shrink-0" />
-        )}
+        <PhotoSlot photo={photo} name={biz.name} showLetter={loggedIn} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
             <h2 className="font-semibold text-[16px] sm:text-[17px] leading-snug text-gray-900 line-clamp-2">
