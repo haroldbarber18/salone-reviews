@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -7,9 +6,7 @@ import Footer from "@/components/Footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
-
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
-
 const DISTRICTS = [
   "Western Area Urban",
   "Western Area Rural",
@@ -28,9 +25,7 @@ const DISTRICTS = [
   "Falaba",
   "Koinadugu",
 ];
-
 const PAGE_SIZE = 10;
-
 type Business = {
   id: string;
   name?: string;
@@ -41,15 +36,17 @@ type Business = {
   description?: string;
   photos?: string[];
   featuredUntil?: string;
+  showOnExplore?: boolean;
 };
-
 type Review = {
   id: string;
   businessId?: string;
   rating?: number;
   hidden?: boolean;
 };
-
+function isOnExplore(biz?: Business) {
+  return biz?.showOnExplore !== false;
+}
 function isFeatured(biz?: Business) {
   if (!biz?.featuredUntil) return false;
   const until = new Date(biz.featuredUntil);
@@ -57,14 +54,12 @@ function isFeatured(biz?: Business) {
   until.setHours(23, 59, 59, 999);
   return until >= new Date();
 }
-
 function ratingFor(businessId: string, reviews: Review[]) {
   const list = reviews.filter((r) => r.businessId === businessId && !r.hidden);
   if (!list.length) return { average: "0.0", count: 0 };
   const sum = list.reduce((acc, r) => acc + Number(r.rating || 0), 0);
   return { average: (sum / list.length).toFixed(1), count: list.length };
 }
-
 function Stars({ average, count }: { average: string; count: number }) {
   if (!count) {
     return <p className="text-sm text-gray-500">No reviews yet</p>;
@@ -86,12 +81,9 @@ function Stars({ average, count }: { average: string; count: number }) {
     </div>
   );
 }
-
-
 function tradeLabel(biz: Business) {
   return biz.subcategory || biz.category || "businesses";
 }
-
 function rankMapFor(businesses: Business[], reviews: Review[]) {
   const groups: Record<string, Business[]> = {};
   businesses.forEach((biz) => {
@@ -115,7 +107,6 @@ function rankMapFor(businesses: Business[], reviews: Review[]) {
   });
   return map;
 }
-
 function BusinessCard({
   biz,
   loggedIn,
@@ -131,7 +122,6 @@ function BusinessCard({
 }) {
   const photo = loggedIn ? biz.photos?.[0] : undefined;
   const category = biz.subcategory || biz.category;
-
   return (
     <Link
       href={`/business/${biz.id}`}
@@ -149,7 +139,6 @@ function BusinessCard({
         ) : (
           <div className="w-[88px] h-[88px] sm:w-28 sm:h-28 rounded-xl bg-gray-100 shrink-0" />
         )}
-
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
             <h2 className="font-semibold text-[16px] sm:text-[17px] leading-snug text-gray-900 line-clamp-2">
@@ -161,12 +150,10 @@ function BusinessCard({
               </span>
             )}
           </div>
-
           {category && <p className="text-sm text-[#006B3F] mt-0.5">{category}</p>}
           {rankLine && (
             <p className="text-xs font-semibold text-gray-700 mt-0.5">{rankLine}</p>
           )}
-
           {loggedIn ? (
             <p className="text-sm text-gray-500 mt-0.5 truncate">
               {[biz.area, biz.district].filter(Boolean).join(" · ")}
@@ -177,7 +164,6 @@ function BusinessCard({
               Location hidden · Register free to view
             </p>
           )}
-
           <div className="mt-2">
             <Stars average={stats.average} count={stats.count} />
           </div>
@@ -186,7 +172,6 @@ function BusinessCard({
     </Link>
   );
 }
-
 export default function ExplorePage() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -198,10 +183,8 @@ export default function ExplorePage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [subFilter, setSubFilter] = useState("");
   const [page, setPage] = useState(1);
-
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const loggedIn = !!user;
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (next) => {
       setUser(next);
@@ -209,15 +192,15 @@ export default function ExplorePage() {
     });
     return () => unsub();
   }, []);
-
   useEffect(() => {
     if (isAdmin) setDistrict("Western Area Urban");
   }, [isAdmin]);
-
   useEffect(() => {
-    setQuery(new URLSearchParams(window.location.search).get("q") || "");
+    const params = new URLSearchParams(window.location.search);
+    setQuery(params.get("q") || "");
+    const cat = params.get("category") || "";
+    if (cat) setCategoryFilter(cat);
   }, []);
-
   useEffect(() => {
     (async () => {
       try {
@@ -232,28 +215,26 @@ export default function ExplorePage() {
       }
     })();
   }, []);
-
+  const publicList = useMemo(() => businesses.filter(isOnExplore), [businesses]);
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
-    businesses.forEach((b) => {
+    publicList.forEach((b) => {
       if (b.category) set.add(b.category);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [businesses]);
-
+  }, [publicList]);
   const subOptions = useMemo(() => {
     const set = new Set<string>();
-    businesses.forEach((b) => {
+    publicList.forEach((b) => {
       if (!b.subcategory) return;
       if (categoryFilter && b.category !== categoryFilter) return;
       set.add(b.subcategory);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [businesses, categoryFilter]);
-
+  }, [publicList, categoryFilter]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return businesses.filter((biz) => {
+    return publicList.filter((biz) => {
       const districtOk = (isAdmin && district === "All") || biz.district === district;
       if (!districtOk) return false;
       if (categoryFilter && String(biz.category || "") !== categoryFilter) return false;
@@ -265,9 +246,8 @@ export default function ExplorePage() {
         .toLowerCase()
         .includes(q);
     });
-  }, [businesses, query, district, categoryFilter, subFilter, isAdmin]);
-
-  const ranks = useMemo(() => rankMapFor(businesses, reviews), [businesses, reviews]);
+  }, [publicList, query, district, categoryFilter, subFilter, isAdmin]);
+  const ranks = useMemo(() => rankMapFor(publicList, reviews), [publicList, reviews]);
   const featured = filtered.filter((biz) => isFeatured(biz));
   const rest = filtered
     .filter((biz) => !isFeatured(biz))
@@ -277,20 +257,16 @@ export default function ExplorePage() {
       const sb = ratingFor(b.id, reviews);
       return sb.count - sa.count || Number(sb.average) - Number(sa.average) || String(a.name || "").localeCompare(String(b.name || ""));
     });
-
   const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageItems = rest.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
   useEffect(() => {
     setPage(1);
   }, [query, district, categoryFilter, subFilter]);
-
   const goTo = (next: number) => {
     setPage(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -304,7 +280,6 @@ export default function ExplorePage() {
             <span aria-hidden>📍</span>
             {district === "All" ? "All districts" : district}
           </p>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <input
               value={query}
@@ -366,7 +341,6 @@ export default function ExplorePage() {
               Clear filters
             </button>
           )}
-
           {authLoading || dataLoading ? (
             <p className="text-gray-500">Loading...</p>
           ) : filtered.length === 0 ? (
@@ -376,7 +350,6 @@ export default function ExplorePage() {
               <p className="text-sm text-gray-600 mb-4">
                 {featured.length} featured · {rest.length} more
               </p>
-
               {featured.length > 0 && (
                 <section className="mb-8">
                   <div className="grid md:grid-cols-2 gap-4 items-stretch">
@@ -393,7 +366,6 @@ export default function ExplorePage() {
                   </div>
                 </section>
               )}
-
               {pageItems.length > 0 && (
                 <section>
                   {featured.length > 0 && (
@@ -417,7 +389,6 @@ export default function ExplorePage() {
                   </div>
                 </section>
               )}
-
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
                   <button

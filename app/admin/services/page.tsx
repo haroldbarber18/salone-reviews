@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,9 +15,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
-
 const DISTRICTS = [
   "Western Area Urban",
   "Western Area Rural",
@@ -37,13 +34,10 @@ const DISTRICTS = [
   "Karene",
   "Falaba",
 ];
-
 const TYPES = [
   { value: "government", label: "Government" },
-  { value: "financial", label: "Financial" },
   { value: "emergency", label: "Emergency" },
 ];
-
 export default function AdminServicesPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -52,7 +46,6 @@ export default function AdminServicesPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [type, setType] = useState("government");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -63,9 +56,9 @@ export default function AdminServicesPage() {
   const [address, setAddress] = useState("");
   const [hours, setHours] = useState("");
   const [link, setLink] = useState("");
-
+  const [alsoGovernment, setAlsoGovernment] = useState(false);
+  const [alsoEmergency, setAlsoEmergency] = useState(false);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -73,18 +66,15 @@ export default function AdminServicesPage() {
     });
     return () => unsub();
   }, []);
-
   useEffect(() => {
     if (isAdmin) loadItems();
   }, [isAdmin]);
-
   const loadItems = async () => {
     const snap = await getDocs(collection(db, "essentialServices"));
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     data.sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
     setItems(data);
   };
-
   const resetForm = () => {
     setEditingId(null);
     setType("government");
@@ -97,11 +87,12 @@ export default function AdminServicesPage() {
     setAddress("");
     setHours("");
     setLink("");
+    setAlsoGovernment(false);
+    setAlsoEmergency(false);
   };
-
   const startEdit = (item: any) => {
     setEditingId(item.id);
-    setType(item.type || "government");
+    setType(item.type === "emergency" ? "emergency" : item.type === "financial" ? "government" : "government");
     setName(item.name || "");
     setDescription(item.description || "");
     setDistrict(item.district || "Western Area Urban");
@@ -111,9 +102,10 @@ export default function AdminServicesPage() {
     setAddress(item.address || "");
     setHours(item.hours || "");
     setLink(item.link || "");
+    setAlsoGovernment(!!item.alsoGovernment);
+    setAlsoEmergency(!!item.alsoEmergency);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
@@ -121,10 +113,8 @@ export default function AdminServicesPage() {
       setMessage("Name and description are required.");
       return;
     }
-
     setLoading(true);
     setMessage("");
-
     try {
       const payload = {
         type,
@@ -137,9 +127,10 @@ export default function AdminServicesPage() {
         address: address.trim(),
         hours: hours.trim(),
         link: link.trim(),
+        alsoGovernment,
+        alsoEmergency,
         active: true,
       };
-
       if (editingId) {
         await updateDoc(doc(db, "essentialServices", editingId), payload);
         setMessage("Updated successfully.");
@@ -150,7 +141,6 @@ export default function AdminServicesPage() {
         });
         setMessage("Saved successfully.");
       }
-
       resetForm();
       loadItems();
     } catch (error) {
@@ -160,7 +150,6 @@ export default function AdminServicesPage() {
       setLoading(false);
     }
   };
-
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this service?")) return;
     await deleteDoc(doc(db, "essentialServices", id));
@@ -168,16 +157,13 @@ export default function AdminServicesPage() {
     setMessage("Deleted.");
     loadItems();
   };
-
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
-
   if (!user) {
     router.push("/login");
     return null;
   }
-
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -185,7 +171,6 @@ export default function AdminServicesPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -199,7 +184,9 @@ export default function AdminServicesPage() {
               ← Back to Admin
             </Link>
           </div>
-
+          <p className="text-sm text-gray-600 mb-4">
+            Use this page for ministries, agencies, police, fire and 24-hour lines. Banks stay on the main business list. Police: Type Government, then tick Also show on Emergency.
+          </p>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -216,7 +203,6 @@ export default function AdminServicesPage() {
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-2">District</label>
                 <select
@@ -232,7 +218,28 @@ export default function AdminServicesPage() {
                 </select>
               </div>
             </div>
-
+            <div className="border rounded-xl p-4 bg-gray-50 space-y-2">
+              <p className="text-sm font-semibold">Also show on</p>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={alsoGovernment}
+                  onChange={(e) => setAlsoGovernment(e.target.checked)}
+                />
+                Government page
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={alsoEmergency}
+                  onChange={(e) => setAlsoEmergency(e.target.checked)}
+                />
+                Emergency page
+              </label>
+              <p className="text-xs text-gray-500">
+                Type already puts it on that page. Tick the other box for police so they sit on both.
+              </p>
+            </div>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -240,7 +247,6 @@ export default function AdminServicesPage() {
               className="w-full border rounded-xl px-4 py-3"
               required
             />
-
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -249,7 +255,6 @@ export default function AdminServicesPage() {
               className="w-full border rounded-xl px-4 py-3"
               required
             />
-
             <div className="grid sm:grid-cols-2 gap-4">
               <input
                 value={area}
@@ -264,7 +269,6 @@ export default function AdminServicesPage() {
                 className="w-full border rounded-xl px-4 py-3"
               />
             </div>
-
             <div className="grid sm:grid-cols-2 gap-4">
               <input
                 value={phone}
@@ -279,7 +283,6 @@ export default function AdminServicesPage() {
                 className="w-full border rounded-xl px-4 py-3"
               />
             </div>
-
             <div className="grid sm:grid-cols-2 gap-4">
               <input
                 value={hours}
@@ -294,7 +297,6 @@ export default function AdminServicesPage() {
                 className="w-full border rounded-xl px-4 py-3"
               />
             </div>
-
             {message && (
               <p
                 className={`text-sm ${
@@ -307,7 +309,6 @@ export default function AdminServicesPage() {
                 {message}
               </p>
             )}
-
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"
@@ -327,7 +328,6 @@ export default function AdminServicesPage() {
               )}
             </div>
           </form>
-
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Published services</h2>
             {items.length === 0 ? (
@@ -343,6 +343,16 @@ export default function AdminServicesPage() {
                       <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
                         {item.type}
                       </span>
+                      {item.alsoGovernment && (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          also Government
+                        </span>
+                      )}
+                      {item.alsoEmergency && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                          also Emergency
+                        </span>
+                      )}
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
                         {item.district}
                       </span>
