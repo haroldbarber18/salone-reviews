@@ -241,6 +241,12 @@ function isSliderProfile(biz: any) {
 function profileImage(biz: any) {
   return biz.profilePhoto || biz.photos?.[0] || "";
 }
+function twoLetters(name?: string) {
+  const chars = String(name || "SL").replace(/[^A-Za-z0-9]/g, "");
+  if (!chars) return "SL";
+  if (chars.length === 1) return chars[0].toUpperCase();
+  return chars[0].toUpperCase() + chars[1];
+}
 function formatUntil(value?: string) {
   if (!value) return "";
   const d = new Date(value);
@@ -294,8 +300,8 @@ function SideFeaturedCard({ biz }: { biz: any }) {
       ) : (
         <div className="w-full h-36 bg-white relative">
           <span className="absolute top-2 left-2 text-[10px] font-extrabold bg-[#006B3F] text-white px-1.5 py-0.5 rounded-sm">SL</span>
-          <span className="absolute inset-0 grid place-items-center text-5xl font-bold text-[#006B3F]">
-            {String(biz.name || "S").trim().charAt(0).toUpperCase()}
+          <span className="absolute inset-0 grid place-items-center text-4xl font-bold text-[#006B3F]">
+            {twoLetters(biz.name)}
           </span>
         </div>
       )}
@@ -323,7 +329,7 @@ function HomeBizCard({ biz }: { biz: any }) {
           <div className="w-16 h-16 rounded-xl shrink-0 bg-white border-2 border-[#006B3F] relative overflow-hidden">
             <span className="absolute top-0.5 left-0.5 text-[8px] font-extrabold bg-[#006B3F] text-white px-1 rounded-sm">SL</span>
             <span className="absolute inset-0 grid place-items-center text-xl font-bold text-[#006B3F]">
-              {String(biz.name || "S").trim().charAt(0).toUpperCase()}
+              {twoLetters(biz.name)}
             </span>
           </div>
         )}

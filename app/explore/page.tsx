@@ -107,6 +107,12 @@ function rankMapFor(businesses: Business[], reviews: Review[]) {
   });
   return map;
 }
+function twoLetters(name?: string) {
+  const chars = String(name || "SL").replace(/[^A-Za-z0-9]/g, "");
+  if (!chars) return "SL";
+  if (chars.length === 1) return chars[0].toUpperCase();
+  return chars[0].toUpperCase() + chars[1];
+}
 function PhotoSlot({
   photo,
   name,
@@ -119,7 +125,6 @@ function PhotoSlot({
   size?: "sm" | "md";
 }) {
   const box = size === "sm" ? "w-16 h-16" : "w-[88px] h-[88px] sm:w-28 sm:h-28";
-  const letter = String(name || "S").trim().charAt(0).toUpperCase() || "S";
   if (photo) {
     return <img src={photo} alt="" className={`${box} rounded-xl object-cover shrink-0 bg-gray-100`} />;
   }
@@ -129,8 +134,8 @@ function PhotoSlot({
         SL
       </span>
       {showLetter ? (
-        <span className="absolute inset-0 grid place-items-center text-3xl sm:text-4xl font-bold text-[#006B3F]">
-          {letter}
+        <span className="absolute inset-0 grid place-items-center text-2xl sm:text-3xl font-bold text-[#006B3F]">
+          {twoLetters(name)}
         </span>
       ) : null}
     </div>
