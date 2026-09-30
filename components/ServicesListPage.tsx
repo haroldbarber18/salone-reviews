@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -7,6 +8,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 const DISTRICTS = [
+  "All districts",
   "Western Area Urban",
   "Western Area Rural",
   "Bo",
@@ -25,178 +27,214 @@ const DISTRICTS = [
   "Koinadugu",
 ];
 
-type Props = {
+const PAGE_SIZE = 8;
+
+type Item = {
+  id: string;
+  name: string;
+  district: string;
+  area: string;
+  address: string;
+  description: string;
+  phone: string;
+  whatsapp: string;
+};
+
+function digits(value?: string) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+export default function ServicesListPage({
+  type,
+  title,
+  subtitle,
+  searchFirst = false,
+}: {
   type: "government" | "emergency" | "financial";
   title: string;
   subtitle: string;
-};
-
-function waDigits(raw?: string) {
-  const d = String(raw || "").replace(/\D/g, "");
-  if (!d) return "";
-  if (d.startsWith("232")) return d;
-  if (d.startsWith("0")) return "232" + d.slice(1);
-  return d;
-}
-
-function matchesType(item: any, type: Props["type"]) {
-  if (type === "emergency") {
-    return item.type === "emergency" || item.alsoEmergency === true;
-  }
-  if (type === "government") {
-    return item.type === "government" || item.alsoGovernment === true;
-  }
-  return item.type === "financial";
-}
-
-export default function ServicesListPage({ type, title, subtitle }: Props) {
-  const [items, setItems] = useState<any[]>([]);
+  searchFirst?: boolean;
+}) {
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [district, setDistrict] = useState("Western Area Urban");
   const [q, setQ] = useState("");
+  const [district, setDistrict] = useState("Western Area Urban");
+  const [showDistrict, setShowDistrict] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     (async () => {
       try {
-        const [essSnap, bizSnap] = await Promise.all([
-          getDocs(collection(db, "essentialServices")),
+        const [bizSnap, essSnap] = await Promise.all([
           getDocs(collection(db, "businesses")),
+          getDocs(collection(db, "essentialServices")),
         ]);
-        const essentials = essSnap.docs
-          .map((d) => ({ id: d.id, source: "essential", ...d.data() }))
-          .filter((row: any) => row.active !== false && matchesType(row, type));
-
-        const fromBiz = bizSnap.docs
-          .map((d) => ({ id: d.id, source: "business", ...d.data() }))
-          .filter((row: any) => {
-            if (type === "emergency") return !!row.showOnEmergency;
-            if (type === "government") return !!row.showOnGovernment;
-            if (type === "financial") {
-              const cat = String(row.category || "").toLowerCase();
-              return row.showOnExplore !== false && cat.includes("money");
-            }
+        const fromBiz: Item[] = bizSnap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .filter((b) => {
+            if (type === "government") return b.showOnGovernment === true;
+            if (type === "emergency") return b.showOnEmergency === true;
             return false;
           })
-          .map((row: any) => ({
-            ...row,
-            address: row.address || "",
-            link: row.website || "",
+          .map((b) => ({
+            id: b.id,
+            name: b.name || "",
+            district: b.district || "",
+            area: b.area || "",
+            address: b.address || "",
+            description: b.description || "",
+            phone: b.phone || "",
+            whatsapp: b.whatsapp || "",
           }));
-
-        const seen = new Set<string>();
-        const merged: any[] = [];
-        [...essentials, ...fromBiz].forEach((row) => {
-          const key = `${String(row.name || "").toLowerCase()}|${String(row.district || "")}|${String(row.phone || "")}`;
-          if (seen.has(key)) return;
-          seen.add(key);
-          merged.push(row);
-        });
-        merged.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+        const fromEss: Item[] = essSnap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .filter((s) => String(s.type || "").toLowerCase() === type)
+          .map((s) => ({
+            id: `ess-${s.id}`,
+            name: s.name || "",
+            district: s.district || "",
+            area: s.area || "",
+            address: s.address || "",
+            description: s.description || "",
+            phone: s.phone || "",
+            whatsapp: s.whatsapp || "",
+          }));
+        const seen = new Set(fromBiz.map((b) => b.name.trim().toLowerCase()));
+        const merged = [
+          ...fromBiz,
+          ...fromEss.filter((s) => !seen.has(s.name.trim().toLowerCase())),
+        ].filter((x) => x.name);
+        merged.sort((a, b) => a.name.localeCompare(b.name));
         setItems(merged);
+      } catch {
+        setItems([]);
       } finally {
         setLoading(false);
       }
     })();
   }, [type]);
 
-  const visible = useMemo(() => {
-    const needle = q.trim().toLowerCase();
+  const query = q.trim().toLowerCase();
+  const canSearch = query.length >= 3;
+  const unlocked = !searchFirst || canSearch || showDistrict;
+
+  const filtered = useMemo(() => {
+    if (!unlocked) return [];
     return items.filter((item) => {
-      if (district !== "All" && item.district && item.district !== district) return false;
-      if (!needle) return true;
-      return [item.name, item.description, item.area, item.address, item.phone]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
+      if (district !== "All districts" && item.district !== district) return false;
+      if (!canSearch) return true;
+      const blob = `${item.name} ${item.area} ${item.address} ${item.description} ${item.phone}`.toLowerCase();
+      return blob.includes(query);
     });
-  }, [items, district, q]);
+  }, [items, district, query, canSearch, unlocked]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, district, showDistrict]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
-      <main className="flex-1 px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Link href="/" className="text-sm font-semibold text-[#006B3F]">
-            ← Home
-          </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-3">{title}</h1>
-          <p className="text-sm text-gray-600 mt-1 mb-5">{subtitle}</p>
-          <div className="grid sm:grid-cols-2 gap-3 mb-5">
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <Link href="/" className="text-sm text-[#006B3F] font-medium">← Home</Link>
+          <h1 className="text-3xl font-bold mt-3">{title}</h1>
+          <p className="text-gray-600 mt-1 mb-4">{subtitle}</p>
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search name, area, number..."
-              className="w-full border rounded-xl px-4 py-3 bg-white"
+              className="border rounded-xl px-4 py-3 bg-white"
             />
             <select
               value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              className="w-full border rounded-xl px-4 py-3 bg-white"
+              onChange={(e) => {
+                setDistrict(e.target.value);
+                setShowDistrict(false);
+              }}
+              className="border rounded-xl px-4 py-3 bg-white"
             >
-              <option value="All">All districts</option>
               {DISTRICTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
+                <option key={d}>{d}</option>
               ))}
             </select>
           </div>
+          {searchFirst && (
+            <button
+              type="button"
+              onClick={() => setShowDistrict(true)}
+              className="mb-4 bg-[#006B3F] text-white font-semibold px-4 py-2 rounded-xl"
+            >
+              Show this district
+            </button>
+          )}
           {loading ? (
-            <p className="text-gray-500">Loading...</p>
+            <p className="text-sm text-gray-500">Loading...</p>
+          ) : !unlocked ? (
+            <div className="bg-white border rounded-2xl p-4 text-sm text-gray-600">
+              Search a ministry or office, or pick a district and click Show.
+            </div>
           ) : visible.length === 0 ? (
-            <div className="bg-white border rounded-2xl p-6 text-gray-500">
-              No services found for this district.
+            <div className="bg-white border rounded-2xl p-4 text-sm text-gray-500">
+              No match.
             </div>
           ) : (
             <div className="space-y-3">
               {visible.map((item) => {
-                const phone = String(item.phone || "").trim();
-                const wa = waDigits(item.whatsapp || item.phone);
-                const href = item.source === "business" ? `/business/${item.id}` : item.link || "";
+                const tel = digits(item.phone);
+                const wa = digits(item.whatsapp || item.phone);
                 return (
-                  <div key={`${item.source}-${item.id}`} className="bg-white border rounded-2xl p-4">
+                  <div key={item.id} className="bg-white border rounded-2xl p-4">
                     <div className="flex flex-wrap gap-2 mb-1">
-                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.district || "Sierra Leone"}</span>
-                      {item.area ? <span className="text-xs text-gray-500">{item.area}</span> : null}
+                      {item.district && (
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.district}</span>
+                      )}
+                      {item.area && (
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.area}</span>
+                      )}
                     </div>
-                    <h2 className="font-semibold text-gray-900">{item.name}</h2>
-                    {item.description ? (
-                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{item.description}</p>
-                    ) : null}
-                    {item.address ? <p className="text-sm text-gray-500 mt-1">{item.address}</p> : null}
-                    {item.hours ? <p className="text-sm text-gray-500">{item.hours}</p> : null}
-                    <div className="flex flex-wrap gap-3 mt-3">
-                      {phone ? (
-                        <a href={`tel:${phone}`} className="text-sm font-semibold text-[#006B3F]">
-                          Call
-                        </a>
-                      ) : null}
-                      {wa ? (
-                        <a
-                          href={`https://wa.me/${wa}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-semibold text-[#006B3F]"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : null}
-                      {href ? (
-                        href.startsWith("http") ? (
-                          <a href={href} target="_blank" rel="noreferrer" className="text-sm font-semibold text-gray-700">
-                            Open →
-                          </a>
-                        ) : (
-                          <Link href={href} className="text-sm font-semibold text-gray-700">
-                            Open →
-                          </Link>
-                        )
-                      ) : null}
+                    <h3 className="font-semibold">{item.name}</h3>
+                    {item.description && (
+                      <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
+                    )}
+                    <div className="flex gap-3 mt-2 text-sm font-semibold text-[#006B3F]">
+                      {!searchFirst && tel && <a href={`tel:${tel}`}>Call</a>}
+                      {!searchFirst && wa && (
+                        <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">WhatsApp</a>
+                      )}
+                      {!item.id.startsWith("ess-") && (
+                        <Link href={`/business/${item.id}`}>Open →</Link>
+                      )}
                     </div>
                   </div>
                 );
               })}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    disabled={safePage === 1}
+                    onClick={() => setPage(safePage - 1)}
+                    className="px-3 py-2 rounded-xl border bg-white disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600">{safePage} / {totalPages}</span>
+                  <button
+                    type="button"
+                    disabled={safePage === totalPages}
+                    onClick={() => setPage(safePage + 1)}
+                    className="px-3 py-2 rounded-xl border bg-white disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
