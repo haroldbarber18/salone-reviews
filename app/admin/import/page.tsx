@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,9 +14,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
-
 function parseCsv(text: string) {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -49,7 +46,12 @@ function parseCsv(text: string) {
   }
   return rows.filter((r) => r.some((c) => c));
 }
-
+function yn(value: string) {
+  const s = String(value || "").trim().toLowerCase();
+  if (["yes", "y", "true", "1"].includes(s)) return true;
+  if (["no", "n", "false", "0"].includes(s)) return false;
+  return null;
+}
 export default function AdminImportPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -58,7 +60,6 @@ export default function AdminImportPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -66,7 +67,6 @@ export default function AdminImportPage() {
     });
     return () => unsub();
   }, []);
-
   const handleFile = async (file: File) => {
     const text = await file.text();
     const table = parseCsv(text);
@@ -81,6 +81,7 @@ export default function AdminImportPage() {
       .map((r) => ({
         listing_id: r[idx("listing_id")] || "",
         name: r[idx("name")] || "",
+        type: r[idx("type")] || "",
         category: r[idx("category")] || "Other",
         subcategory: r[idx("subcategory")] || "",
         district: r[idx("district")] || "Western Area Urban",
@@ -98,12 +99,14 @@ export default function AdminImportPage() {
         photo_4: r[idx("photo_4")] || r[idx("photo4")] || "",
         photo_5: r[idx("photo_5")] || r[idx("photo5")] || "",
         photo_6: r[idx("photo_6")] || r[idx("photo6")] || "",
+        show_on_explore: yn(r[idx("show_on_explore")] || ""),
+        show_on_government: yn(r[idx("show_on_government")] || ""),
+        show_on_emergency: yn(r[idx("show_on_emergency")] || ""),
       }))
       .filter((x) => x.name);
     setRows(parsed);
     setMessage(`${parsed.length} rows ready.`);
   };
-
   const handleImport = async () => {
     setLoading(true);
     setMessage("");
@@ -120,7 +123,7 @@ export default function AdminImportPage() {
       let added = 0;
       let updated = 0;
       for (const r of rows) {
-        const payload = {
+        const payload: any = {
           listingId: r.listing_id,
           name: r.name.trim(),
           category: r.category,
@@ -135,12 +138,16 @@ export default function AdminImportPage() {
           email: r.email,
           website: r.website,
         };
+        if (r.type) payload.serviceType = r.type;
+        if (r.show_on_explore !== null) payload.showOnExplore = r.show_on_explore;
+        if (r.show_on_government !== null) payload.showOnGovernment = r.show_on_government;
+        if (r.show_on_emergency !== null) payload.showOnEmergency = r.show_on_emergency;
         const photos = [r.photo_1, r.photo_2, r.photo_3, r.photo_4, r.photo_5, r.photo_6]
           .map((u: string) => String(u || "").trim())
           .filter((u: string) => /^https?:\/\//i.test(u));
         if (photos.length) {
-          (payload as any).photos = photos;
-          (payload as any).isPremium = photos.length > 1;
+          payload.photos = photos;
+          payload.isPremium = photos.length > 1;
         }
         const existingId =
           byId.get(String(r.listing_id || "").trim().toUpperCase()) ||
@@ -153,6 +160,9 @@ export default function AdminImportPage() {
             ...payload,
             photos: photos,
             isPremium: photos.length > 1,
+            showOnExplore: r.show_on_explore === null ? true : r.show_on_explore,
+            showOnGovernment: r.show_on_government === true,
+            showOnEmergency: r.show_on_emergency === true,
             claimStatus: "Unclaimed",
             source: "Excel batch",
             createdAt: serverTimestamp(),
@@ -169,14 +179,12 @@ export default function AdminImportPage() {
       setLoading(false);
     }
   };
-
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) {
     router.push("/login");
     return null;
   }
   if (!isAdmin) return <div className="min-h-screen flex items-center justify-center">Admin only</div>;
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -188,6 +196,7 @@ export default function AdminImportPage() {
             CSV only. Existing businesses are updated. New names are added.
             Photo_1 is the cover photo. Paste up to 6 public image links (https://...).
             Empty photo cells do not delete photos already on the site.
+            YES / NO columns: show_on_explore, show_on_government, show_on_emergency.
           </p>
           <input
             type="file"
@@ -209,20 +218,20 @@ export default function AdminImportPage() {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="p-2">ID</th>
                       <th className="p-2">Name</th>
-                      <th className="p-2">Description</th>
-                      <th className="p-2">Photos</th>
+                      <th className="p-2">Explore</th>
+                      <th className="p-2">Government</th>
+                      <th className="p-2">Emergency</th>
                       <th className="p-2">Website</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((r) => (
                       <tr key={r.listing_id || r.name} className="border-t">
-                        <td className="p-2">{r.listing_id}</td>
                         <td className="p-2">{r.name}</td>
-                        <td className="p-2">{r.description ? r.description.slice(0, 80) : "MISSING"}</td>
-                        <td className="p-2">{[r.photo_1,r.photo_2,r.photo_3,r.photo_4,r.photo_5,r.photo_6].filter(Boolean).length}</td>
+                        <td className="p-2">{r.show_on_explore === false ? "NO" : r.show_on_explore === true ? "YES" : "-"}</td>
+                        <td className="p-2">{r.show_on_government === true ? "YES" : r.show_on_government === false ? "NO" : "-"}</td>
+                        <td className="p-2">{r.show_on_emergency === true ? "YES" : r.show_on_emergency === false ? "NO" : "-"}</td>
                         <td className="p-2">{r.website || "-"}</td>
                       </tr>
                     ))}
