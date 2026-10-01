@@ -44,6 +44,32 @@ function digits(value?: string) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function Card({ item, hideContact }: { item: Item; hideContact?: boolean }) {
+  const tel = digits(item.phone);
+  const wa = digits(item.whatsapp || item.phone);
+  return (
+    <div className="bg-white border rounded-2xl p-4">
+      <div className="flex flex-wrap gap-2 mb-1">
+        {item.district && (
+          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.district}</span>
+        )}
+        {item.area && (
+          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.area}</span>
+        )}
+      </div>
+      <h3 className="font-semibold">{item.name}</h3>
+      {item.description && <p className="text-sm text-gray-600">{item.description}</p>}
+      <div className="flex gap-3 mt-2 text-sm font-semibold text-[#006B3F]">
+        {!hideContact && tel && <a href={`tel:${tel}`}>Call</a>}
+        {!hideContact && wa && (
+          <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">WhatsApp</a>
+        )}
+        {!item.id.startsWith("ess-") && <Link href={`/business/${item.id}`}>Open →</Link>}
+      </div>
+    </div>
+  );
+}
+
 export default function ServicesListPage({
   type,
   title,
@@ -59,7 +85,7 @@ export default function ServicesListPage({
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
-  const [showDistrict, setShowDistrict] = useState(false);
+  const [picked, setPicked] = useState<Item | null>(null);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -115,18 +141,26 @@ export default function ServicesListPage({
   }, [type]);
 
   const query = q.trim().toLowerCase();
-  const canSearch = query.length >= 3;
-  const unlocked = !searchFirst || canSearch || showDistrict;
+  const inDistrict = items.filter(
+    (item) => district === "All districts" || item.district === district
+  );
+  const matches = useMemo(() => {
+    if (query.length < 1) return [];
+    return inDistrict
+      .filter((item) => {
+        const blob = `${item.name} ${item.area} ${item.address}`.toLowerCase();
+        return blob.includes(query);
+      })
+      .slice(0, 8);
+  }, [inDistrict, query]);
 
   const filtered = useMemo(() => {
-    if (!unlocked) return [];
-    return items.filter((item) => {
-      if (district !== "All districts" && item.district !== district) return false;
-      if (!canSearch) return true;
+    return inDistrict.filter((item) => {
+      if (!query) return true;
       const blob = `${item.name} ${item.area} ${item.address} ${item.description} ${item.phone}`.toLowerCase();
       return blob.includes(query);
     });
-  }, [items, district, query, canSearch, unlocked]);
+  }, [inDistrict, query]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -134,7 +168,7 @@ export default function ServicesListPage({
 
   useEffect(() => {
     setPage(1);
-  }, [q, district, showDistrict]);
+  }, [q, district]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -147,15 +181,18 @@ export default function ServicesListPage({
           <div className="grid sm:grid-cols-2 gap-3 mb-3">
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search name, area, number..."
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPicked(null);
+              }}
+              placeholder="Type a name..."
               className="border rounded-xl px-4 py-3 bg-white"
             />
             <select
               value={district}
               onChange={(e) => {
                 setDistrict(e.target.value);
-                setShowDistrict(false);
+                setPicked(null);
               }}
               className="border rounded-xl px-4 py-3 bg-white"
             >
@@ -164,56 +201,50 @@ export default function ServicesListPage({
               ))}
             </select>
           </div>
-          {searchFirst && (
-            <button
-              type="button"
-              onClick={() => setShowDistrict(true)}
-              className="mb-4 bg-[#006B3F] text-white font-semibold px-4 py-2 rounded-xl"
-            >
-              Show this district
-            </button>
-          )}
+
           {loading ? (
             <p className="text-sm text-gray-500">Loading...</p>
-          ) : !unlocked ? (
-            <div className="bg-white border rounded-2xl p-4 text-sm text-gray-600">
-              Search a ministry or office, or pick a district and click Show.
-            </div>
+          ) : searchFirst ? (
+            <>
+              {query.length < 1 && (
+                <div className="bg-white border rounded-2xl p-4 text-sm text-gray-600">
+                  Type the first letter, then pick the name.
+                </div>
+              )}
+              {query.length >= 1 && matches.length === 0 && (
+                <div className="bg-white border rounded-2xl p-4 text-sm text-gray-500">No match.</div>
+              )}
+              {query.length >= 1 && matches.length > 0 && !picked && (
+                <div className="bg-white border rounded-2xl overflow-hidden">
+                  {matches.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setPicked(item);
+                        setQ(item.name);
+                      }}
+                      className="w-full text-left px-4 py-3 border-b last:border-b-0 hover:bg-gray-50"
+                    >
+                      <div className="font-semibold">{item.name}</div>
+                      <div className="text-xs text-gray-500">{item.area || item.district}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {picked && (
+                <div className="mt-3">
+                  <Card item={picked} hideContact />
+                </div>
+              )}
+            </>
           ) : visible.length === 0 ? (
-            <div className="bg-white border rounded-2xl p-4 text-sm text-gray-500">
-              No match.
-            </div>
+            <div className="bg-white border rounded-2xl p-4 text-sm text-gray-500">No match.</div>
           ) : (
             <div className="space-y-3">
-              {visible.map((item) => {
-                const tel = digits(item.phone);
-                const wa = digits(item.whatsapp || item.phone);
-                return (
-                  <div key={item.id} className="bg-white border rounded-2xl p-4">
-                    <div className="flex flex-wrap gap-2 mb-1">
-                      {item.district && (
-                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.district}</span>
-                      )}
-                      {item.area && (
-                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{item.area}</span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex gap-3 mt-2 text-sm font-semibold text-[#006B3F]">
-                      {!searchFirst && tel && <a href={`tel:${tel}`}>Call</a>}
-                      {!searchFirst && wa && (
-                        <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">WhatsApp</a>
-                      )}
-                      {!item.id.startsWith("ess-") && (
-                        <Link href={`/business/${item.id}`}>Open →</Link>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {visible.map((item) => (
+                <Card key={item.id} item={item} />
+              ))}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-2">
                   <button
