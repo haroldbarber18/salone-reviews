@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -27,6 +26,13 @@ export default function PrivacyPage() {
             </p>
             <p>
               For privacy questions, contact info@salonereviews.com or WhatsApp +232 75 294 553.
+            </p>
+            <h2 className="text-base font-semibold text-gray-900 pt-2">Delete your account</h2>
+            <p>
+              Email info@salonereviews.com with the subject Delete my SaloneReviews account and the
+              email you used to sign up. We delete the login, name, phone and photos you uploaded.
+              A review you already posted may stay, with your name removed, because it is part of
+              the business record. We do this within 30 days.
             </p>
           </div>
         </div>
