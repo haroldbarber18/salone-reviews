@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 function SocialIcon({
   href,
   label,
@@ -20,6 +21,7 @@ function SocialIcon({
     </a>
   );
 }
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 mt-auto">
@@ -183,11 +185,11 @@ export default function Footer() {
         </div>
         <div className="border-t border-gray-700 pt-6 text-xs text-gray-400 space-y-2">
           <p>
-            SaloneReviews (SL) Limited is registered as a limited company under the laws of Sierra Leone.
-            SaloneReviews is a trading name of FABSL (SL) Limited. Registered address: 131 Circular Road, Freetown, Sierra Leone.
+            SaloneReviews is a brand of Financial and Business Solutions (SL) Limited.
+            Registered address: 131 Circular Road, Freetown, Sierra Leone.
           </p>
           <p className="pt-1">
-            © {new Date().getFullYear()} FABSL (SL) Limited. All rights reserved.
+            © {new Date().getFullYear()} Financial and Business Solutions (SL) Limited. All rights reserved.
           </p>
         </div>
       </div>
