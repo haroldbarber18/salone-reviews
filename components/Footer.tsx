@@ -185,7 +185,7 @@ export default function Footer() {
         </div>
         <div className="border-t border-gray-700 pt-6 text-xs text-gray-400 space-y-2">
           <p>
-            SaloneReviews is a brand of Financial and Business Solutions (SL) Limited.
+            SaloneReviews is a trading name of Financial and Business Solutions (SL) Limited.
             Registered address: 131 Circular Road, Freetown, Sierra Leone.
           </p>
           <p className="pt-1">
