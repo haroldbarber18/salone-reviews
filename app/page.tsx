@@ -501,16 +501,16 @@ export default function HomePage() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <section className="px-3 sm:px-4 py-8 sm:py-12">
+        <section className="bg-[#006B3F] text-white px-3 sm:px-4 py-8 sm:py-12">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4 items-stretch">
-            <div className="order-2 lg:order-1 h-full bg-[#006B3F] text-white rounded-2xl p-4 flex items-center justify-center">
+            <div className="order-2 lg:order-1 h-full">
               <SponsorCard ad={byPlacement("top1")} compact />
             </div>
-            <div className="order-1 lg:order-2 text-center bg-white text-gray-900 rounded-2xl p-6 border border-gray-200">
-              <h1 className="text-3xl sm:text-5xl font-bold mb-4 text-[#006B3F]">
+            <div className="order-1 lg:order-2 text-center">
+              <h1 className="text-3xl sm:text-5xl font-bold mb-4">
                 Find di best businesses in Salone.
               </h1>
-              <p className="text-gray-700 mb-6 max-w-2xl mx-auto text-sm sm:text-base">
+              <p className="text-white/90 mb-6 max-w-2xl mx-auto text-sm sm:text-base">
                 Real reviews from real people. Trusted plumbers, electricians,
                 mechanics, restaurants and more across Sierra Leone.
               </p>
@@ -519,31 +519,31 @@ export default function HomePage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search plumbers, restaurants, mechanics..."
-                  className="flex-1 rounded-2xl px-4 py-3 bg-white text-gray-900 outline-none border border-gray-300"
+                  className="flex-1 rounded-2xl px-4 py-3 bg-white text-gray-900 outline-none"
                 />
-                <button type="submit" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl border border-gray-300">
+                <button type="submit" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
                   Search
                 </button>
               </form>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
-                <Link href="/explore" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl border border-[#006B3F]">
+                <Link href="/explore" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
                   View businesses
                 </Link>
                 <Link
                   href="/list-business"
-                  className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl"
+                  className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl border border-white/30"
                 >
                   List your business
                 </Link>
                 <Link
                   href="/contact"
-                  className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl"
+                  className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
                 >
                   Contact us
                 </Link>
               </div>
             </div>
-            <div className="order-3 h-full bg-[#1B5FBF] text-white rounded-2xl p-4 flex items-center justify-center">
+            <div className="order-3 h-full">
               <SponsorCard ad={byPlacement("top2")} compact />
             </div>
           </div>
