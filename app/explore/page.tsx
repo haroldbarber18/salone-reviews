@@ -260,17 +260,22 @@ export default function ExplorePage() {
   }, [publicList, categoryFilter]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const terms = q.split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
     return publicList.filter((biz) => {
       const districtOk = (isAdmin && district === "All") || biz.district === district;
       if (!districtOk) return false;
       if (categoryFilter && String(biz.category || "") !== categoryFilter) return false;
       if (subFilter && String(biz.subcategory || "") !== subFilter) return false;
-      if (!q) return true;
-      return [biz.name, biz.category, biz.subcategory, biz.area, biz.district, biz.description]
+      if (!terms.length) return true;
+      const words = [biz.name, biz.category, biz.subcategory, biz.area, biz.district, biz.description]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(q);
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length >= 3);
+      return terms.every((term) =>
+        words.some((word) => word.startsWith(term) || term.startsWith(word))
+      );
     });
   }, [publicList, query, district, categoryFilter, subFilter, isAdmin]);
   const ranks = useMemo(() => rankMapFor(publicList, reviews), [publicList, reviews]);
@@ -310,7 +315,7 @@ export default function ExplorePage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, trade, area..."
+              placeholder="Type at least 3 letters, or the full word"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white"
             />
             <select
