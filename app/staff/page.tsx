@@ -154,6 +154,47 @@ export default function StaffPage() {
     }, 50);
   };
 
+  const addLivePhotos = async (biz: any, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const current = Array.isArray(biz.photos) ? biz.photos : biz.photo ? [biz.photo] : [];
+    const room = 6 - current.length;
+    if (room <= 0) {
+      setMessage("This live listing already has 6 photos.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files).slice(0, room)) {
+        const r = ref(storage, `businesses/${biz.id}/${Date.now()}-${file.name}`);
+        await uploadBytes(r, file);
+        uploaded.push(await getDownloadURL(r));
+      }
+      const photos = [...current, ...uploaded].slice(0, 6);
+      await updateDoc(doc(db, "businesses", biz.id), {
+        photos,
+        photo: photos[0] || "",
+        updatedAtMs: Date.now(),
+      });
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: email,
+        action: "staff-added-live-photos",
+        businessId: biz.id,
+        businessName: biz.name || "",
+        details: `added ${uploaded.length}, now ${photos.length} of 6`,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      setBusinesses((rows) => rows.map((row) => (row.id === biz.id ? { ...row, photos, photo: photos[0] || "" } : row)));
+      setMessage(`Added ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}. ${photos.length} of 6 on ${biz.name}.`);
+    } catch (err: any) {
+      setMessage(err?.message || "Could not add photos. Ask Admin to allow IT staff to update live listings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim()) {
@@ -368,7 +409,24 @@ export default function StaffPage() {
                     <h3 className="font-semibold">{b.name}</h3>
                     <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
                   </div>
-                  <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
+                  <div className="flex flex-col items-end gap-2">
+                    <Link href={`/business/${b.id}`} className="text-sm text-gray-600">View →</Link>
+                    <label className="text-sm font-semibold text-[#006B3F] cursor-pointer">
+                      Add photos
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        disabled={loading || (Array.isArray(b.photos) ? b.photos.length : b.photo ? 1 : 0) >= 6}
+                        onChange={(e) => {
+                          addLivePhotos(b, e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500">{Array.isArray(b.photos) ? b.photos.length : b.photo ? 1 : 0} of 6</p>
+                  </div>
                 </div>
               ))
             )}
