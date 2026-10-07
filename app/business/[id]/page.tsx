@@ -197,6 +197,30 @@ export default function BusinessPage() {
     }
   };
 
+  const deleteListing = async () => {
+    if (!isAdmin || !business) return;
+    const ok = window.confirm(`Delete ${business.name}? This removes the live listing.`);
+    if (!ok) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      await deleteDoc(doc(db, "businesses", id));
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: user?.email || "",
+        action: "admin-deleted-live-listing",
+        businessId: id,
+        businessName: business.name || "",
+        details: "deleted from the business page",
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      router.push("/staff");
+    } catch (err: any) {
+      setMessage(err?.message || "Could not delete. Check Firebase rules.");
+      setLoading(false);
+    }
+  };
+
   const visibleReviews = useMemo(
     () => (canModerate ? reviews : reviews.filter((r) => !r.hidden)),
     [reviews, canModerate]
@@ -543,6 +567,17 @@ export default function BusinessPage() {
                     {business.category}
                   </span>
                 </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={deleteListing}
+                    disabled={loading}
+                    className="text-sm font-semibold text-red-600 mb-3"
+                  >
+                    {loading ? "Deleting..." : "Delete this listing"}
+                  </button>
+                )}
+                {message && <p className="text-sm text-red-600 mb-3">{message}</p>}
                 <p className="text-gray-700 mb-1">{business.area}</p>
                 <p className="text-sm text-[#006B3F] font-medium mb-3">{business.district}</p>
                 {business.address && (

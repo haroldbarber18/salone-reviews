@@ -16,6 +16,7 @@ import {
   where,
   doc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { isAdminEmail, isHardcodedStaff, normEmail } from "@/lib/roles";
@@ -56,6 +57,7 @@ export default function StaffPage() {
   const [description, setDescription] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+  const [pickedPhotos, setPickedPhotos] = useState<Record<string, File[]>>({});
 
   const email = normEmail(user?.email);
   const isAdmin = isAdminEmail(email);
@@ -187,9 +189,40 @@ export default function StaffPage() {
         createdAtMs: Date.now(),
       });
       setBusinesses((rows) => rows.map((row) => (row.id === biz.id ? { ...row, photos, photo: photos[0] || "" } : row)));
+      setPickedPhotos((prev) => {
+        const next = { ...prev };
+        delete next[biz.id];
+        return next;
+      });
       setMessage(`Added ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}. ${photos.length} of 6 on ${biz.name}.`);
     } catch (err: any) {
       setMessage(err?.message || "Could not add photos. Ask Admin to allow IT staff to update live listings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteLiveBusiness = async (biz: any) => {
+    if (!isAdmin) return;
+    const ok = window.confirm(`Delete ${biz.name}? This removes the live listing.`);
+    if (!ok) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      await deleteDoc(doc(db, "businesses", biz.id));
+      await addDoc(collection(db, "staffActivity"), {
+        actorEmail: email,
+        action: "admin-deleted-live-listing",
+        businessId: biz.id,
+        businessName: biz.name || "",
+        details: "deleted live listing",
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+      });
+      setBusinesses((rows) => rows.filter((row) => row.id !== biz.id));
+      setMessage(`Deleted ${biz.name}.`);
+    } catch (err: any) {
+      setMessage(err?.message || "Could not delete. Ask Admin to check Firebase rules.");
     } finally {
       setLoading(false);
     }
@@ -394,6 +427,9 @@ export default function StaffPage() {
             )}
           </form>
           <div className="space-y-3">
+            {message && (
+              <p className="text-sm font-semibold text-[#006B3F] bg-white border rounded-xl px-4 py-3">{message}</p>
+            )}
             {listQuery.trim().length < 1 ? (
               <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
                 Type a letter to find a live business.
@@ -420,12 +456,34 @@ export default function StaffPage() {
                         className="hidden"
                         disabled={loading || (Array.isArray(b.photos) ? b.photos.length : b.photo ? 1 : 0) >= 6}
                         onChange={(e) => {
-                          addLivePhotos(b, e.target.files);
+                          const files = Array.from(e.target.files || []);
+                          setPickedPhotos((prev) => ({ ...prev, [b.id]: files }));
+                          setMessage(files.length ? `${files.length} photo${files.length === 1 ? "" : "s"} selected. Press Upload.` : "");
                           e.target.value = "";
                         }}
                       />
                     </label>
+                    {(pickedPhotos[b.id] || []).length > 0 && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => addLivePhotos(b, pickedPhotos[b.id])}
+                        className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg"
+                      >
+                        {loading ? "Uploading..." : "Upload"}
+                      </button>
+                    )}
                     <p className="text-xs text-gray-500">{Array.isArray(b.photos) ? b.photos.length : b.photo ? 1 : 0} of 6</p>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => deleteLiveBusiness(b)}
+                        className="text-sm font-semibold text-red-600"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
