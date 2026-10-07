@@ -156,7 +156,7 @@ export default function StaffPage() {
     }, 50);
   };
 
-  const addLivePhotos = async (biz: any, files: FileList | null) => {
+  const addLivePhotos = async (biz: any, files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
     const current = Array.isArray(biz.photos) ? biz.photos : biz.photo ? [biz.photo] : [];
     const room = 6 - current.length;
