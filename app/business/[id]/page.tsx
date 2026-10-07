@@ -19,12 +19,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
 const RESPONSE_DAYS = 14;
 const FILE_ACCEPT =
   "image/jpeg,image/jpg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf";
-
 function getFirstName(fullName?: string | null) {
   if (!fullName) return "User";
   return fullName.trim().split(/\s+/)[0];
@@ -56,7 +54,6 @@ function isVideoActive(b: any) {
   d.setHours(23, 59, 59, 999);
   return d >= new Date();
 }
-
 export default function BusinessPage() {
   const params = useParams();
   const router = useRouter();
@@ -86,7 +83,6 @@ export default function BusinessPage() {
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const isLowRating = rating <= 2;
   const canBeAnonymous = rating >= 3;
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
     return () => unsubscribe();
@@ -109,7 +105,6 @@ export default function BusinessPage() {
       setNewReviewFiles([]);
     }
   }, [rating]);
-
   const loadBusiness = async () => {
     try {
       const snap = await getDoc(doc(db, "businesses", id));
@@ -139,7 +134,20 @@ export default function BusinessPage() {
       console.log(error);
     }
   };
-
+  const deleteListing = async () => {
+    if (!isAdmin || !business) return;
+    const ok = window.confirm(`Delete ${business.name}? This removes the live listing.`);
+    if (!ok) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      await deleteDoc(doc(db, "businesses", id));
+      router.push("/staff");
+    } catch (err: any) {
+      setMessage(err?.message || "Could not delete. Check Firebase rules.");
+      setLoading(false);
+    }
+  };
   const averageRating =
     reviews.length > 0
       ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
@@ -154,7 +162,6 @@ export default function BusinessPage() {
     }
     return urls;
   };
-
   const getPublicStatus = (review: any) => {
     const days = getDaysSince(review);
     const hasResponse = !!(review.businessResponse && String(review.businessResponse).trim());
@@ -165,7 +172,6 @@ export default function BusinessPage() {
     if (review.claimStatus === "resolved") return "resolved";
     return "";
   };
-
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -238,7 +244,6 @@ export default function BusinessPage() {
       setLoading(false);
     }
   };
-
   const handleDeleteReview = async (reviewId: string) => {
     if (!isAdmin) return;
     if (!window.confirm("Remove this review?")) return;
@@ -250,7 +255,6 @@ export default function BusinessPage() {
       setMessage("Failed to remove review.");
     }
   };
-
   const handleSaveBusinessResponse = async (reviewId: string) => {
     if (!isAdmin) return;
     setSavingResponse(reviewId);
@@ -268,7 +272,6 @@ export default function BusinessPage() {
       setSavingResponse(null);
     }
   };
-
   const handleSaveAdminNote = async (reviewId: string) => {
     if (!isAdmin) return;
     setSavingNote(reviewId);
@@ -285,7 +288,6 @@ export default function BusinessPage() {
       setSavingNote(null);
     }
   };
-
   const handleClaimStatus = async (reviewId: string, status: string) => {
     if (!isAdmin) return;
     setSavingStatus(reviewId);
@@ -302,7 +304,6 @@ export default function BusinessPage() {
       setSavingStatus(null);
     }
   };
-
   const handleProofUpload = async (reviewId: string) => {
     if (!user) return;
     const files = proofFiles[reviewId] || [];
@@ -332,7 +333,6 @@ export default function BusinessPage() {
       setUploadingProof(null);
     }
   };
-
   useEffect(() => {
     if (lightboxIndex === null) return;
     const count = (business?.photos || []).length;
@@ -352,7 +352,6 @@ export default function BusinessPage() {
       document.body.style.overflow = "";
     };
   }, [lightboxIndex, business]);
-
   if (pageLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -374,14 +373,12 @@ export default function BusinessPage() {
       </div>
     );
   }
-
   const photos: string[] = business.photos || [];
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     [business.name, business.address || business.area, business.district, "Sierra Leone"]
       .filter(Boolean)
       .join(", ")
   )}`;
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -390,7 +387,6 @@ export default function BusinessPage() {
           <div className="mb-4">
             <Link href="/explore" className="text-sm font-medium text-[#006B3F]">← Back to Explore</Link>
           </div>
-
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             {user ? (
               <>
@@ -405,6 +401,17 @@ export default function BusinessPage() {
                     {business.category}
                   </span>
                 </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={deleteListing}
+                    disabled={loading}
+                    className="text-sm font-semibold text-red-600 mb-3"
+                  >
+                    {loading ? "Deleting..." : "Delete this listing"}
+                  </button>
+                )}
+                {message && <p className="text-sm text-red-600 mb-3">{message}</p>}
                 <p className="text-gray-700 mb-1">{business.area}</p>
                 <p className="text-sm text-[#006B3F] font-medium mb-3">{business.district}</p>
                 {business.address && (
@@ -440,7 +447,6 @@ export default function BusinessPage() {
                 </div>
               </div>
             )}
-
             <p className="text-gray-700 mb-3">{business.description}</p>
             {business.hours && (
               <p className="text-sm text-gray-700 mb-4">
@@ -456,7 +462,6 @@ export default function BusinessPage() {
                 ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
               </span>
             </div>
-
             {user && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
@@ -481,6 +486,7 @@ export default function BusinessPage() {
             )}
           </div>
 
+
           {user && photos.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Photos</h2>
@@ -498,7 +504,6 @@ export default function BusinessPage() {
               </div>
             </div>
           )}
-
           {user && isVideoActive(business) && (
             <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Video</h2>
@@ -507,7 +512,6 @@ export default function BusinessPage() {
               </a>
             </div>
           )}
-
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews ({reviews.length})</h2>
             {reviews.length === 0 ? (
@@ -631,7 +635,6 @@ export default function BusinessPage() {
               </div>
             )}
           </div>
-
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Write a Review</h2>
             {user ? (
@@ -702,7 +705,6 @@ export default function BusinessPage() {
         </div>
       </main>
       <Footer />
-
       {lightboxIndex !== null && photos[lightboxIndex] && (
         <div
           className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-3"
