@@ -474,16 +474,6 @@ export default function StaffPage() {
                       </button>
                     )}
                     <p className="text-xs text-gray-500">{Array.isArray(b.photos) ? b.photos.length : b.photo ? 1 : 0} of 6</p>
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => deleteLiveBusiness(b)}
-                        className="text-sm font-semibold text-red-600"
-                      >
-                        Delete
-                      </button>
-                    )}
                   </div>
                 </div>
               ))
