@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -17,8 +17,6 @@ import {
   deleteDoc,
   updateDoc,
   serverTimestamp,
-  arrayUnion,
-  increment,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -42,29 +40,6 @@ function getDaysSince(review: any) {
   const d = getReviewDate(review);
   if (!d) return 0;
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
-}
-function normEmail(v?: string | null) {
-  return String(v || "").trim().toLowerCase();
-}
-function formatWhen(value: any) {
-  const d =
-    value && typeof value.toDate === "function"
-      ? value.toDate()
-      : value?.seconds
-      ? new Date(value.seconds * 1000)
-      : value
-      ? new Date(value)
-      : null;
-  if (!d || isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-function getOwnerReplies(review: any) {
-  const list = Array.isArray(review?.businessResponses) ? review.businessResponses : [];
-  if (list.length) return list;
-  if (review?.businessResponse && String(review.businessResponse).trim()) {
-    return [{ text: String(review.businessResponse).trim(), at: review.businessResponseAt || null, byName: "Business" }];
-  }
-  return [];
 }
 function isFeaturedActive(b: any) {
   if (!b?.featuredUntil) return false;
@@ -108,22 +83,7 @@ export default function BusinessPage() {
   const [proofNote, setProofNote] = useState<Record<string, string>>({});
   const [uploadingProof, setUploadingProof] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [invitedFromLink, setInvitedFromLink] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState("");
-  const [showQr, setShowQr] = useState(false);
-  const [reviewSort, setReviewSort] = useState<"recommended" | "newest" | "highest" | "lowest">("recommended");
-  const [staffEmails, setStaffEmails] = useState<string[]>([]);
-  const [flagNote, setFlagNote] = useState<Record<string, string>>({});
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
-  const isOwner = !!(
-    user &&
-    business &&
-    normEmail(business.ownerEmail) &&
-    normEmail(user.email) === normEmail(business.ownerEmail)
-  );
-  const canReplyAsBusiness = isAdmin || isOwner;
-  const isStaff = !!(user && staffEmails.includes(String(user.email || "").trim().toLowerCase()));
-  const canModerate = isAdmin || isStaff;
   const isLowRating = rating <= 2;
   const canBeAnonymous = rating >= 3;
 
@@ -138,23 +98,6 @@ export default function BusinessPage() {
       loadProofs();
     }
   }, [id]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const q = new URLSearchParams(window.location.search);
-    setInvitedFromLink(q.get("invite") === "1");
-  }, []);
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDocs(collection(db, "staffHelpers"));
-        setStaffEmails(
-          snap.docs
-            .map((d) => String((d.data() as any).email || "").trim().toLowerCase())
-            .filter(Boolean)
-        );
-      } catch {}
-    })();
-  }, []);
   useEffect(() => {
     if (user) setHasReviewed(reviews.some((r) => r.userId === user.uid));
     else setHasReviewed(false);
@@ -197,58 +140,10 @@ export default function BusinessPage() {
     }
   };
 
-  const deleteListing = async () => {
-    if (!isAdmin || !business) return;
-    const ok = window.confirm(`Delete ${business.name}? This removes the live listing.`);
-    if (!ok) return;
-    setLoading(true);
-    setMessage("");
-    try {
-      await deleteDoc(doc(db, "businesses", id));
-      await addDoc(collection(db, "staffActivity"), {
-        actorEmail: user?.email || "",
-        action: "admin-deleted-live-listing",
-        businessId: id,
-        businessName: business.name || "",
-        details: "deleted from the business page",
-        createdAt: serverTimestamp(),
-        createdAtMs: Date.now(),
-      });
-      router.push("/staff");
-    } catch (err: any) {
-      setMessage(err?.message || "Could not delete. Check Firebase rules.");
-      setLoading(false);
-    }
-  };
-
-  const visibleReviews = useMemo(
-    () => (canModerate ? reviews : reviews.filter((r) => !r.hidden)),
-    [reviews, canModerate]
-  );
-  const publicReviews = useMemo(() => reviews.filter((r) => !r.hidden), [reviews]);
   const averageRating =
-    publicReviews.length > 0
-      ? (publicReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / publicReviews.length).toFixed(1)
+    reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
       : "0.0";
-  const sortedReviews = useMemo(() => {
-    const list = visibleReviews.slice();
-    const when = (r: any) => {
-      const d = getReviewDate(r);
-      return d ? d.getTime() : 0;
-    };
-    if (reviewSort === "newest") return list.sort((a, b) => when(b) - when(a));
-    if (reviewSort === "highest") return list.sort((a, b) => (b.rating || 0) - (a.rating || 0) || when(b) - when(a));
-    if (reviewSort === "lowest") return list.sort((a, b) => (a.rating || 0) - (b.rating || 0) || when(b) - when(a));
-    // recommended: recency-weighted rating
-    return list.sort((a, b) => {
-      const recency = (r: any) => {
-        const days = Math.max(0, getDaysSince(r));
-        return 1 / (1 + days / 60);
-      };
-      const score = (r: any) => Number(r.rating || 0) * recency(r) + (r.invited ? 0.15 : 0);
-      return score(b) - score(a);
-    });
-  }, [visibleReviews, reviewSort]);
 
   const uploadFiles = async (reviewId: string, files: File[]) => {
     const urls: string[] = [];
@@ -314,7 +209,6 @@ export default function BusinessPage() {
         claimStatus: isLowRating ? "under_review" : "",
         businessResponse: "",
         adminNote: "",
-        invited: invitedFromLink,
         createdAt: serverTimestamp(),
       });
       if (isLowRating && hasProof && newReviewFiles.length > 0) {
@@ -357,72 +251,16 @@ export default function BusinessPage() {
     }
   };
 
-  const handleFlagReview = async (reviewId: string) => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    try {
-      await updateDoc(doc(db, "reviews", reviewId), {
-        flagged: true,
-        flagCount: increment(1),
-        lastFlaggedAt: serverTimestamp(),
-        lastFlagNote: (flagNote[reviewId] || "").trim(),
-      });
-      setMessage("Thanks. We will check this review.");
-      loadReviews();
-    } catch {
-      setMessage("Could not flag this review.");
-    }
-  };
-
-  const handleHideReview = async (reviewId: string, hidden: boolean) => {
-    if (!canModerate) return;
-    try {
-      await updateDoc(doc(db, "reviews", reviewId), {
-        hidden,
-        hiddenAt: serverTimestamp(),
-      });
-      setMessage(hidden ? "Review hidden from the public." : "Review visible again.");
-      loadReviews();
-    } catch {
-      setMessage("Could not update that review.");
-    }
-  };
-
-  const handleInviteCustomer = async () => {
-    if (!business) return;
-    const link = `https://www.salonereviews.com/business/${id}?invite=1`;
-    const text = `Thanks for using ${business.name}. Please leave a short review on SaloneReviews:\n${link}`;
-    try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-    } catch {}
-    setInviteMsg("Message copied. WhatsApp is opening so you can send it.");
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  };
-
   const handleSaveBusinessResponse = async (reviewId: string) => {
-    if (!canReplyAsBusiness) return;
-    const text = (responseText[reviewId] || "").trim();
-    if (!text) {
-      setMessage("Type a reply first.");
-      return;
-    }
+    if (!isAdmin) return;
     setSavingResponse(reviewId);
     try {
       await updateDoc(doc(db, "reviews", reviewId), {
-        businessResponse: text,
+        businessResponse: (responseText[reviewId] || "").trim(),
         businessResponseAt: serverTimestamp(),
         claimStatus: "resolved",
-        businessResponses: arrayUnion({
-          text,
-          atMs: Date.now(),
-          byEmail: normEmail(user?.email),
-          byName: isAdmin ? "SaloneReviews (for the business)" : (business?.ownerName || business?.name || "Business"),
-        }),
       });
-      setResponseText((prev) => ({ ...prev, [reviewId]: "" }));
-      setMessage("Reply posted.");
+      setMessage("Business response saved.");
       loadReviews();
     } catch {
       setMessage("Failed to save business response.");
@@ -567,17 +405,6 @@ export default function BusinessPage() {
                     {business.category}
                   </span>
                 </div>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={deleteListing}
-                    disabled={loading}
-                    className="text-sm font-semibold text-red-600 mb-3"
-                  >
-                    {loading ? "Deleting..." : "Delete this listing"}
-                  </button>
-                )}
-                {message && <p className="text-sm text-red-600 mb-3">{message}</p>}
                 <p className="text-gray-700 mb-1">{business.area}</p>
                 <p className="text-sm text-[#006B3F] font-medium mb-3">{business.district}</p>
                 {business.address && (
@@ -614,42 +441,10 @@ export default function BusinessPage() {
               </div>
             )}
 
-            {publicReviews.length > 0 && (
-              <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                  __html: JSON.stringify({
-                    "@context": "https://schema.org",
-                    "@type": "LocalBusiness",
-                    name: business.name || "Business",
-                    address: {
-                      "@type": "PostalAddress",
-                      addressLocality: business.area || "",
-                      addressRegion: business.district || "",
-                      addressCountry: "SL",
-                    },
-                    aggregateRating: {
-                      "@type": "AggregateRating",
-                      ratingValue: averageRating,
-                      reviewCount: publicReviews.length,
-                      bestRating: "5",
-                      worstRating: "1",
-                    },
-                  }),
-                }}
-              />
-            )}
             <p className="text-gray-700 mb-3">{business.description}</p>
             {business.hours && (
               <p className="text-sm text-gray-700 mb-4">
                 <span className="font-medium">Hours:</span> {business.hours}
-              </p>
-            )}
-            {business.website && (
-              <p className="text-sm mb-4">
-                <a href={business.website} target="_blank" rel="noreferrer" className="text-[#006B3F] font-semibold break-all">
-                  {business.website}
-                </a>
               </p>
             )}
             <div className="flex items-center gap-3 mb-5">
@@ -663,63 +458,25 @@ export default function BusinessPage() {
             </div>
 
             {user && (
-              <div>
-                <div className={`grid gap-2 ${business.website ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-3 sm:grid-cols-5"}`}>
-                  <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">📞 Call</a>
-                  <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">WhatsApp</a>
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center text-sm font-semibold py-2 px-1 rounded-lg">Maps</a>
-                  {business.website && (
-                    <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center text-sm font-semibold py-2 px-1 rounded-lg">Website</a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const text = `Check out ${business.name} on SaloneReviews: ${window.location.href}`;
-                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                    }}
-                    className="bg-gray-800 text-white text-center text-sm font-semibold py-2 px-1 rounded-lg"
-                  >
-                    Share
-                  </button>
-                  {canReplyAsBusiness && (
-                    <button
-                      type="button"
-                      onClick={() => setShowQr((v) => !v)}
-                      className="bg-white border border-gray-300 text-gray-800 text-center text-sm font-semibold py-2 px-1 rounded-lg"
-                    >
-                      {showQr ? "Hide QR" : "Get QR"}
-                    </button>
-                  )}
-                </div>
-                {showQr && canReplyAsBusiness && (
-                  <div className="mt-3">
-                    <p className="text-xs text-gray-600 mb-2">Screenshot or print for the counter. Scan opens the review page.</p>
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
-                      alt="Review QR"
-                      className="w-36 h-36 border rounded-xl bg-white p-2"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
+                <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl">📍 Open in Maps</a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `Check out ${business.name} on SaloneReviews: ${window.location.href}`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                  }}
+                  className="bg-gray-800 text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  📤 Share
+                </button>
+                {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
+                  <Link href="/claim" className="inline-block mt-3 text-sm font-semibold text-[#006B3F]">
+                    Is this your business? Claim this listing
+                  </Link>
                 )}
-                <div className="mt-4 space-y-2">
-                  {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
-                    <Link href="/claim" className="block text-sm font-semibold text-[#006B3F]">
-                      Is this your business? Claim this listing
-                    </Link>
-                  )}
-                  {canReplyAsBusiness && (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleInviteCustomer}
-                        className="text-sm font-semibold text-[#006B3F]"
-                      >
-                        Invite a customer to review
-                      </button>
-                      {inviteMsg && <p className="text-xs text-[#006B3F] mt-1">{inviteMsg}</p>}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
@@ -752,26 +509,12 @@ export default function BusinessPage() {
           )}
 
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Reviews ({publicReviews.length})</h2>
-              {visibleReviews.length > 1 && (
-                <select
-                  value={reviewSort}
-                  onChange={(e) => setReviewSort(e.target.value as any)}
-                  className="border rounded-xl px-3 py-2 text-sm bg-white"
-                >
-                  <option value="recommended">Recommended</option>
-                  <option value="newest">Newest</option>
-                  <option value="highest">Highest rating</option>
-                  <option value="lowest">Lowest rating</option>
-                </select>
-              )}
-            </div>
-            {visibleReviews.length === 0 ? (
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews ({reviews.length})</h2>
+            {reviews.length === 0 ? (
               <p className="text-gray-700">No reviews yet.</p>
             ) : (
               <div className="space-y-6">
-                {sortedReviews.map((review) => {
+                {reviews.map((review) => {
                   const reviewProofs = proofs.filter((p) => p.reviewId === review.id);
                   const canUploadProof = !!(user && user.uid === review.userId);
                   const canViewProof = !!(isAdmin || (user && user.uid === review.userId));
@@ -785,15 +528,6 @@ export default function BusinessPage() {
                       <div className="flex items-center justify-between gap-3 mb-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-gray-900">{review.userName}</span>
-                          {review.invited && (
-                            <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Invited</span>
-                          )}
-                          {review.hidden && (
-                            <span className="text-[11px] bg-gray-800 text-white px-2 py-0.5 rounded-full font-semibold">Hidden</span>
-                          )}
-                          {review.flagged && canModerate && (
-                            <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">Flagged</span>
-                          )}
                           {publicStatus === "uc" && (
                             <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">UC · Unverified Claim</span>
                           )}
@@ -812,63 +546,12 @@ export default function BusinessPage() {
                         </div>
                       </div>
                       <p className="text-gray-700 text-sm mb-3">{review.comment}</p>
-                      {user && user.uid !== review.userId && (
-                        <div className="mb-3">
-                          <button
-                            type="button"
-                            onClick={() => handleFlagReview(review.id)}
-                            className="text-xs text-gray-600 underline"
-                          >
-                            Flag this review
-                          </button>
+                      {review.businessResponse ? (
+                        <div className="bg-green-50 border border-green-100 rounded-xl p-3 mb-3">
+                          <p className="text-xs font-semibold text-[#006B3F] mb-1">Business Response</p>
+                          <p className="text-sm text-gray-700">{review.businessResponse}</p>
                         </div>
-                      )}
-                      {canModerate && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <button
-                            type="button"
-                            onClick={() => handleHideReview(review.id, !review.hidden)}
-                            className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-full"
-                          >
-                            {review.hidden ? "Unhide review" : "Hide review"}
-                          </button>
-                        </div>
-                      )}
-                      {getOwnerReplies(review).length > 0 && (
-                        <div className="space-y-2 mb-3">
-                          {getOwnerReplies(review).map((rep: any, i: number) => (
-                            <div key={i} className="bg-green-50 border border-green-100 rounded-xl p-3">
-                              <p className="text-xs font-semibold text-[#006B3F] mb-1">
-                                Reply from {rep.byName || "the business"}
-                                {formatWhen(rep.at || rep.atMs) ? ` · ${formatWhen(rep.at || rep.atMs)}` : ""}
-                              </p>
-                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{rep.text}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {canReplyAsBusiness && (
-                        <div className="bg-gray-50 border rounded-xl p-3 mb-3">
-                          <p className="text-xs font-semibold text-gray-800 mb-2">
-                            {getOwnerReplies(review).length ? "Add another reply" : "Reply as the business"}
-                          </p>
-                          <textarea
-                            value={responseText[review.id] || ""}
-                            onChange={(e) => setResponseText((prev) => ({ ...prev, [review.id]: e.target.value }))}
-                            rows={3}
-                            className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900"
-                            placeholder="Thank the customer or explain what you will do..."
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveBusinessResponse(review.id)}
-                            disabled={savingResponse === review.id}
-                            className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60"
-                          >
-                            {savingResponse === review.id ? "Posting..." : "Post reply"}
-                          </button>
-                        </div>
-                      )}
+                      ) : null}
                       {review.adminNote && publicStatus === "under_review" ? (
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
                           <p className="text-xs font-semibold text-blue-700 mb-1">SaloneReviews Note</p>
@@ -895,6 +578,13 @@ export default function BusinessPage() {
                               <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "resolved")} className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full">Resolved</button>
                               <button type="button" disabled={savingStatus === review.id} onClick={() => handleClaimStatus(review.id, "")} className="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full">Clear</button>
                             </div>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-800 mb-2">Business Response (on behalf of owner)</p>
+                            <textarea value={responseText[review.id] ?? review.businessResponse ?? ""} onChange={(e) => setResponseText((prev) => ({ ...prev, [review.id]: e.target.value }))} rows={3} className="w-full border rounded-xl px-3 py-2 text-sm outline-none mb-2 text-gray-900" placeholder="Official response from the business..." />
+                            <button type="button" onClick={() => handleSaveBusinessResponse(review.id)} disabled={savingResponse === review.id} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60">
+                              {savingResponse === review.id ? "Saving..." : "Save Business Response"}
+                            </button>
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-blue-700 mb-2">SaloneReviews Note (temporary while under review)</p>
@@ -944,9 +634,6 @@ export default function BusinessPage() {
 
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Write a Review</h2>
-            {invitedFromLink && (
-              <p className="text-sm text-[#006B3F] mb-3">The shop invited you to leave this review.</p>
-            )}
             {user ? (
               hasReviewed ? (
                 <div className="bg-gray-50 border rounded-xl p-4 text-sm text-gray-700">You have already reviewed this business. Thank you.</div>
