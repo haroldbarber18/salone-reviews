@@ -257,8 +257,8 @@ export default function StaffPage() {
       if (!res.ok) throw new Error(data.error || "Could not search Google.");
       const rows = (data.places || []).map((place: any) => {
         const key = normName(place.name);
-        const match = businesses.find((b) => normName(b.name) === key);
-        return { ...place, matchId: match?.id || "", matchName: match?.name || "" };
+        const match = businesses.find((b) => normName(b.name) === key || b.googlePlaceId === place.placeId);
+        return { ...place, matchId: match?.id || "", matchName: match?.name || "", alreadyFilled: match?.googlePlaceId === place.placeId };
       });
       setImportHits(rows);
       setMessage(rows.length ? `${rows.length} found. Nothing is live yet.` : "Google returned no places for that district.");
@@ -286,25 +286,28 @@ export default function StaffPage() {
       if (place.matchId) {
         const current = businesses.find((b) => b.id === place.matchId) || {};
         const photos = Array.isArray(current.photos) ? current.photos : current.photo ? [current.photo] : [];
-        const nextPhotos = photos.length === 0 ? uploaded : photos;
+        const nextPhotos = [...photos, ...uploaded.filter((url) => !photos.includes(url))].slice(0, 6);
+        const website = String(current.website || "").trim() || place.website || "";
         await updateDoc(doc(db, "businesses", place.matchId), {
           photos: nextPhotos,
           photo: nextPhotos[0] || current.photo || "",
           phone: current.phone || place.phone || "",
-          website: current.website || place.website || "",
+          website,
           address: current.address || place.address || "",
           area: current.area || place.address || "",
           maps: current.maps || place.maps || "",
+          googlePlaceId: place.placeId,
         });
         setBusinesses((rows) => rows.map((row) => row.id === place.matchId ? {
           ...row,
           photos: nextPhotos,
           photo: nextPhotos[0] || row.photo || "",
           phone: row.phone || place.phone || "",
-          website: row.website || place.website || "",
+          website,
           address: row.address || place.address || "",
+          googlePlaceId: place.placeId,
         } : row));
-        setMessage(`Filled ${current.name || place.matchName}. The card was already on the site.`);
+        setMessage(`Saved on ${current.name || place.matchName}. Website: ${website || "Google had none"}.`);
       } else {
         await addDoc(collection(db, "businessRequests"), {
           name: place.name,
@@ -542,11 +545,13 @@ export default function StaffPage() {
                     <p className="text-sm text-gray-500">{place.address}</p>
                     <p className="text-sm text-gray-500">{place.phone}</p>
                     <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
-                    <p className="text-sm font-semibold text-[#006B3F]">{place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
+                    <p className="text-sm font-semibold text-[#006B3F]">{place.alreadyFilled ? "Filled. It will not be offered again." : place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
                   </div>
+                  {!place.alreadyFilled && (
                   <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">
                     {place.matchId ? "Fill card" : "Save pending"}
                   </button>
+                  )}
                 </div>
               ))}
             </div>
