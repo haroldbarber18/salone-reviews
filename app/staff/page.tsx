@@ -257,10 +257,21 @@ export default function StaffPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not search Google.");
+      const pendingSnap = await getDocs(query(collection(db, "businessRequests"), where("status", "==", "pending")));
+      const pendingRows = pendingSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const rows = (data.places || []).map((place: any) => {
         const key = normName(place.name);
         const match = businesses.find((b) => normName(b.name) === key || b.googlePlaceId === place.placeId);
-        return { ...place, matchId: match?.id || "", matchName: match?.name || "", alreadyFilled: match?.googlePlaceId === place.placeId };
+        const pending = pendingRows.find((r: any) => normName(r.name) === key || r.googlePlaceId === place.placeId);
+        return {
+          ...place,
+          matchId: match?.id || "",
+          matchName: match?.name || pending?.name || "",
+          alreadyFilled: !!(match || pending),
+        };
+      }).filter((place: any, index: number, all: any[]) => {
+        const key = normName(place.name);
+        return all.findIndex((row) => row.placeId === place.placeId || normName(row.name) === key) === index;
       });
       setImportHits(rows);
       setImportPageToken(data.nextPageToken || "");
@@ -339,11 +350,13 @@ export default function StaffPage() {
           photos: uploaded,
           status: "pending",
           source: "google-places",
+          googlePlaceId: place.placeId,
           submittedBy: email,
           createdAt: serverTimestamp(),
           createdAtMs: Date.now(),
         });
         setMessage(`${place.name} saved as pending. It is not live until Admin approves it.`);
+        setMyRequests((rows) => [{ id: "new", name: place.name, googlePlaceId: place.placeId, status: "pending" }, ...rows]);
       }
       setImportHits((rows) => rows.filter((row) => row.placeId !== place.placeId));
     } catch (err: any) {
@@ -583,7 +596,7 @@ export default function StaffPage() {
                     <p className="text-sm text-gray-500">{place.address}</p>
                     <p className="text-sm text-gray-500">{place.phone}</p>
                     <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
-                    <p className="text-sm font-semibold text-[#006B3F]">{place.alreadyFilled ? "Filled. It will not be offered again." : place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
+                    <p className="text-sm font-semibold text-[#006B3F]">{place.alreadyFilled ? "Already saved. It will not be added again." : place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
                   </div>
                   {!place.alreadyFilled && (
                   <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">
