@@ -486,21 +486,6 @@ export default function BusinessPage() {
                 >
                   📤 Share
                 </button>
-                {isAdmin && (
-                  <button type="button" onClick={() => setShowQr((v) => !v)} className="bg-white border border-gray-300 text-gray-800 text-center font-semibold py-3 rounded-xl">
-                    {showQr ? "Hide QR" : "Get QR"}
-                  </button>
-                )}
-                {showQr && isAdmin && (
-                  <div className="sm:col-span-4">
-                    <p className="text-xs text-gray-600 mb-2">Screenshot or print for the counter. Scan opens the review page.</p>
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
-                      alt="Review QR"
-                      className="w-36 h-36 border rounded-xl bg-white p-2"
-                    />
-                  </div>
-                )}
                 {(!business.claimStatus || business.claimStatus === "Unclaimed") && (
                   <Link href="/claim" className="inline-block mt-3 text-sm font-semibold text-[#006B3F]">
                     Is this your business? Claim this listing
@@ -508,6 +493,21 @@ export default function BusinessPage() {
                 )}
               </div>
             )}
+            <div className="mt-3">
+              <button type="button" onClick={() => setShowQr((v) => !v)} className="bg-white border border-gray-300 text-gray-800 text-center font-semibold py-3 px-4 rounded-xl">
+                {showQr ? "Hide QR" : "Get QR"}
+              </button>
+              {showQr && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-600 mb-2">Screenshot or print for the counter. Scan opens the review page.</p>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://www.salonereviews.com/business/${id}?invite=1`)}`}
+                    alt="Review QR"
+                    className="w-36 h-36 border rounded-xl bg-white p-2"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
 
