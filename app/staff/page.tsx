@@ -258,11 +258,11 @@ export default function StaffPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not search Google.");
       const pendingSnap = await getDocs(query(collection(db, "businessRequests"), where("status", "==", "pending")));
-      const pendingRows = pendingSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const pendingRows: any[] = pendingSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
       const rows = (data.places || []).map((place: any) => {
         const key = normName(place.name);
         const match = businesses.find((b) => normName(b.name) === key || b.googlePlaceId === place.placeId);
-        const pending = pendingRows.find((r: any) => normName(r.name) === key || r.googlePlaceId === place.placeId);
+        const pending = pendingRows.find((r) => normName(r.name) === key || r.googlePlaceId === place.placeId);
         return {
           ...place,
           matchId: match?.id || "",
