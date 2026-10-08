@@ -37,6 +37,7 @@ export default function StaffPage() {
   const [user, setUser] = useState<any>(null);
   const [checking, setChecking] = useState(true);
   const [staffEmails, setStaffEmails] = useState<string[]>([]);
+  const [canImportPlaces, setCanImportPlaces] = useState(false);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [listQuery, setListQuery] = useState("");
@@ -78,7 +79,9 @@ export default function StaffPage() {
     (async () => {
       try {
         const snap = await getDocs(collection(db, "staffHelpers"));
-        setStaffEmails(snap.docs.map((d) => normEmail((d.data() as any).email)));
+        const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+        setStaffEmails(rows.map((row) => normEmail(row.email)));
+        setCanImportPlaces(rows.some((row) => normEmail(row.email) === normEmail(auth.currentUser?.email) && row.canImportPlaces));
       } catch {
         setStaffEmails([]);
       }
@@ -513,6 +516,7 @@ export default function StaffPage() {
           </div>
 
 
+          { (isAdmin || canImportPlaces) && (
           <div className="bg-white border rounded-2xl p-6 mb-8">
             <h2 className="text-lg font-bold mb-1">Fill hotels and restaurants</h2>
             <p className="text-sm text-gray-600 mb-4">A name already on the site keeps its card. This only adds a missing photo, phone or address. A new name is saved as pending.</p>
@@ -544,6 +548,7 @@ export default function StaffPage() {
               ))}
             </div>
           </div>
+          )}
 
           <h2 className="text-lg font-bold mb-3">Find a live business</h2>
           <p className="text-sm text-gray-600 mb-3">Type a letter to see matching names. No full list.</p>

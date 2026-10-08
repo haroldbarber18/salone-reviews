@@ -57,9 +57,6 @@ function requestPayload(r: any) {
     videoUntil: r.videoUntil || "",
     photos: Array.isArray(r.photos) ? r.photos : [],
     profilePhoto: r.profilePhoto || "",
-    showOnExplore: r.showOnExplore !== false,
-    showOnGovernment: !!r.showOnGovernment,
-    showOnEmergency: !!r.showOnEmergency,
   };
 }
 export default function AdminPage() {
@@ -94,12 +91,10 @@ export default function AdminPage() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [profilePhoto, setProfilePhoto] = useState("");
   const [profileFile, setProfileFile] = useState<File | null>(null);
-  const [showOnExplore, setShowOnExplore] = useState(true);
-  const [showOnGovernment, setShowOnGovernment] = useState(false);
-  const [showOnEmergency, setShowOnEmergency] = useState(false);
   const [staffHelpers, setStaffHelpers] = useState<any[]>([]);
   const [staffEmail, setStaffEmail] = useState("");
   const [staffCanEdit, setStaffCanEdit] = useState(false);
+  const [staffCanImport, setStaffCanImport] = useState(false);
   const [staffActivity, setStaffActivity] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState("");
   const [paidPhotoIds, setPaidPhotoIds] = useState<Record<string, boolean>>({});
@@ -123,7 +118,7 @@ export default function AdminPage() {
     try {
       const snap = await getDocs(collection(db, "businessRequests"));
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const pending = rows.filter((r: any) => r.source === "staff" && (!r.status || r.status === "pending"));
+      const pending = rows.filter((r: any) => (r.source === "staff" || r.source === "google-places") && (!r.status || r.status === "pending"));
       pending.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
       setPendingStaff(pending);
     } catch {
@@ -145,6 +140,7 @@ export default function AdminPage() {
       await addDoc(collection(db, "staffHelpers"), {
         email,
         canEdit: staffCanEdit,
+        canImportPlaces: staffCanImport,
         createdAt: serverTimestamp(),
       });
       await addDoc(collection(db, "staffActivity"), {
@@ -162,6 +158,17 @@ export default function AdminPage() {
         ? "Firebase blocked this. Open Firestore Rules and allow staffHelpers + staffActivity."
         : (err?.message || "Could not add staff."));
     }
+  };
+  const toggleStaffImport = async (helper: any) => {
+    await updateDoc(doc(db, "staffHelpers", helper.id), { canImportPlaces: !helper.canImportPlaces });
+    await addDoc(collection(db, "staffActivity"), {
+      actorEmail: normEmail(user?.email),
+      action: helper.canImportPlaces ? "import-removed" : "import-allowed",
+      details: helper.email,
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    loadStaff();
   };
   const removeStaffHelper = async (helper: any) => {
     await deleteDoc(doc(db, "staffHelpers", helper.id));
@@ -200,7 +207,6 @@ export default function AdminPage() {
     setWhatsapp(""); setHours(""); setWebsite(""); setDescription(""); setIsPremium(false);
     setFeaturedUntil(""); setShowOnSlider(false); setProfileUntil(""); setVideoUrl(""); setVideoUntil(""); setPhotoFiles([]); setExistingPhotos([]);
     setProfilePhoto(""); setProfileFile(null);
-    setShowOnExplore(true); setShowOnGovernment(false); setShowOnEmergency(false);
   };
   const fillForm = (b: any) => {
     const cat = String(b.category || "Tradesmen");
@@ -220,11 +226,7 @@ export default function AdminPage() {
     setExistingPhotos(Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : []);
     setProfilePhoto(b.profilePhoto || "");
     setProfileFile(null);
-    setPhotoFiles([]);
-    setShowOnExplore(b.showOnExplore !== false);
-    setShowOnGovernment(!!b.showOnGovernment);
-    setShowOnEmergency(!!b.showOnEmergency);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setPhotoFiles([]); window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const startEdit = (b: any) => {
     setEditingId(b.id);
@@ -321,9 +323,6 @@ export default function AdminPage() {
         profileUntil: profileUntil || "",
         videoUrl: videoUrl.trim(), videoUntil: videoUntil || "",
         photos,
-        showOnExplore,
-        showOnGovernment,
-        showOnEmergency,
       };
       if (editingRequestId) {
         await updateDoc(doc(db, "businessRequests", editingRequestId), {
@@ -380,6 +379,10 @@ export default function AdminPage() {
                 <input type="checkbox" checked={staffCanEdit} onChange={(e) => setStaffCanEdit(e.target.checked)} />
                 Can edit existing
               </label>
+              <label className="flex items-center gap-2 text-sm px-1">
+                <input type="checkbox" checked={staffCanImport} onChange={(e) => setStaffCanImport(e.target.checked)} />
+                Can fill hotels
+              </label>
               <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">Add staff</button>
             </form>
             {staffMessage && <p className="text-sm text-green-700 mb-3">{staffMessage}</p>}
@@ -391,9 +394,14 @@ export default function AdminPage() {
                   <div key={s.id} className="flex justify-between gap-3 items-center border rounded-xl px-4 py-3">
                     <div>
                       <p className="font-medium text-sm">{s.email}</p>
-                      <p className="text-xs text-gray-500">{s.canEdit ? "Can add and edit" : "Can add only"}</p>
+                      <p className="text-xs text-gray-500">{s.canEdit ? "Can add and edit" : "Can add only"} · {s.canImportPlaces ? "Can fill hotels" : "No hotel fill"}</p>
                     </div>
-                    <button type="button" onClick={() => removeStaffHelper(s)} className="text-sm text-red-600 font-medium">Remove</button>
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => toggleStaffImport(s)} className="text-sm text-[#006B3F] font-medium">
+                        {s.canImportPlaces ? "Remove hotel fill" : "Allow hotel fill"}
+                      </button>
+                      <button type="button" onClick={() => removeStaffHelper(s)} className="text-sm text-red-600 font-medium">Remove</button>
+                    </div>
                   </div>
                 ))
               )}
@@ -414,6 +422,7 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+
           <div className="bg-white border rounded-2xl p-6 mb-8">
             <h2 className="text-lg font-bold mb-1">Staff listings waiting</h2>
             <p className="text-sm text-gray-600 mb-4">Nothing here goes live until you Approve.</p>
@@ -446,6 +455,7 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+
           <form id="admin-listing-form" onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             {editingRequestId && (
               <p className="text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
@@ -480,24 +490,6 @@ export default function AdminPage() {
             <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Opening hours" className="w-full border rounded-xl px-4 py-3" />
             <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website or Facebook page" className="w-full border rounded-xl px-4 py-3" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full border rounded-xl px-4 py-3" required />
-            <div className="border rounded-xl p-4 space-y-3 bg-gray-50">
-              <p className="font-semibold text-sm">Where this listing shows</p>
-              <p className="text-xs text-gray-600">
-                Shop: Explore only. Hospital: Explore + Emergency. Ministry: Government only. Police: Government + Emergency. Bank: Explore only - Financial page uses the same listing.
-              </p>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={showOnExplore} onChange={(e) => setShowOnExplore(e.target.checked)} />
-                Show on Explore (main list)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={showOnGovernment} onChange={(e) => setShowOnGovernment(e.target.checked)} />
-                Show on Government
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={showOnEmergency} onChange={(e) => setShowOnEmergency(e.target.checked)} />
-                Show on Emergency
-              </label>
-            </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} />
               Extra photos paid (up to 6)
@@ -598,11 +590,6 @@ export default function AdminPage() {
                       {isFeaturedActive(b) && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">Featured</span>}
                     </h3>
                     <p className="text-sm text-gray-500">{b.subcategory || b.category} · {b.district}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {b.showOnExplore !== false ? "Explore" : "Hidden from Explore"}
-                      {b.showOnGovernment ? " · Government" : ""}
-                      {b.showOnEmergency ? " · Emergency" : ""}
-                    </p>
                   </div>
                   <div className="flex flex-col gap-2 items-end">
                     <button onClick={() => startEdit(b)} className="text-sm text-[#006B3F] font-medium">Edit</button>
