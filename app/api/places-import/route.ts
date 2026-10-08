@@ -19,32 +19,46 @@ const DISTRICT_PLACE: Record<string, string> = {
   Koinadugu: "Kabala",
 };
 
+const TYPE_BY_KIND: Record<string, string> = {
+  hotel: "lodging",
+  restaurant: "restaurant",
+  cafe: "cafe",
+  bank: "bank",
+  pharmacy: "pharmacy",
+  school: "school",
+  hospital: "hospital",
+  supermarket: "supermarket",
+  store: "store",
+};
+
 export async function POST(req: NextRequest) {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) {
     return NextResponse.json({ error: "Add GOOGLE_PLACES_API_KEY in Vercel, then redeploy." }, { status: 500 });
   }
   const body = await req.json();
-  const kind = body.kind === "restaurant" ? "restaurant" : "hotel";
+  const kind = String(body.kind || "hotel");
+  const custom = String(body.custom || "").trim();
   const district = String(body.district || "Western Area Urban");
   const town = DISTRICT_PLACE[district] || district;
-  const textQuery = kind === "restaurant"
-    ? `restaurants in ${town}, Sierra Leone`
-    : `hotels in ${town}, Sierra Leone`;
+  const label = custom || kind;
+  const textQuery = `${label} in ${town}, Sierra Leone`;
+  const payload: Record<string, unknown> = {
+    textQuery,
+    pageSize: 20,
+    languageCode: "en",
+    regionCode: "SL",
+  };
+  if (body.pageToken) payload.pageToken = body.pageToken;
+  if (!custom && TYPE_BY_KIND[kind]) payload.includedType = TYPE_BY_KIND[kind];
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.websiteUri,places.photos",
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.websiteUri,places.photos,nextPageToken",
     },
-    body: JSON.stringify({
-      textQuery,
-      includedType: kind === "restaurant" ? "restaurant" : "lodging",
-      pageSize: 20,
-      languageCode: "en",
-      regionCode: "SL",
-    }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -59,5 +73,5 @@ export async function POST(req: NextRequest) {
     website: p.websiteUri || "",
     photoNames: (p.photos || []).slice(0, 6).map((photo: any) => photo.name).filter(Boolean),
   }));
-  return NextResponse.json({ places, district, kind });
+  return NextResponse.json({ places, district, kind: label, nextPageToken: data.nextPageToken || "" });
 }

@@ -60,8 +60,10 @@ export default function StaffPage() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [pickedPhotos, setPickedPhotos] = useState<Record<string, File[]>>({});
   const [importKind, setImportKind] = useState("hotel");
+  const [importCustom, setImportCustom] = useState("");
   const [importDistrict, setImportDistrict] = useState("Western Area Urban");
   const [importHits, setImportHits] = useState<any[]>([]);
+  const [importPageToken, setImportPageToken] = useState("");
 
   const email = normEmail(user?.email);
   const isAdmin = isAdminEmail(email);
@@ -244,14 +246,14 @@ export default function StaffPage() {
       .replace(/\s+/g, " ")
       .trim();
 
-  const searchPlaces = async () => {
+  const searchPlaces = async (pageToken = "") => {
     setLoading(true);
     setMessage("");
     try {
       const res = await fetch("/api/places-import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: importKind, district: importDistrict }),
+        body: JSON.stringify({ kind: importKind, custom: importCustom, district: importDistrict, pageToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not search Google.");
@@ -261,12 +263,25 @@ export default function StaffPage() {
         return { ...place, matchId: match?.id || "", matchName: match?.name || "", alreadyFilled: match?.googlePlaceId === place.placeId };
       });
       setImportHits(rows);
-      setMessage(rows.length ? `${rows.length} found. Nothing is live yet.` : "Google returned no places for that district.");
+      setImportPageToken(data.nextPageToken || "");
+      setMessage(rows.length ? `${rows.length} found. Nothing is live yet.` : "Google returned no places for that search.");
     } catch (err: any) {
       setMessage(err?.message || "Could not search Google.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const placeCategory = () => {
+    const kind = importCustom.trim() || importKind;
+    if (kind === "hotel") return { category: "Hotels", subcategory: "Hotel" };
+    if (kind === "restaurant" || kind === "cafe") return { category: "Food", subcategory: kind === "cafe" ? "Cafe" : "Restaurant" };
+    if (kind === "bank") return { category: "Money & Insurance", subcategory: "Bank" };
+    if (kind === "pharmacy" || kind === "hospital") return { category: "Health & Medical", subcategory: kind === "hospital" ? "Hospital" : "Pharmacy" };
+    if (kind === "school") return { category: "Education & Training", subcategory: "School" };
+    if (kind === "supermarket" || kind === "store") return { category: "Shopping & Fashion", subcategory: kind === "store" ? "Store" : "Supermarket" };
+    if (kind === "mechanic") return { category: "Auto", subcategory: "Mechanic" };
+    return { category: "Tradesmen", subcategory: kind.charAt(0).toUpperCase() + kind.slice(1) };
   };
 
   const applyPlace = async (place: any) => {
@@ -309,10 +324,11 @@ export default function StaffPage() {
         } : row));
         setMessage(`Saved on ${current.name || place.matchName}. Website: ${website || "Google had none"}.`);
       } else {
+        const picked = placeCategory();
         await addDoc(collection(db, "businessRequests"), {
           name: place.name,
-          category: importKind === "restaurant" ? "Food" : "Hotels",
-          subcategory: importKind === "restaurant" ? "Restaurant" : "Hotel",
+          category: picked.category,
+          subcategory: picked.subcategory,
           district: importDistrict,
           area: place.address || "",
           phone: place.phone || "",
@@ -529,14 +545,36 @@ export default function StaffPage() {
               <select value={importKind} onChange={(e) => setImportKind(e.target.value)} className="border rounded-xl px-4 py-3">
                 <option value="hotel">Hotel</option>
                 <option value="restaurant">Restaurant</option>
+                <option value="cafe">Cafe</option>
+                <option value="bank">Bank</option>
+                <option value="pharmacy">Pharmacy</option>
+                <option value="school">School</option>
+                <option value="hospital">Hospital</option>
+                <option value="supermarket">Supermarket</option>
+                <option value="store">Store</option>
+                <option value="plumber">Plumber</option>
+                <option value="electrician">Electrician</option>
+                <option value="mason">Mason</option>
+                <option value="tiler">Tiler</option>
+                <option value="mechanic">Mechanic</option>
+                <option value="welder">Welder</option>
+                <option value="carpenter">Carpenter</option>
               </select>
               <select value={importDistrict} onChange={(e) => setImportDistrict(e.target.value)} className="border rounded-xl px-4 py-3">
                 {districts.map((d) => <option key={d}>{d}</option>)}
               </select>
             </div>
-            <button type="button" onClick={searchPlaces} disabled={loading} className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">
-              {loading ? "Working..." : "Search Google"}
-            </button>
+            <input value={importCustom} onChange={(e) => setImportCustom(e.target.value)} placeholder="Or type any trade, such as painter" className="w-full border rounded-xl px-4 py-3 mb-3" />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => searchPlaces("")} disabled={loading} className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">
+                {loading ? "Working..." : "Search Google"}
+              </button>
+              {importPageToken && (
+                <button type="button" onClick={() => searchPlaces(importPageToken)} disabled={loading} className="bg-white border border-[#006B3F] text-[#006B3F] font-semibold px-5 py-3 rounded-xl">
+                  Next 20
+                </button>
+              )}
+            </div>
             <div className="space-y-3 mt-4">
               {importHits.map((place) => (
                 <div key={place.placeId} className="border rounded-xl p-4 flex justify-between gap-4">
