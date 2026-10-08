@@ -58,6 +58,9 @@ export default function StaffPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [pickedPhotos, setPickedPhotos] = useState<Record<string, File[]>>({});
+  const [importKind, setImportKind] = useState("hotel");
+  const [importDistrict, setImportDistrict] = useState("Western Area Urban");
+  const [importHits, setImportHits] = useState<any[]>([]);
 
   const email = normEmail(user?.email);
   const isAdmin = isAdminEmail(email);
@@ -223,6 +226,104 @@ export default function StaffPage() {
       setMessage(`Deleted ${biz.name}.`);
     } catch (err: any) {
       setMessage(err?.message || "Could not delete. Ask Admin to check Firebase rules.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const normName = (value: string) =>
+    String(value || "")
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\b(hotel|hotels|restaurant|restaurants|ltd|limited)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const searchPlaces = async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/places-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: importKind, district: importDistrict }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not search Google.");
+      const rows = (data.places || []).map((place: any) => {
+        const key = normName(place.name);
+        const match = businesses.find((b) => normName(b.name) === key);
+        return { ...place, matchId: match?.id || "", matchName: match?.name || "" };
+      });
+      setImportHits(rows);
+      setMessage(rows.length ? `${rows.length} found. Nothing is live yet.` : "Google returned no places for that district.");
+    } catch (err: any) {
+      setMessage(err?.message || "Could not search Google.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyPlace = async (place: any) => {
+    setLoading(true);
+    setMessage("");
+    try {
+      let photoUrl = "";
+      if (place.photoName) {
+        const photoRes = await fetch(`/api/places-photo?name=${encodeURIComponent(place.photoName)}`);
+        if (photoRes.ok) {
+          const blob = await photoRes.blob();
+          const fileRef = ref(storage, `businesses/google-${place.placeId}.jpg`);
+          await uploadBytes(fileRef, blob);
+          photoUrl = await getDownloadURL(fileRef);
+        }
+      }
+      if (place.matchId) {
+        const current = businesses.find((b) => b.id === place.matchId) || {};
+        const photos = Array.isArray(current.photos) ? current.photos : current.photo ? [current.photo] : [];
+        const nextPhotos = photoUrl && photos.length === 0 ? [photoUrl] : photos;
+        await updateDoc(doc(db, "businesses", place.matchId), {
+          photos: nextPhotos,
+          photo: nextPhotos[0] || current.photo || "",
+          phone: current.phone || place.phone || "",
+          address: current.address || place.address || "",
+          area: current.area || place.address || "",
+          maps: current.maps || place.maps || "",
+        });
+        setBusinesses((rows) => rows.map((row) => row.id === place.matchId ? {
+          ...row,
+          photos: nextPhotos,
+          photo: nextPhotos[0] || row.photo || "",
+          phone: row.phone || place.phone || "",
+          address: row.address || place.address || "",
+        } : row));
+        setMessage(`Filled ${current.name || place.matchName}. The card was already on the site.`);
+      } else {
+        await addDoc(collection(db, "businessRequests"), {
+          name: place.name,
+          category: importKind === "restaurant" ? "Food" : "Hotels",
+          subcategory: importKind === "restaurant" ? "Restaurant" : "Hotel",
+          district: importDistrict,
+          area: place.address || "",
+          phone: place.phone || "",
+          whatsapp: "",
+          hours: "",
+          website: "",
+          description: place.address || place.name,
+          photos: photoUrl ? [photoUrl] : [],
+          status: "pending",
+          source: "google-places",
+          submittedBy: email,
+          createdAt: serverTimestamp(),
+          createdAtMs: Date.now(),
+        });
+        setMessage(`${place.name} saved as pending. It is not live until Admin approves it.`);
+      }
+      setImportHits((rows) => rows.filter((row) => row.placeId !== place.placeId));
+    } catch (err: any) {
+      setMessage(err?.message || "Could not apply this place.");
     } finally {
       setLoading(false);
     }
@@ -409,6 +510,39 @@ export default function StaffPage() {
                 </div>
               ))
             )}
+          </div>
+
+
+          <div className="bg-white border rounded-2xl p-6 mb-8">
+            <h2 className="text-lg font-bold mb-1">Fill hotels and restaurants</h2>
+            <p className="text-sm text-gray-600 mb-4">A name already on the site keeps its card. This only adds a missing photo, phone or address. A new name is saved as pending.</p>
+            <div className="grid sm:grid-cols-2 gap-3 mb-3">
+              <select value={importKind} onChange={(e) => setImportKind(e.target.value)} className="border rounded-xl px-4 py-3">
+                <option value="hotel">Hotel</option>
+                <option value="restaurant">Restaurant</option>
+              </select>
+              <select value={importDistrict} onChange={(e) => setImportDistrict(e.target.value)} className="border rounded-xl px-4 py-3">
+                {districts.map((d) => <option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <button type="button" onClick={searchPlaces} disabled={loading} className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">
+              {loading ? "Working..." : "Search Google"}
+            </button>
+            <div className="space-y-3 mt-4">
+              {importHits.map((place) => (
+                <div key={place.placeId} className="border rounded-xl p-4 flex justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">{place.name}</h3>
+                    <p className="text-sm text-gray-500">{place.address}</p>
+                    <p className="text-sm text-gray-500">{place.phone}</p>
+                    <p className="text-sm font-semibold text-[#006B3F]">{place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
+                  </div>
+                  <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">
+                    {place.matchId ? "Fill card" : "Save pending"}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <h2 className="text-lg font-bold mb-3">Find a live business</h2>
