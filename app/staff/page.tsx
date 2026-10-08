@@ -273,24 +273,25 @@ export default function StaffPage() {
     setLoading(true);
     setMessage("");
     try {
-      let photoUrl = "";
-      if (place.photoName) {
-        const photoRes = await fetch(`/api/places-photo?name=${encodeURIComponent(place.photoName)}`);
-        if (photoRes.ok) {
-          const blob = await photoRes.blob();
-          const fileRef = ref(storage, `businesses/google-${place.placeId}.jpg`);
-          await uploadBytes(fileRef, blob);
-          photoUrl = await getDownloadURL(fileRef);
-        }
+      let uploaded: string[] = [];
+      const names = Array.isArray(place.photoNames) ? place.photoNames : place.photoName ? [place.photoName] : [];
+      for (const photoName of names.slice(0, 6)) {
+        const photoRes = await fetch(`/api/places-photo?name=${encodeURIComponent(photoName)}`);
+        if (!photoRes.ok) continue;
+        const blob = await photoRes.blob();
+        const fileRef = ref(storage, `businesses/google-${place.placeId}-${uploaded.length}.jpg`);
+        await uploadBytes(fileRef, blob);
+        uploaded.push(await getDownloadURL(fileRef));
       }
       if (place.matchId) {
         const current = businesses.find((b) => b.id === place.matchId) || {};
         const photos = Array.isArray(current.photos) ? current.photos : current.photo ? [current.photo] : [];
-        const nextPhotos = photoUrl && photos.length === 0 ? [photoUrl] : photos;
+        const nextPhotos = photos.length === 0 ? uploaded : photos;
         await updateDoc(doc(db, "businesses", place.matchId), {
           photos: nextPhotos,
           photo: nextPhotos[0] || current.photo || "",
           phone: current.phone || place.phone || "",
+          website: current.website || place.website || "",
           address: current.address || place.address || "",
           area: current.area || place.address || "",
           maps: current.maps || place.maps || "",
@@ -300,6 +301,7 @@ export default function StaffPage() {
           photos: nextPhotos,
           photo: nextPhotos[0] || row.photo || "",
           phone: row.phone || place.phone || "",
+          website: row.website || place.website || "",
           address: row.address || place.address || "",
         } : row));
         setMessage(`Filled ${current.name || place.matchName}. The card was already on the site.`);
@@ -313,9 +315,9 @@ export default function StaffPage() {
           phone: place.phone || "",
           whatsapp: "",
           hours: "",
-          website: "",
+          website: place.website || "",
           description: place.address || place.name,
-          photos: photoUrl ? [photoUrl] : [],
+          photos: uploaded,
           status: "pending",
           source: "google-places",
           submittedBy: email,
@@ -539,6 +541,7 @@ export default function StaffPage() {
                     <h3 className="font-semibold">{place.name}</h3>
                     <p className="text-sm text-gray-500">{place.address}</p>
                     <p className="text-sm text-gray-500">{place.phone}</p>
+                    <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
                     <p className="text-sm font-semibold text-[#006B3F]">{place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
                   </div>
                   <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">
