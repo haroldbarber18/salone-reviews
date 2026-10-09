@@ -289,14 +289,15 @@ export default function StaffPage() {
   };
 
   const placeCategory = () => {
-    const kind = importCustom.trim() || importKind;
-    if (kind === "hotel") return { category: "Hotels", subcategory: "Hotel" };
-    if (kind === "restaurant" || kind === "cafe") return { category: "Food", subcategory: kind === "cafe" ? "Cafe" : "Restaurant" };
-    if (kind === "bank") return { category: "Money & Insurance", subcategory: "Bank" };
-    if (kind === "pharmacy" || kind === "hospital") return { category: "Health & Medical", subcategory: kind === "hospital" ? "Hospital" : "Pharmacy" };
-    if (kind === "school") return { category: "Education & Training", subcategory: "School" };
-    if (kind === "supermarket" || kind === "store") return { category: "Shopping & Fashion", subcategory: kind === "store" ? "Store" : "Supermarket" };
-    if (kind === "mechanic") return { category: "Auto", subcategory: "Mechanic" };
+    const kind = (importCustom.trim() || importKind).toLowerCase();
+    if (kind.includes("hotel") || kind.includes("guest") || kind.includes("lodge")) return { category: "Hotels", subcategory: "Guest house" };
+    if (kind.includes("restaurant") || kind.includes("cafe") || kind.includes("cook")) return { category: "Food", subcategory: kind.includes("cafe") ? "Cafe" : "Restaurant" };
+    if (kind.includes("bank")) return { category: "Money & Insurance", subcategory: "Bank" };
+    if (kind.includes("pharmacy") || kind.includes("hospital")) return { category: "Health & Medical", subcategory: kind.includes("hospital") ? "Hospital" : "Pharmacy" };
+    if (kind.includes("school")) return { category: "Education & Training", subcategory: "School" };
+    if (kind.includes("supermarket") || kind.includes("store") || kind.includes("shop")) return { category: "Shopping & Fashion", subcategory: "Store" };
+    if (kind.includes("garage") || kind.includes("mechanic")) return { category: "Auto", subcategory: "Garage" };
+    if (kind.includes("material")) return { category: "Building Materials", subcategory: "Building Materials" };
     return { category: "Tradesmen", subcategory: kind.charAt(0).toUpperCase() + kind.slice(1) };
   };
 
