@@ -105,6 +105,13 @@ export default function AdminPage() {
     return () => unsub();
   }, []);
   useEffect(() => { if (isAdmin) { loadBusinesses(); loadStaff(); loadPendingStaff(); } }, [isAdmin]);
+  useEffect(() => {
+    if (!isAdmin || businesses.length === 0 || typeof window === "undefined") return;
+    const editId = new URLSearchParams(window.location.search).get("edit");
+    if (!editId) return;
+    const found = businesses.find((b) => b.id === editId);
+    if (found) startEdit(found);
+  }, [isAdmin, businesses]);
   const loadStaff = async () => {
     const [helpersSnap, activitySnap] = await Promise.all([
       getDocs(collection(db, "staffHelpers")),

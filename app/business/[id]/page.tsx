@@ -403,14 +403,19 @@ export default function BusinessPage() {
                   </span>
                 </div>
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={deleteListing}
-                    disabled={loading}
-                    className="text-sm font-semibold text-red-600 mb-3"
-                  >
-                    {loading ? "Deleting..." : "Delete this listing"}
-                  </button>
+                  <div className="flex gap-4 mb-3">
+                    <Link href={`/admin?edit=${id}`} className="text-sm font-semibold text-[#006B3F]">
+                      Edit this listing
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={deleteListing}
+                      disabled={loading}
+                      className="text-sm font-semibold text-red-600"
+                    >
+                      {loading ? "Deleting..." : "Delete this listing"}
+                    </button>
+                  </div>
                 )}
                 {message && <p className="text-sm text-red-600 mb-3">{message}</p>}
                 <p className="text-gray-700 mb-1">{business.area}</p>
