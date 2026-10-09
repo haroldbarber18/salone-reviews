@@ -228,10 +228,15 @@ export default function ExplorePage() {
     setSubFilter(parsed.subFilter || "");
     if (parsed.page) setPage(Number(parsed.page) || 1);
     setSearchReady(true);
+    const y = Number(parsed.scroll || 0);
+    if (y) setTimeout(() => window.scrollTo(0, y), 100);
   }, []);
   useEffect(() => {
     if (!searchReady) return;
-    sessionStorage.setItem("explore-search", JSON.stringify({ query, district, categoryFilter, subFilter, page }));
+    const save = () => sessionStorage.setItem("explore-search", JSON.stringify({ query, district, categoryFilter, subFilter, page, scroll: window.scrollY }));
+    save();
+    window.addEventListener("scroll", save);
+    return () => window.removeEventListener("scroll", save);
   }, [searchReady, query, district, categoryFilter, subFilter, page]);
   useEffect(() => {
     (async () => {

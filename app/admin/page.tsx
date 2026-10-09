@@ -372,6 +372,9 @@ export default function AdminPage() {
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-4">{editingId || editingRequestId ? "Edit business" : "Admin"}</h1>
+          {editingId && (
+            <Link href="/explore" className="text-sm font-medium text-[#006B3F] mb-4 inline-block">← Back to search</Link>
+          )}
           <div className="flex flex-wrap gap-3 text-sm mb-6">
             <Link href="/admin/ads" className="text-[#006B3F] font-medium">Sponsors</Link>
             <Link href="/admin/events" className="text-[#006B3F] font-medium">Event flyers</Link>

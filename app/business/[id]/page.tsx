@@ -386,7 +386,7 @@ export default function BusinessPage() {
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="mb-4">
-            <button type="button" onClick={() => router.back()} className="text-sm font-medium text-[#006B3F]">← Back to Explore</button>
+            <Link href="/explore" className="text-sm font-medium text-[#006B3F]">← Back to Explore</Link>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             {user ? (
