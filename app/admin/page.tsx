@@ -98,6 +98,7 @@ export default function AdminPage() {
   const [staffActivity, setStaffActivity] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState("");
   const [paidPhotoIds, setPaidPhotoIds] = useState<Record<string, boolean>>({});
+  const [approveIds, setApproveIds] = useState<string[]>([]);
   const isAdmin = isAdminEmail(user?.email);
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setChecking(false); });
@@ -293,6 +294,18 @@ export default function AdminPage() {
       setMessage("Reject failed.");
     }
   };
+  const approveTicked = async () => {
+    const chosen = pendingStaff.filter((r) => approveIds.includes(r.id));
+    if (!chosen.length) {
+      setMessage("Tick the listings to approve first.");
+      return;
+    }
+    for (const row of chosen) {
+      await approveRequest(row);
+    }
+    setApproveIds([]);
+    setMessage(`${chosen.length} approved.`);
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim()) { setMessage("Name and description are required."); return; }
@@ -425,7 +438,12 @@ export default function AdminPage() {
 
           <div className="bg-white border rounded-2xl p-6 mb-8">
             <h2 className="text-lg font-bold mb-1">Staff listings waiting</h2>
-            <p className="text-sm text-gray-600 mb-4">Nothing here goes live until you Approve.</p>
+            <p className="text-sm text-gray-600 mb-4">Nothing here goes live until you Approve. Tick the ones you want, then Approve ticked.</p>
+            {pendingStaff.length > 0 && (
+              <button type="button" onClick={approveTicked} className="text-sm font-semibold text-white bg-[#006B3F] px-4 py-2 rounded-lg mb-4">
+                Approve ticked
+              </button>
+            )}
             {pendingStaff.length === 0 ? (
               <p className="text-sm text-gray-500">No pending staff listings.</p>
             ) : (
@@ -440,7 +458,15 @@ export default function AdminPage() {
                     <label className="flex items-center gap-2 text-sm mt-2">
                       <input
                         type="checkbox"
-                        checked={!!paidPhotoIds[r.id]}
+                        checked={approveIds.includes(r.id)}
+                        onChange={(e) => setApproveIds((ids) => e.target.checked ? [...ids, r.id] : ids.filter((id) => id !== r.id))}
+                      />
+                      Tick to approve
+                    </label>
+                    <label className="flex items-center gap-2 text-sm mt-2">
+                      <input
+                        type="checkbox"
+                        checked={!!paidPhotoIds[r.id] || !!r.isPremium}
                         onChange={(e) => setPaidPhotoIds((prev) => ({ ...prev, [r.id]: e.target.checked }))}
                       />
                       Paid - show up to 6 photos
