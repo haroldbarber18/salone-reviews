@@ -208,7 +208,7 @@ export default function ExplorePage() {
   const [district, setDistrict] = useState("Western Area Urban");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [subFilter, setSubFilter] = useState("");
-  const [page, setPage] = useState(1);
+  const [searchReady, setSearchReady] = useState(false);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const loggedIn = !!user;
   useEffect(() => {
@@ -219,14 +219,20 @@ export default function ExplorePage() {
     return () => unsub();
   }, []);
   useEffect(() => {
-    if (isAdmin) setDistrict("Western Area Urban");
-  }, [isAdmin]);
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setQuery(params.get("q") || "");
-    const cat = params.get("category") || "";
-    if (cat) setCategoryFilter(cat);
+    const saved = sessionStorage.getItem("explore-search");
+    const parsed = saved ? JSON.parse(saved) : {};
+    setQuery(params.get("q") || parsed.query || "");
+    setDistrict(parsed.district || "Western Area Urban");
+    setCategoryFilter(params.get("category") || parsed.categoryFilter || "");
+    setSubFilter(parsed.subFilter || "");
+    if (parsed.page) setPage(Number(parsed.page) || 1);
+    setSearchReady(true);
   }, []);
+  useEffect(() => {
+    if (!searchReady) return;
+    sessionStorage.setItem("explore-search", JSON.stringify({ query, district, categoryFilter, subFilter, page }));
+  }, [searchReady, query, district, categoryFilter, subFilter, page]);
   useEffect(() => {
     (async () => {
       try {

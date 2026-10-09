@@ -367,7 +367,7 @@ export default function BusinessPage() {
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <p className="text-lg font-medium text-gray-900 mb-2">Business not found.</p>
-            <Link href="/explore" className="text-[#006B3F] font-medium">← Back to Explore</Link>
+            <button type="button" onClick={() => router.back()} className="text-[#006B3F] font-medium">← Back to Explore</button>
           </div>
         </main>
         <Footer />
@@ -386,7 +386,7 @@ export default function BusinessPage() {
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="mb-4">
-            <Link href="/explore" className="text-sm font-medium text-[#006B3F]">← Back to Explore</Link>
+            <button type="button" onClick={() => router.back()} className="text-sm font-medium text-[#006B3F]">← Back to Explore</button>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             {user ? (
