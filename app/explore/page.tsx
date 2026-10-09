@@ -209,6 +209,7 @@ export default function ExplorePage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [subFilter, setSubFilter] = useState("");
   const [searchReady, setSearchReady] = useState(false);
+  const [page, setPage] = useState(1);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const loggedIn = !!user;
   useEffect(() => {
