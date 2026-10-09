@@ -64,6 +64,7 @@ export default function StaffPage() {
   const [importDistrict, setImportDistrict] = useState("Western Area Urban");
   const [importHits, setImportHits] = useState<any[]>([]);
   const [importPageToken, setImportPageToken] = useState("");
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
 
   const email = normEmail(user?.email);
   const isAdmin = isAdminEmail(email);
@@ -263,17 +264,21 @@ export default function StaffPage() {
         const key = normName(place.name);
         const match = businesses.find((b) => normName(b.name) === key || b.googlePlaceId === place.placeId);
         const pending = pendingRows.find((r) => normName(r.name) === key || r.googlePlaceId === place.placeId);
+        const photos = Array.isArray(match?.photos) ? match.photos : match?.photo ? [match.photo] : [];
+        const hasPhotos = photos.length > 0;
         return {
           ...place,
           matchId: match?.id || "",
           matchName: match?.name || pending?.name || "",
-          alreadyFilled: !!(match || pending),
+          needsFill: !!(match && !hasPhotos && !pending),
+          alreadyFilled: !!(pending || (match && hasPhotos)),
         };
-      }).filter((place: any, index: number, all: any[]) => {
+      }).filter((place: any) => !place.alreadyFilled).filter((place: any, index: number, all: any[]) => {
         const key = normName(place.name);
         return all.findIndex((row) => row.placeId === place.placeId || normName(row.name) === key) === index;
       });
       setImportHits(rows);
+      setPickedIds([]);
       setImportPageToken(data.nextPageToken || "");
       setMessage(rows.length ? `${rows.length} found. Nothing is live yet.` : "Google returned no places for that search.");
     } catch (err: any) {
@@ -364,6 +369,19 @@ export default function StaffPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const sendTicked = async () => {
+    const chosen = importHits.filter((place) => pickedIds.includes(place.placeId) && !place.matchId);
+    if (!chosen.length) {
+      setMessage("Tick the new names first.");
+      return;
+    }
+    for (const place of chosen) {
+      await applyPlace(place);
+    }
+    setPickedIds([]);
+    setMessage(`${chosen.length} sent to the pending list. Approve them in Admin.`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -587,22 +605,33 @@ export default function StaffPage() {
                   Next 20
                 </button>
               )}
+              <button type="button" onClick={sendTicked} disabled={loading || pickedIds.length === 0} className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl">
+                Send ticked
+              </button>
             </div>
             <div className="space-y-3 mt-4">
               {importHits.map((place) => (
                 <div key={place.placeId} className="border rounded-xl p-4 flex justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold">{place.name}</h3>
-                    <p className="text-sm text-gray-500">{place.address}</p>
-                    <p className="text-sm text-gray-500">{place.phone}</p>
-                    <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
-                    <p className="text-sm font-semibold text-[#006B3F]">{place.alreadyFilled ? "Already saved. It will not be added again." : place.matchId ? `Already listed as ${place.matchName}` : "New. Will stay pending."}</p>
+                  <div className="flex gap-3">
+                    {!place.matchId && (
+                      <input
+                        type="checkbox"
+                        checked={pickedIds.includes(place.placeId)}
+                        onChange={(e) => setPickedIds((ids) => e.target.checked ? [...ids, place.placeId] : ids.filter((id) => id !== place.placeId))}
+                        className="mt-1 h-5 w-5"
+                      />
+                    )}
+                    <div>
+                      <h3 className="font-semibold">{place.name}</h3>
+                      <p className="text-sm text-gray-500">{place.address}</p>
+                      <p className="text-sm text-gray-500">{place.phone}</p>
+                      <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
+                      <p className="text-sm font-semibold text-[#006B3F]">{place.needsFill ? `On the site, no photo. Fill card only.` : "New. Tick it, then Send ticked."}</p>
+                    </div>
                   </div>
-                  {!place.alreadyFilled && (
                   <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">
                     {place.matchId ? "Fill card" : "Save pending"}
                   </button>
-                  )}
                 </div>
               ))}
             </div>
