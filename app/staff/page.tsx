@@ -320,10 +320,13 @@ export default function StaffPage() {
         const photos = Array.isArray(current.photos) ? current.photos : current.photo ? [current.photo] : [];
         const nextPhotos = [...photos, ...uploaded.filter((url) => !photos.includes(url))].slice(0, 6);
         const website = String(current.website || "").trim() || place.website || "";
+        const phone = current.phone || place.phone || "";
+        const whatsapp = current.whatsapp || phone;
         await updateDoc(doc(db, "businesses", place.matchId), {
           photos: nextPhotos,
           photo: nextPhotos[0] || current.photo || "",
-          phone: current.phone || place.phone || "",
+          phone,
+          whatsapp,
           website,
           address: current.address || place.address || "",
           area: current.area || place.address || "",
@@ -334,7 +337,8 @@ export default function StaffPage() {
           ...row,
           photos: nextPhotos,
           photo: nextPhotos[0] || row.photo || "",
-          phone: row.phone || place.phone || "",
+          phone,
+          whatsapp,
           website,
           address: row.address || place.address || "",
           googlePlaceId: place.placeId,
@@ -349,7 +353,7 @@ export default function StaffPage() {
           district: importDistrict,
           area: place.address || "",
           phone: place.phone || "",
-          whatsapp: "",
+          whatsapp: place.phone || "",
           hours: "",
           website: place.website || "",
           description: place.address || place.name,
