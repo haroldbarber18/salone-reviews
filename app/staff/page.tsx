@@ -266,12 +266,13 @@ export default function StaffPage() {
         const pending = pendingRows.find((r) => normName(r.name) === key || r.googlePlaceId === place.placeId);
         const photos = Array.isArray(match?.photos) ? match.photos : match?.photo ? [match.photo] : [];
         const hasPhotos = photos.length > 0;
+        const missingWhatsapp = !!(match && !String(match.whatsapp || "").trim());
         return {
           ...place,
           matchId: match?.id || "",
           matchName: match?.name || pending?.name || "",
-          needsFill: !!(match && !hasPhotos && !pending),
-          alreadyFilled: !!(pending || (match && hasPhotos)),
+          needsFill: !!(match && (!hasPhotos || missingWhatsapp) && !pending),
+          alreadyFilled: !!(pending || (match && hasPhotos && !missingWhatsapp)),
         };
       }).filter((place: any) => !place.alreadyFilled).filter((place: any, index: number, all: any[]) => {
         const key = normName(place.name);
@@ -631,7 +632,7 @@ export default function StaffPage() {
                       <p className="text-sm text-gray-500">{place.address}</p>
                       <p className="text-sm text-gray-500">{place.phone}</p>
                       <p className="text-sm text-gray-500">{place.website || "No website from Google"}</p>
-                      <p className="text-sm font-semibold text-[#006B3F]">{place.needsFill ? `On the site, no photo. Fill card only.` : "New. Tick it, then Send ticked."}</p>
+                      <p className="text-sm font-semibold text-[#006B3F]">{place.needsFill ? "On the site. Fill card adds the missing photo or WhatsApp." : "New. Tick it, then Send ticked."}</p>
                     </div>
                   </div>
                   <button type="button" onClick={() => applyPlace(place)} disabled={loading} className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg h-fit">

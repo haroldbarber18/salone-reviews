@@ -476,7 +476,7 @@ export default function BusinessPage() {
             {user && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <a href={`tel:+${business.phone}`} className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl">📞 Call</a>
-                <a href={`https://wa.me/${business.phone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
+                <a href={`https://wa.me/${String(business.whatsapp || business.phone || "").replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">💬 WhatsApp</a>
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white text-center font-semibold py-3 rounded-xl">📍 Open in Maps</a>
                 {business.website && (
                   <a href={business.website} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#006B3F] text-[#006B3F] text-center font-semibold py-3 rounded-xl">Website</a>
