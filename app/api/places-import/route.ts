@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
   if (!key) {
     return NextResponse.json({ error: "Add GOOGLE_PLACES_API_KEY in Vercel, then redeploy." }, { status: 500 });
   }
+
   const body = await req.json();
   const kind = String(body.kind || "hotel");
   const custom = String(body.custom || "").trim();
@@ -43,35 +44,45 @@ export async function POST(req: NextRequest) {
   const town = DISTRICT_PLACE[district] || district;
   const label = custom || kind;
   const textQuery = `${label} in ${town}, Sierra Leone`;
+
   const payload: Record<string, unknown> = {
     textQuery,
     pageSize: 20,
     languageCode: "en",
     regionCode: "SL",
   };
+
   if (body.pageToken) payload.pageToken = body.pageToken;
   if (!custom && TYPE_BY_KIND[kind]) payload.includedType = TYPE_BY_KIND[kind];
+
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.websiteUri,places.photos,nextPageToken",
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.websiteUri,places.photos,places.editorialSummary,nextPageToken",
     },
     body: JSON.stringify(payload),
   });
+
   const data = await res.json();
   if (!res.ok) {
     return NextResponse.json({ error: data?.error?.message || "Google search failed." }, { status: 502 });
   }
-  const places = (data.places || []).map((p: any) => ({
-    placeId: p.id,
-    name: p.displayName?.text || "",
-    address: p.formattedAddress || "",
-    phone: p.internationalPhoneNumber || p.nationalPhoneNumber || "",
-    maps: p.googleMapsUri || "",
-    website: p.websiteUri || "",
-    photoNames: (p.photos || []).slice(0, 6).map((photo: any) => photo.name).filter(Boolean),
-  }));
+
+  const places = (data.places || []).map((p: any) => {
+    const editorial = p.editorialSummary?.text || "";
+    return {
+      placeId: p.id,
+      name: p.displayName?.text || "",
+      address: p.formattedAddress || "",
+      phone: p.internationalPhoneNumber || p.nationalPhoneNumber || "",
+      maps: p.googleMapsUri || "",
+      website: p.websiteUri || "",
+      description: editorial || p.formattedAddress || "",
+      photoNames: (p.photos || []).slice(0, 6).map((photo: any) => photo.name).filter(Boolean),
+    };
+  });
+
   return NextResponse.json({ places, district, kind: label, nextPageToken: data.nextPageToken || "" });
 }
