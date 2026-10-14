@@ -177,17 +177,34 @@ export default function StaffPage() {
     setLoading(true);
     setMessage("");
     try {
-      await updateDoc(doc(db, "businesses", editingLiveId), {
+      const biz = businesses.find((b) => b.id === editingLiveId);
+      if (!biz) throw new Error("Business not found");
+
+      await addDoc(collection(db, "businessRequests"), {
+        name: biz.name || "",
+        category: biz.category || "",
+        subcategory: biz.subcategory || "",
+        district: biz.district || "",
+        area: biz.area || "",
+        phone: biz.phone || "",
+        whatsapp: biz.whatsapp || "",
+        hours: biz.hours || "",
+        website: biz.website || "",
         description: liveDescription.trim(),
-        updatedAtMs: Date.now(),
+        photos: Array.isArray(biz.photos) ? biz.photos : biz.photo ? [biz.photo] : [],
+        status: "pending",
+        source: "staff-description-edit",
+        businessId: editingLiveId,
+        submittedBy: email,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
       });
-      setBusinesses((rows) =>
-        rows.map((row) => (row.id === editingLiveId ? { ...row, description: liveDescription.trim() } : row))
-      );
-      setMessage("Description updated.");
+
+      setMessage("Description change sent to Admin for approval.");
       setEditingLiveId(null);
+      setLiveDescription("");
     } catch (err: any) {
-      setMessage(err?.message || "Could not save description.");
+      setMessage(err?.message || "Could not send description for approval.");
     } finally {
       setLoading(false);
     }
@@ -352,6 +369,7 @@ export default function StaffPage() {
     if (kind.includes("supermarket") || kind.includes("store") || kind.includes("shop")) return { category: "Shopping & Fashion", subcategory: "Store" };
     if (kind.includes("garage") || kind.includes("mechanic")) return { category: "Auto", subcategory: "Garage" };
     if (kind.includes("material")) return { category: "Building Materials", subcategory: "Building Materials" };
+    if (kind.includes("event") || kind.includes("flyer") || kind.includes("social")) return { category: "Events & Entertainment", subcategory: "Event" };
     return { category: "Tradesmen", subcategory: kind.charAt(0).toUpperCase() + kind.slice(1) };
   };
 
@@ -644,6 +662,8 @@ export default function StaffPage() {
                   <option value="hospital">Hospital</option>
                   <option value="supermarket">Supermarket</option>
                   <option value="store">Store</option>
+                  <option value="event">Event / Flyer</option>
+                  <option value="social">Social Event</option>
                   <option value="plumber">Plumber</option>
                   <option value="electrician">Electrician</option>
                   <option value="mason">Mason</option>
@@ -764,7 +784,7 @@ export default function StaffPage() {
                             disabled={loading}
                             className="bg-[#006B3F] text-white text-sm font-semibold px-4 py-2 rounded-lg"
                           >
-                            Save description
+                            Send to Admin
                           </button>
                           <button
                             type="button"

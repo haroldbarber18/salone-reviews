@@ -139,7 +139,10 @@ export default function AdminPage() {
     try {
       const snap = await getDocs(collection(db, "businessRequests"));
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const pending = rows.filter((r: any) => (r.source === "staff" || r.source === "google-places") && (!r.status || r.status === "pending"));
+      const pending = rows.filter((r: any) =>
+        (r.source === "staff" || r.source === "google-places" || r.source === "staff-description-edit") &&
+        (!r.status || r.status === "pending")
+      );
       pending.sort((a: any, b: any) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
       setPendingStaff(pending);
     } catch {
@@ -283,29 +286,49 @@ export default function AdminPage() {
 
   const approveRequest = async (r: any) => {
     try {
-      const base = requestPayload(r);
-      const paidPhotos = !!paidPhotoIds[r.id] || !!r.isPremium;
-      const photos = (base.photos || []).slice(0, paidPhotos ? 6 : 2);
-      await addDoc(collection(db, "businesses"), {
-        ...base,
-        photos,
-        isPremium: paidPhotos,
-        createdAt: serverTimestamp(),
-        createdByStaff: r.submittedBy || "",
-      });
-      await updateDoc(doc(db, "businessRequests", r.id), {
-        status: "approved",
-        reviewedAtMs: Date.now(),
-      });
-      await addDoc(collection(db, "staffActivity"), {
-        actorEmail: normEmail(user?.email),
-        action: "admin-approved-staff-listing",
-        businessName: r.name,
-        details: r.submittedBy || "",
-        createdAt: serverTimestamp(),
-        createdAtMs: Date.now(),
-      });
-      setMessage(`Approved: ${r.name}`);
+      if (r.source === "staff-description-edit" && r.businessId) {
+        await updateDoc(doc(db, "businesses", r.businessId), {
+          description: r.description || "",
+          updatedAtMs: Date.now(),
+        });
+        await updateDoc(doc(db, "businessRequests", r.id), {
+          status: "approved",
+          reviewedAtMs: Date.now(),
+        });
+        await addDoc(collection(db, "staffActivity"), {
+          actorEmail: normEmail(user?.email),
+          action: "admin-approved-description-edit",
+          businessName: r.name,
+          details: r.submittedBy || "",
+          createdAt: serverTimestamp(),
+          createdAtMs: Date.now(),
+        });
+        setMessage(`Description approved for: ${r.name}`);
+      } else {
+        const base = requestPayload(r);
+        const paidPhotos = !!paidPhotoIds[r.id] || !!r.isPremium;
+        const photos = (base.photos || []).slice(0, paidPhotos ? 6 : 2);
+        await addDoc(collection(db, "businesses"), {
+          ...base,
+          photos,
+          isPremium: paidPhotos,
+          createdAt: serverTimestamp(),
+          createdByStaff: r.submittedBy || "",
+        });
+        await updateDoc(doc(db, "businessRequests", r.id), {
+          status: "approved",
+          reviewedAtMs: Date.now(),
+        });
+        await addDoc(collection(db, "staffActivity"), {
+          actorEmail: normEmail(user?.email),
+          action: "admin-approved-staff-listing",
+          businessName: r.name,
+          details: r.submittedBy || "",
+          createdAt: serverTimestamp(),
+          createdAtMs: Date.now(),
+        });
+        setMessage(`Approved: ${r.name}`);
+      }
       loadBusinesses();
       loadPendingStaff();
     } catch {
@@ -500,7 +523,7 @@ export default function AdminPage() {
                   <div key={r.id} className="border rounded-xl p-4">
                     <h3 className="font-semibold">{r.name}</h3>
                     <p className="text-sm text-gray-500">{r.subcategory || r.category} · {r.district} · {r.area}</p>
-                    <p className="text-xs text-gray-500 mt-1">From {r.submittedBy || "staff"}</p>
+                    <p className="text-xs text-gray-500 mt-1">From {r.submittedBy || "staff"} {r.source === "staff-description-edit" ? "· Description edit" : ""}</p>
                     <p className="text-sm mt-2 whitespace-pre-wrap">{r.description}</p>
                     <p className="text-xs text-gray-500 mt-2">{Array.isArray(r.photos) ? r.photos.length : 0} photo(s) attached. Approve shows 2 unless paid is ticked.</p>
                     <label className="flex items-center gap-2 text-sm mt-2">

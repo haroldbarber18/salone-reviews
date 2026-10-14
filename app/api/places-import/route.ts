@@ -29,6 +29,9 @@ const TYPE_BY_KIND: Record<string, string> = {
   hospital: "hospital",
   supermarket: "supermarket",
   store: "store",
+  event: "event",
+  flyer: "event",
+  social: "event",
 };
 
 export async function POST(req: NextRequest) {
