@@ -70,6 +70,7 @@ export default function AdminPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [pendingStaff, setPendingStaff] = useState<any[]>([]);
   const [listQuery, setListQuery] = useState("");
+  const [bizPage, setBizPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -426,6 +427,13 @@ export default function AdminPage() {
   if (!user) { router.push("/login"); return null; }
   if (!isAdmin) return <div className="min-h-screen flex items-center justify-center">Admin access only</div>;
 
+  const perPage = 10;
+  const total = visibleBusinesses.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const page = Math.min(bizPage, totalPages);
+  const start = (page - 1) * perPage;
+  const slice = visibleBusinesses.slice(start, start + perPage);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -671,7 +679,7 @@ export default function AdminPage() {
           >
             <input
               value={listQuery}
-              onChange={(e) => setListQuery(e.target.value)}
+              onChange={(e) => { setListQuery(e.target.value); setBizPage(1); }}
               placeholder="Search name, area, category, phone..."
               className="flex-1 border rounded-xl px-4 py-3 bg-white"
             />
@@ -681,20 +689,21 @@ export default function AdminPage() {
             {listQuery && (
               <button
                 type="button"
-                onClick={() => setListQuery("")}
+                onClick={() => { setListQuery(""); setBizPage(1); }}
                 className="bg-gray-200 font-semibold px-5 py-3 rounded-xl"
               >
                 Clear
               </button>
             )}
           </form>
+
           <div className="space-y-3">
-            {visibleBusinesses.length === 0 ? (
+            {slice.length === 0 ? (
               <div className="bg-white border rounded-xl p-4 text-sm text-gray-500">
                 No businesses match that search.
               </div>
             ) : (
-              visibleBusinesses.map((b) => (
+              slice.map((b) => (
                 <div key={b.id} className="bg-white border rounded-xl p-4 flex justify-between gap-4">
                   <div>
                     <h3 className="font-semibold">
@@ -711,6 +720,30 @@ export default function AdminPage() {
               ))
             )}
           </div>
+
+          {total > perPage && (
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setBizPage(page - 1)}
+                className="px-4 py-2 rounded-lg border bg-white disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setBizPage(page + 1)}
+                className="px-4 py-2 rounded-lg border bg-white disabled:opacity-40"
+              >
+                Next page
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
