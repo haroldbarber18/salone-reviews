@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
+
 const ADMIN_EMAILS = ["gdos87@hotmail.com"];
 const DISTRICTS = [
   "Western Area Urban",
@@ -26,6 +27,7 @@ const DISTRICTS = [
   "Koinadugu",
 ];
 const PAGE_SIZE = 10;
+
 type Business = {
   id: string;
   name?: string;
@@ -38,15 +40,18 @@ type Business = {
   featuredUntil?: string;
   showOnExplore?: boolean;
 };
+
 type Review = {
   id: string;
   businessId?: string;
   rating?: number;
   hidden?: boolean;
 };
+
 function isOnExplore(biz?: Business) {
   return biz?.showOnExplore !== false;
 }
+
 function isFeatured(biz?: Business) {
   if (!biz?.featuredUntil) return false;
   const until = new Date(biz.featuredUntil);
@@ -54,12 +59,14 @@ function isFeatured(biz?: Business) {
   until.setHours(23, 59, 59, 999);
   return until >= new Date();
 }
+
 function ratingFor(businessId: string, reviews: Review[]) {
   const list = reviews.filter((r) => r.businessId === businessId && !r.hidden);
   if (!list.length) return { average: "0.0", count: 0 };
   const sum = list.reduce((acc, r) => acc + Number(r.rating || 0), 0);
   return { average: (sum / list.length).toFixed(1), count: list.length };
 }
+
 function Stars({ average, count }: { average: string; count: number }) {
   if (!count) {
     return <p className="text-sm text-gray-500">No reviews yet</p>;
@@ -81,9 +88,11 @@ function Stars({ average, count }: { average: string; count: number }) {
     </div>
   );
 }
+
 function tradeLabel(biz: Business) {
   return biz.subcategory || biz.category || "businesses";
 }
+
 function rankMapFor(businesses: Business[], reviews: Review[]) {
   const groups: Record<string, Business[]> = {};
   businesses.forEach((biz) => {
@@ -107,12 +116,14 @@ function rankMapFor(businesses: Business[], reviews: Review[]) {
   });
   return map;
 }
+
 function twoLetters(name?: string) {
   const chars = String(name || "SL").replace(/[^A-Za-z0-9]/g, "");
   if (!chars) return "SL";
   if (chars.length === 1) return chars[0].toUpperCase();
   return chars[0].toUpperCase() + chars[1];
 }
+
 function PhotoSlot({
   photo,
   name,
@@ -141,6 +152,7 @@ function PhotoSlot({
     </div>
   );
 }
+
 function BusinessCard({
   biz,
   loggedIn,
@@ -198,6 +210,7 @@ function BusinessCard({
     </Link>
   );
 }
+
 export default function ExplorePage() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -212,6 +225,7 @@ export default function ExplorePage() {
   const [page, setPage] = useState(1);
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
   const loggedIn = !!user;
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (next) => {
       setUser(next);
@@ -219,6 +233,7 @@ export default function ExplorePage() {
     });
     return () => unsub();
   }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const saved = sessionStorage.getItem("explore-search");
@@ -232,6 +247,7 @@ export default function ExplorePage() {
     const y = Number(parsed.scroll || 0);
     if (y) setTimeout(() => window.scrollTo(0, y), 100);
   }, []);
+
   useEffect(() => {
     if (!searchReady) return;
     const save = () => sessionStorage.setItem("explore-search", JSON.stringify({ query, district, categoryFilter, subFilter, page, scroll: window.scrollY }));
@@ -239,6 +255,7 @@ export default function ExplorePage() {
     window.addEventListener("scroll", save);
     return () => window.removeEventListener("scroll", save);
   }, [searchReady, query, district, categoryFilter, subFilter, page]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -253,7 +270,9 @@ export default function ExplorePage() {
       }
     })();
   }, []);
+
   const publicList = useMemo(() => businesses.filter(isOnExplore), [businesses]);
+
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
     publicList.forEach((b) => {
@@ -261,6 +280,7 @@ export default function ExplorePage() {
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [publicList]);
+
   const subOptions = useMemo(() => {
     const set = new Set<string>();
     publicList.forEach((b) => {
@@ -270,6 +290,7 @@ export default function ExplorePage() {
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [publicList, categoryFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const terms = q.split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
@@ -290,7 +311,9 @@ export default function ExplorePage() {
       );
     });
   }, [publicList, query, district, categoryFilter, subFilter, isAdmin]);
+
   const ranks = useMemo(() => rankMapFor(publicList, reviews), [publicList, reviews]);
+
   const featured = filtered.filter((biz) => isFeatured(biz));
   const rest = filtered
     .filter((biz) => !isFeatured(biz))
@@ -300,16 +323,24 @@ export default function ExplorePage() {
       const sb = ratingFor(b.id, reviews);
       return sb.count - sa.count || Number(sb.average) - Number(sa.average) || String(a.name || "").localeCompare(String(b.name || ""));
     });
+
   const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageItems = rest.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   useEffect(() => {
     setPage(1);
   }, [query, district, categoryFilter, subFilter]);
+
   const goTo = (next: number) => {
     setPage(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const pageButtons = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -442,19 +473,21 @@ export default function ExplorePage() {
                   >
                     Previous
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => goTo(n)}
-                      className={`w-10 h-10 rounded-xl border ${
-                        n === safePage
-                          ? "bg-[#006B3F] text-white border-[#006B3F]"
-                          : "bg-white"
-                      }`}
-                    >
-                      {n}
-                    </button>
+                  {pageButtons.map((n, idx) => (
+                    <span key={n} className="flex items-center gap-2">
+                      {idx > 0 && pageButtons[idx - 1] !== n - 1 && <span className="px-1 text-gray-400">…</span>}
+                      <button
+                        type="button"
+                        onClick={() => goTo(n)}
+                        className={`w-10 h-10 rounded-xl border ${
+                          n === safePage
+                            ? "bg-[#006B3F] text-white border-[#006B3F]"
+                            : "bg-white"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    </span>
                   ))}
                   <button
                     type="button"
@@ -462,7 +495,7 @@ export default function ExplorePage() {
                     onClick={() => goTo(safePage + 1)}
                     className="px-4 py-2 rounded-xl border bg-white disabled:opacity-40"
                   >
-                    Next
+                    Next page
                   </button>
                 </div>
               )}
