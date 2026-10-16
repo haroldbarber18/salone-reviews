@@ -737,6 +737,31 @@ export default function HomePage() {
               <SponsorCard ad={byPlacement("r1")} />
               <SponsorCard ad={byPlacement("r2")} />
               <SponsorCard ad={byPlacement("r3")} />
+              <div className="bg-white border border-gray-200 rounded-2xl p-3">
+                <p className="text-sm font-bold text-gray-900 mb-2">Real work videos</p>
+                <div className="space-y-2">
+                  <div className="relative rounded-xl overflow-hidden bg-gray-100 h-24">
+                    <img src="/placeholder-construction.jpg" alt="Work video" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 grid place-items-center">
+                      <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
+                    </div>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden bg-gray-100 h-24">
+                    <img src="/placeholder-brick.jpg" alt="Work video" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 grid place-items-center">
+                      <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href="https://www.facebook.com/salonereviews"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block bg-[#1877F2] text-white text-center font-semibold py-2 rounded-xl text-sm"
+                >
+                  Watch more on Facebook
+                </a>
+              </div>
             </aside>
           </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-stretch mt-4">
