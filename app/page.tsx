@@ -474,19 +474,7 @@ export default function HomePage() {
     !isMobile || showAllEvents ? leftFeed : leftFeed.slice(0, 10);
   const visibleCats = showAllCats ? categories : categories.slice(0, 8);
   const leftProfile = profiles.length ? profiles[slide % profiles.length] : null;
-  const rightProfile =
-    profiles.length > 1
-      ? profiles[(slide + 1) % profiles.length]
-      : profiles.length === 1
-      ? profiles[0]
-      : null;
   const leftFeat = featuredAll.length ? featuredAll[featSlide % featuredAll.length] : null;
-  const rightFeat =
-    featuredAll.length > 1
-      ? featuredAll[(featSlide + 1) % featuredAll.length]
-      : featuredAll.length === 1
-      ? featuredAll[0]
-      : null;
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = search.trim();
@@ -737,34 +725,9 @@ export default function HomePage() {
               <SponsorCard ad={byPlacement("r1")} />
               <SponsorCard ad={byPlacement("r2")} />
               <SponsorCard ad={byPlacement("r3")} />
-              <div className="bg-white border border-gray-200 rounded-2xl p-3">
-                <p className="text-sm font-bold text-gray-900 mb-2">Real work videos</p>
-                <div className="space-y-2">
-                  <div className="relative rounded-xl overflow-hidden bg-gray-100 h-24">
-                    <img src="/placeholder-construction.jpg" alt="Work video" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 grid place-items-center">
-                      <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
-                    </div>
-                  </div>
-                  <div className="relative rounded-xl overflow-hidden bg-gray-100 h-24">
-                    <img src="/placeholder-brick.jpg" alt="Work video" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 grid place-items-center">
-                      <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
-                    </div>
-                  </div>
-                </div>
-                <a
-                  href="https://www.facebook.com/salonereviews"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 block bg-[#1877F2] text-white text-center font-semibold py-2 rounded-xl text-sm"
-                >
-                  Watch more on Facebook
-                </a>
-              </div>
             </aside>
           </div>
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-stretch mt-4">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start mt-4">
             <div className="flex flex-col gap-2">
               {leftProfile && (
                 <p className="text-sm font-bold text-gray-900 px-1">Featured tradesmen</p>
@@ -792,12 +755,36 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              {rightProfile && (
-                <p className="text-sm font-bold text-gray-900 px-1">Featured tradesmen</p>
-              )}
-              {rightProfile ? <ProfileCard biz={rightProfile} /> : null}
-              {rightFeat ? <SideFeaturedCard biz={rightFeat} /> : null}
+            <div className="bg-white border border-gray-200 rounded-2xl p-3">
+              <p className="text-sm font-bold text-gray-900 mb-2">Real work videos</p>
+              <div className="space-y-2">
+                <div className="relative rounded-xl overflow-hidden bg-gray-100 h-28">
+                  <img src="/placeholder-construction.jpg" alt="Work video 1" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
+                  </div>
+                </div>
+                <div className="relative rounded-xl overflow-hidden bg-gray-100 h-28">
+                  <img src="/placeholder-brick.jpg" alt="Work video 2" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
+                  </div>
+                </div>
+                <div className="relative rounded-xl overflow-hidden bg-gray-100 h-28">
+                  <img src="/placeholder-house.jpg" alt="Work video 3" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
+                  </div>
+                </div>
+              </div>
+              <a
+                href="https://www.facebook.com/salonereviews"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block bg-[#1877F2] text-white text-center font-semibold py-2 rounded-xl text-sm"
+              >
+                Watch more on Facebook
+              </a>
             </div>
           </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-center mt-3">
