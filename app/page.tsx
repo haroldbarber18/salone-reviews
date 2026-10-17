@@ -764,7 +764,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="https://kommodo.ai/i/qixSphCAV6LNqwhvsX7z" alt="Work video 1" className="w-full h-full object-cover" />
+      <img src="https://www.image2url.com/r2/default/images/1792246500071-e62c4cd6-a37b-4f08-b013-8d9d6523e08d.jpeg" alt="Work video 1" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
@@ -775,7 +775,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="https://kommodo.ai/i/WmdhBHNyYjGSjQCPHqwh" alt="Work video 2" className="w-full h-full object-cover" />
+      <img src="https://www.image2url.com/r2/default/images/1792246795538-71b74a72-f752-4a76-aa8e-10ff6121ab46.jpeg" alt="Work video 2" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
@@ -786,7 +786,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="https://kommodo.ai/i/bCbaoWLdImPYxMlee6xc" alt="Work video 3" className="w-full h-full object-cover" />
+      <img src="https://www.image2url.com/r2/default/images/1792246857308-4d381a95-14ca-467c-8215-450c6ffa4c56.png" alt="Work video 3" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
