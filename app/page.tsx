@@ -764,7 +764,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="/placeholder-construction.jpg" alt="Work video 1" className="w-full h-full object-cover" />
+      <img src="https://kommodo.ai/i/qixSphCAV6LNqwhvsX7z" alt="Work video 1" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
@@ -775,7 +775,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="/placeholder-brick.jpg" alt="Work video 2" className="w-full h-full object-cover" />
+      <img src="https://kommodo.ai/i/WmdhBHNyYjGSjQCPHqwh" alt="Work video 2" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
@@ -786,7 +786,7 @@ export default function HomePage() {
       rel="noreferrer"
       className="relative block rounded-xl overflow-hidden bg-gray-100 h-28"
     >
-      <img src="/placeholder-house.jpg" alt="Work video 3" className="w-full h-full object-cover" />
+      <img src="https://kommodo.ai/i/bCbaoWLdImPYxMlee6xc" alt="Work video 3" className="w-full h-full object-cover" />
       <div className="absolute inset-0 grid place-items-center">
         <div className="w-10 h-10 rounded-full bg-black/60 text-white grid place-items-center text-lg">▶</div>
       </div>
