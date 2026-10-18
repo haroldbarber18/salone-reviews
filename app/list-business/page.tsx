@@ -1,34 +1,26 @@
 "use client";
-
 /**
  * DROP-IN: replace app/list-business/page.tsx
- * New photo packs:
- *   2 photos free
- *   3 extra — NLe 500 (5 total)
- *   7 extra — NLe 1,000 (9 total)
+ * Extra photos and featured are NLe 0 until July 2027 (crossed-out normal prices).
+ * Video price left unchanged.
  */
-
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
 const ORANGE_MONEY = "075294553";
-
 const DISTRICTS = [
   "Western Area Urban","Western Area Rural","Bo","Bombali","Bonthe","Kailahun","Kambia","Kenema",
   "Koinadugu","Kono","Moyamba","Port Loko","Pujehun","Tonkolili","Karene","Falaba",
 ];
-
 const CATEGORIES = [
   "Tradesmen","Auto","Food","Hotels","Beauty","Home","Health & Medical","Education & Training",
   "Money & Insurance","Legal & Government","Shopping & Fashion","Electronics & Tech",
   "Events & Entertainment","Media & Publishing","Business Services","Animals & Pets",
   "Sports & Fitness","Utilities & Energy","Public & Community","Other",
 ];
-
 const SUBCATEGORIES: Record<string, string[]> = {
   Tradesmen: ["Electrician","Painter","Tiler","Welder","Carpenter","Plumber","Builder","Mason","Bricklayer","Roofer","Plasterer","Ceiling / gypsum","AC technician","Generator","Solar","Aluminium / glass","Labourer","Other"],
   Auto: ["Mechanic", "Car wash", "Spare parts", "Taxi"],
@@ -51,20 +43,17 @@ const SUBCATEGORIES: Record<string, string[]> = {
   "Public & Community": ["Church", "NGO", "Funeral"],
   Other: [],
 };
-
 function cleanWebsite(raw: string) {
   const t = raw.trim();
   if (!t) return "";
   if (/^https?:\/\//i.test(t)) return t;
   return `https://${t}`;
 }
-
 async function uploadOne(folder: string, file: File) {
   const fileRef = ref(storage, `${folder}/${Date.now()}-${file.name}`);
   await uploadBytes(fileRef, file);
   return getDownloadURL(fileRef);
 }
-
 export default function ListBusinessPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Tradesmen");
@@ -85,11 +74,9 @@ export default function ListBusinessPage() {
   const [paymentShot, setPaymentShot] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-
   const subcategoryOptions = SUBCATEGORIES[category] || [];
   const extraNeeded = photoPack === "plus3" ? 3 : photoPack === "plus7" ? 7 : 0;
-  const packPrice = photoPack === "plus3" ? "NLe 500" : photoPack === "plus7" ? "NLe 1,000" : "";
-
+  const packPrice = "NLe 0"; // free until July 2027
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim() || !phone.trim()) {
@@ -98,10 +85,6 @@ export default function ListBusinessPage() {
     }
     if (extraNeeded > 0 && extraPhotos.length !== extraNeeded) {
       setMessage(`Please upload exactly ${extraNeeded} extra photo(s) for this pack.`);
-      return;
-    }
-    if (extraNeeded > 0 && !paymentShot) {
-      setMessage("Please upload your Orange Money payment screenshot.");
       return;
     }
     setLoading(true);
@@ -114,9 +97,6 @@ export default function ListBusinessPage() {
       for (const file of extraPhotos.slice(0, extraNeeded)) {
         extraPhotoUrls.push(await uploadOne("listing-requests", file));
       }
-      let paymentScreenshotUrl = "";
-      if (paymentShot) paymentScreenshotUrl = await uploadOne("listing-payments", paymentShot);
-
       await addDoc(collection(db, "businessRequests"), {
         name: name.trim(),
         category: category === "Other" ? customCategory.trim() || "Other" : category,
@@ -132,14 +112,13 @@ export default function ListBusinessPage() {
         extraPhotoUrls,
         photoPack,
         packPrice,
-        paymentMethod: extraNeeded > 0 ? "orange" : "",
-        paymentNumber: extraNeeded > 0 ? ORANGE_MONEY : "",
-        paymentScreenshotUrl,
-        paymentStatus: extraNeeded > 0 ? "pending" : "not_required",
+        paymentMethod: "",
+        paymentNumber: "",
+        paymentScreenshotUrl: "",
+        paymentStatus: "not_required",
         status: "pending",
         createdAt: serverTimestamp(),
       });
-
       setName(""); setCategory("Tradesmen"); setSubcategory(""); setCustomSub(""); setCustomCategory("");
       setDistrict("Western Area Urban"); setArea(""); setPhone(""); setWhatsapp("");
       setWebsite(""); setDescription(""); setFreePhoto1(null); setFreePhoto2(null); setShowPaid(false);
@@ -152,19 +131,21 @@ export default function ListBusinessPage() {
       setLoading(false);
     }
   };
-
   const whatsappText = encodeURIComponent(
     "Hello SaloneReviews, I want to list my business.\nName:\nCategory:\nDistrict:\nPhone:\nWebsite:\nShort description:"
   );
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
       <main className="flex-1">
         <div className="max-w-xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">List your business</h1>
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-gray-600 mb-2">
             Name, area, phone, a short description and up to 2 photos free.
+          </p>
+          <p className="text-sm font-semibold text-[#006B3F] mb-6">
+            Extra photos and featured are <span className="line-through text-gray-400">NLe 500 / NLe 1,000</span>{" "}
+            <span className="text-green-700">NLe 0 until July 2027</span>. Video price unchanged.
           </p>
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Business name" className="w-full border rounded-xl px-4 py-3" required />
@@ -202,22 +183,26 @@ export default function ListBusinessPage() {
               <input type="file" accept="image/*" onChange={(e) => setFreePhoto2(e.target.files?.[0] || null)} className="w-full border rounded-xl px-4 py-3 bg-white" />
             </div>
             <button type="button" onClick={() => setShowPaid((v) => !v)} className="text-sm font-medium text-[#006B3F]">
-              {showPaid ? "Hide extra photos" : "Add extra photos (paid, optional)"}
+              {showPaid ? "Hide extra photos" : "Add extra photos (free until July 2027)"}
             </button>
             {showPaid && (
               <div className="border rounded-2xl p-4 space-y-3 bg-gray-50">
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "none"} onChange={() => { setPhotoPack("none"); setExtraPhotos([]); }} /> No extra photos</label>
-                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus3"} onChange={() => setPhotoPack("plus3")} /> 3 extra photos — NLe 500 (5 total)</label>
-                  <label className="flex items-center gap-2"><input type="radio" checked={photoPack === "plus7"} onChange={() => setPhotoPack("plus7")} /> 7 extra photos — NLe 1,000 (9 total)</label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={photoPack === "plus3"} onChange={() => setPhotoPack("plus3")} />
+                    3 extra photos — <span className="line-through text-gray-400">NLe 500</span> <span className="text-green-700 font-semibold">NLe 0 until July 2027</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={photoPack === "plus7"} onChange={() => setPhotoPack("plus7")} />
+                    7 extra photos — <span className="line-through text-gray-400">NLe 1,000</span> <span className="text-green-700 font-semibold">NLe 0 until July 2027</span>
+                  </label>
                 </div>
                 {extraNeeded > 0 && (
                   <>
-                    <p className="text-sm font-medium">Send Orange Money {packPrice} to {ORANGE_MONEY}</p>
+                    <p className="text-sm font-medium text-green-700">Free until July 2027 — no payment needed</p>
                     <input type="file" accept="image/*" multiple onChange={(e) => setExtraPhotos(Array.from(e.target.files || []).slice(0, extraNeeded))} className="w-full border rounded-xl px-4 py-3 bg-white" />
                     <p className="text-xs text-gray-500">{extraPhotos.length} of {extraNeeded} extra photo(s)</p>
-                    <label className="block text-sm font-medium">Orange Money screenshot</label>
-                    <input type="file" accept="image/*" onChange={(e) => setPaymentShot(e.target.files?.[0] || null)} className="w-full border rounded-xl px-4 py-3 bg-white" />
                   </>
                 )}
               </div>
