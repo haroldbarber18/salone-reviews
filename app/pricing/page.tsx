@@ -12,7 +12,7 @@ export default function PricingPage() {
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">List your business</h1>
           <p className="max-w-2xl mx-auto text-white/90">
             Standard listing is free for 1 year and includes 2 photos.
-            Pay only if you want extra photos, to appear first, or to add a video.
+            Extra photos and Featured are free until July 2027. Video price unchanged.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
             <Link href="/list-business" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">List free</Link>
@@ -37,11 +37,14 @@ export default function PricingPage() {
             <div className="bg-white border rounded-2xl p-6 flex flex-col">
               <p className="text-xs font-semibold text-amber-700 mb-2">PHOTOS</p>
               <h2 className="text-xl font-bold mb-1">Extra photos</h2>
-              <p className="text-3xl font-bold mb-1">NLe 500</p>
-              <p className="text-sm text-gray-500 mb-4">or NLe 1,000</p>
+              <p className="text-3xl font-bold mb-1">
+                <span className="line-through text-gray-400 text-2xl">NLe 500</span>{" "}
+                <span className="text-green-700">NLe 0</span>
+              </p>
+              <p className="text-sm text-gray-500 mb-4">or <span className="line-through">NLe 1,000</span> · free until July 2027</p>
               <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
-                <li>NLe 500 = 3 extra photos (5 total)</li>
-                <li>NLe 1,000 = 7 extra photos (9 total)</li>
+                <li><span className="line-through text-gray-400">NLe 500 = 3 extra photos (5 total)</span></li>
+                <li><span className="line-through text-gray-400">NLe 1,000 = 7 extra photos (9 total)</span></li>
                 <li>Photos stay on the listing</li>
                 <li>Need the free listing first</li>
               </ul>
@@ -50,8 +53,11 @@ export default function PricingPage() {
             <div className="bg-white border-2 border-[#006B3F] rounded-2xl p-6 flex flex-col shadow-sm">
               <p className="text-xs font-semibold text-[#006B3F] mb-2">MOST VISIBLE</p>
               <h2 className="text-xl font-bold mb-1">Featured</h2>
-              <p className="text-3xl font-bold mb-1">NLe 500</p>
-              <p className="text-sm text-gray-500 mb-4">30 days · NLe 1,200 for 90 days</p>
+              <p className="text-3xl font-bold mb-1">
+                <span className="line-through text-gray-400 text-2xl">NLe 500</span>{" "}
+                <span className="text-green-700">NLe 0</span>
+              </p>
+              <p className="text-sm text-gray-500 mb-4">30 days · free until July 2027</p>
               <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
                 <li>Badge on your listing</li>
                 <li>Appear first in your district</li>
