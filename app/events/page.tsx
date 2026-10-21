@@ -6,48 +6,20 @@ import Footer from "@/components/Footer";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
-type Ev = {
-  id: string;
-  title?: string;
-  name?: string;
-  eventDate?: string;
-  date?: string;
-  district?: string;
-  venue?: string;
-  place?: string;
-  description?: string;
-  photos?: string[];
-  imageUrl?: string;
-  link?: string;
-  phone?: string;
-  active?: boolean;
-  status?: string;
-  type?: string;
-};
-
-function stillOn(dateStr?: string) {
-  if (!dateStr) return true;
-  const d = new Date(dateStr + "T23:59:59");
-  return !isNaN(d.getTime()) && d >= new Date();
-}
-
 export default function EventsPage() {
-  const [rows, setRows] = useState<Ev[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const snap = await getDocs(collection(db, "ads"));
-      setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     })();
   }, []);
 
   const live = useMemo(
-    () =>
-      rows
-        .filter((e) => e.active !== false && (e.type === "event" || !e.type) && stillOn(e.eventDate || e.date))
-        .sort((a, b) => String(a.eventDate || a.date).localeCompare(String(b.eventDate || b.date))),
+    () => rows.filter((e) => e.active !== false && e.type === "event"),
     [rows]
   );
 
@@ -55,52 +27,31 @@ export default function EventsPage() {
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
       <Navbar />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div className="flex justify-between items-end mb-6">
           <div>
             <h1 className="text-3xl font-bold">Events</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Free flyers. Taken down automatically after the event date.
-            </p>
+            <p className="text-sm text-gray-600">Free flyers. Taken down after the event date.</p>
           </div>
           <Link href="/events/new" className="bg-[#006B3F] text-white font-semibold px-4 py-2 rounded-xl">
             Post an event
           </Link>
         </div>
-
         {loading ? (
-          <p className="text-gray-500">Loading…</p>
-        ) : live.length === 0 ? (
-          <div className="bg-white border rounded-2xl p-6 text-gray-500">
-            No upcoming events yet.
-          </div>
+          <p>Loading…</p>
         ) : (
           <div className="space-y-8">
-            {live.map((e) => {
-              const cover = e.photos?.[0] || e.imageUrl;
-              const title = e.title || e.name;
-              const date = e.eventDate || e.date;
-              return (
-                <Link
-                  key={e.id}
-                  href={`/events/${e.id}`}
-                  className="block bg-white border rounded-2xl overflow-hidden hover:shadow-md transition"
-                >
-                  {cover && (
-                    <img src={cover} alt="" className="w-full object-contain" />
-                  )}
-                  <div className="p-4">
-                    <h2 className="font-semibold text-lg">{title}</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {date} · {e.district || e.venue || e.place}
-                    </p>
-                    {e.description && (
-                      <p className="text-sm mt-2 line-clamp-3">{e.description}</p>
-                    )}
-                    <p className="text-sm font-semibold text-[#006B3F] mt-3">View details →</p>
-                  </div>
-                </Link>
-              );
-            })}
+            {live.map((e) => (
+              <Link key={e.id} href={`/events/${e.id}`} className="block bg-white border rounded-2xl overflow-hidden">
+                {(e.photos?.[0] || e.imageUrl) && (
+                  <img src={e.photos?.[0] || e.imageUrl} alt="" className="w-full object-contain" />
+                )}
+                <div className="p-4">
+                  <h2 className="font-semibold text-lg">{e.title}</h2>
+                  <p className="text-sm text-gray-600 mt-1">{e.eventDate} · {e.district}</p>
+                  <p className="text-sm font-semibold text-[#006B3F] mt-2">View details →</p>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </main>
