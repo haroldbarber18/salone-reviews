@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-
 type Ev = {
   id: string;
   name?: string;
@@ -21,17 +20,14 @@ type Ev = {
   photos?: string[];
   status?: string;
 };
-
 function stillOn(dateStr?: string) {
   if (!dateStr) return false;
   const d = new Date(dateStr + "T23:59:59");
   return !isNaN(d.getTime()) && d >= new Date();
 }
-
 export default function EventsPage() {
   const [rows, setRows] = useState<Ev[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     (async () => {
       const snap = await getDocs(collection(db, "events"));
@@ -39,7 +35,6 @@ export default function EventsPage() {
       setLoading(false);
     })();
   }, []);
-
   const live = useMemo(
     () =>
       rows
@@ -47,7 +42,6 @@ export default function EventsPage() {
         .sort((a, b) => String(a.date).localeCompare(String(b.date))),
     [rows]
   );
-
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
       <Navbar />
@@ -76,7 +70,7 @@ export default function EventsPage() {
               const feeLabel =
                 e.fee === "paid" ? (e.feeAmount ? `Paid · ${e.feeAmount}` : "Paid") : "Free";
               return (
-                <article key={e.id} className="bg-white border rounded-2xl overflow-hidden">
+                <Link key={e.id} href={`/events/${e.id}`} className="bg-white border rounded-2xl overflow-hidden hover:shadow-md transition block">
                   {cover && <img src={cover} alt="" className="w-full h-48 object-cover" />}
                   <div className="p-4">
                     <div className="flex justify-between gap-2">
@@ -89,18 +83,9 @@ export default function EventsPage() {
                       {e.date} · {e.venue || e.place} · {e.district}
                     </p>
                     {e.description && <p className="text-sm mt-2 line-clamp-3">{e.description}</p>}
-                    <div className="flex gap-3 mt-3 text-sm font-semibold text-[#006B3F]">
-                      {e.contact && (
-                        <a href={`https://wa.me/${String(e.contact).replace(/\D/g, "")}`}>WhatsApp</a>
-                      )}
-                      {e.link && (
-                        <a href={e.link} target="_blank" rel="noreferrer">
-                          Link
-                        </a>
-                      )}
-                    </div>
+                    <p className="text-sm font-semibold text-[#006B3F] mt-3">View details →</p>
                   </div>
-                </article>
+                </Link>
               );
             })}
           </div>
