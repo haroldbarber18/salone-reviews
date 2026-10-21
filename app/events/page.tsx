@@ -8,22 +8,25 @@ import { collection, getDocs } from "firebase/firestore";
 
 type Ev = {
   id: string;
+  title?: string;
   name?: string;
+  eventDate?: string;
   date?: string;
+  district?: string;
   venue?: string;
   place?: string;
-  district?: string;
-  fee?: string;
-  feeAmount?: string;
-  contact?: string;
-  link?: string;
   description?: string;
   photos?: string[];
+  imageUrl?: string;
+  link?: string;
+  phone?: string;
+  active?: boolean;
   status?: string;
+  type?: string;
 };
 
 function stillOn(dateStr?: string) {
-  if (!dateStr) return false;
+  if (!dateStr) return true;
   const d = new Date(dateStr + "T23:59:59");
   return !isNaN(d.getTime()) && d >= new Date();
 }
@@ -34,7 +37,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, "events"));
+      const snap = await getDocs(collection(db, "ads"));
       setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
       setLoading(false);
     })();
@@ -43,8 +46,8 @@ export default function EventsPage() {
   const live = useMemo(
     () =>
       rows
-        .filter((e) => e.status === "approved" && stillOn(e.date))
-        .sort((a, b) => String(a.date).localeCompare(String(b.date))),
+        .filter((e) => e.active !== false && (e.type === "event" || !e.type) && stillOn(e.eventDate || e.date))
+        .sort((a, b) => String(a.eventDate || a.date).localeCompare(String(b.eventDate || b.date))),
     [rows]
   );
 
@@ -73,7 +76,9 @@ export default function EventsPage() {
         ) : (
           <div className="space-y-8">
             {live.map((e) => {
-              const cover = e.photos?.[0];
+              const cover = e.photos?.[0] || e.imageUrl;
+              const title = e.title || e.name;
+              const date = e.eventDate || e.date;
               return (
                 <Link
                   key={e.id}
@@ -84,9 +89,9 @@ export default function EventsPage() {
                     <img src={cover} alt="" className="w-full object-contain" />
                   )}
                   <div className="p-4">
-                    <h2 className="font-semibold text-lg">{e.name}</h2>
+                    <h2 className="font-semibold text-lg">{title}</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      {e.date} · {e.venue || e.place} · {e.district}
+                      {date} · {e.district || e.venue || e.place}
                     </p>
                     {e.description && (
                       <p className="text-sm mt-2 line-clamp-3">{e.description}</p>

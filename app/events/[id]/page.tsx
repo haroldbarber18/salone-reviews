@@ -15,7 +15,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const snap = await getDoc(doc(db, "events", String(id)));
+      const snap = await getDoc(doc(db, "ads", String(id)));
       setEvent(snap.exists() ? { id: snap.id, ...snap.data() } : null);
       setLoading(false);
     })();
@@ -24,7 +24,9 @@ export default function EventDetailPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
   if (!event) return <div className="min-h-screen flex items-center justify-center">Event not found.</div>;
 
-  const cover = event.photos?.[0];
+  const cover = event.photos?.[0] || event.imageUrl;
+  const title = event.title || event.name;
+  const date = event.eventDate || event.date;
 
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
@@ -36,20 +38,20 @@ export default function EventDetailPage() {
             <img src={cover} alt="" className="w-full object-contain" />
           )}
           <div className="p-4">
-            <h1 className="text-xl font-bold">{event.name}</h1>
+            <h1 className="text-xl font-bold">{title}</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Event date: {event.date}
+              Event date: {date}
             </p>
             <p className="text-sm text-gray-600">
-              {event.venue || event.place}{event.district ? `, ${event.district}` : ""}
+              {event.district || event.venue || event.place}
             </p>
             {event.description && (
               <p className="text-sm mt-2">{event.description}</p>
             )}
             <div className="flex flex-col gap-2 mt-4">
-              {event.contact && (
+              {event.phone && (
                 <a
-                  href={`https://wa.me/${String(event.contact).replace(/\D/g, "")}`}
+                  href={`https://wa.me/${String(event.phone).replace(/\D/g, "")}`}
                   className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl"
                 >
                   WhatsApp
