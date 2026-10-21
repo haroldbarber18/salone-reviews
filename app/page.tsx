@@ -860,7 +860,24 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      <Footer />
+       <Footer />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "SaloneReviews",
+            "url": "https://salonereviews.com",
+            "description": "Find trusted businesses and tradesmen across Sierra Leone. Real reviews from real people.",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://salonereviews.com/explore?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }),
+        }}
+      />
     </div>
   );
 }
