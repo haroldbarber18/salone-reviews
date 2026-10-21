@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
+
 type Ev = {
   id: string;
   name?: string;
@@ -20,14 +21,17 @@ type Ev = {
   photos?: string[];
   status?: string;
 };
+
 function stillOn(dateStr?: string) {
   if (!dateStr) return false;
   const d = new Date(dateStr + "T23:59:59");
   return !isNaN(d.getTime()) && d >= new Date();
 }
+
 export default function EventsPage() {
   const [rows, setRows] = useState<Ev[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     (async () => {
       const snap = await getDocs(collection(db, "events"));
@@ -35,6 +39,7 @@ export default function EventsPage() {
       setLoading(false);
     })();
   }, []);
+
   const live = useMemo(
     () =>
       rows
@@ -42,10 +47,11 @@ export default function EventsPage() {
         .sort((a, b) => String(a.date).localeCompare(String(b.date))),
     [rows]
   );
+
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
       <Navbar />
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
           <div>
             <h1 className="text-3xl font-bold">Events</h1>
@@ -57,6 +63,7 @@ export default function EventsPage() {
             Post an event
           </Link>
         </div>
+
         {loading ? (
           <p className="text-gray-500">Loading…</p>
         ) : live.length === 0 ? (
@@ -64,25 +71,26 @@ export default function EventsPage() {
             No upcoming events yet.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-8">
             {live.map((e) => {
               const cover = e.photos?.[0];
-              const feeLabel =
-                e.fee === "paid" ? (e.feeAmount ? `Paid · ${e.feeAmount}` : "Paid") : "Free";
               return (
-                <Link key={e.id} href={`/events/${e.id}`} className="bg-white border rounded-2xl overflow-hidden hover:shadow-md transition block">
-                  {cover && <img src={cover} alt="" className="w-full h-48 object-cover" />}
+                <Link
+                  key={e.id}
+                  href={`/events/${e.id}`}
+                  className="block bg-white border rounded-2xl overflow-hidden hover:shadow-md transition"
+                >
+                  {cover && (
+                    <img src={cover} alt="" className="w-full object-contain" />
+                  )}
                   <div className="p-4">
-                    <div className="flex justify-between gap-2">
-                      <h2 className="font-semibold text-lg">{e.name}</h2>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-[#006B3F] shrink-0">
-                        {feeLabel}
-                      </span>
-                    </div>
+                    <h2 className="font-semibold text-lg">{e.name}</h2>
                     <p className="text-sm text-gray-600 mt-1">
                       {e.date} · {e.venue || e.place} · {e.district}
                     </p>
-                    {e.description && <p className="text-sm mt-2 line-clamp-3">{e.description}</p>}
+                    {e.description && (
+                      <p className="text-sm mt-2 line-clamp-3">{e.description}</p>
+                    )}
                     <p className="text-sm font-semibold text-[#006B3F] mt-3">View details →</p>
                   </div>
                 </Link>
