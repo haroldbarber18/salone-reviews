@@ -17,6 +17,10 @@ export default function NewEventPage() {
   const [district, setDistrict] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [feeType, setFeeType] = useState<"" | "free" | "paid">("");
+  const [price, setPrice] = useState("");
   const [pack, setPack] = useState<"free1" | "paid3">("free1");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [receipt, setReceipt] = useState<File | null>(null);
@@ -51,8 +55,8 @@ export default function NewEventPage() {
       await addDoc(collection(db, "ads"), {
         type: "event",
         placement: "left",
-        feeType: pack === "paid3" ? "paid" : "",
-        price: pack === "paid3" ? "NLe 200 / month" : "",
+        feeType,
+        price: feeType === "paid" ? price.trim() : "",
         title: title.trim(),
         description: description.trim(),
         phone: phone.trim(),
@@ -60,8 +64,8 @@ export default function NewEventPage() {
         district: district.trim(),
         eventDate,
         eventEndDate: eventEndDate || "",
-        startDate: "",
-        endDate: "",
+        startDate: startDate || "",
+        endDate: endDate || "",
         photos,
         imageUrl: photos[0] || "",
         receiptUrl,
@@ -107,6 +111,27 @@ export default function NewEventPage() {
                 <input className="w-full border rounded-xl px-3 py-2" type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} />
               </div>
             </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500">Ad start (display period)</label>
+                <input className="w-full border rounded-xl px-3 py-2" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Ad end / expiry</label>
+                <input className="w-full border rounded-xl px-3 py-2" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Fee</label>
+              <select className="w-full border rounded-xl px-3 py-2" value={feeType} onChange={(e) => setFeeType(e.target.value as any)}>
+                <option value="">No fee label</option>
+                <option value="free">Free</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            {feeType === "paid" && (
+              <input className="w-full border rounded-xl px-3 py-2" placeholder="Price (e.g. NLe 200 / month)" value={price} onChange={(e) => setPrice(e.target.value)} />
+            )}
             <div className="border rounded-xl p-3 space-y-2 text-sm">
               <p className="font-semibold">Flyer photos</p>
               <label className="flex items-center gap-2">
