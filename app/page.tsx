@@ -133,9 +133,8 @@ function EmptySlot() {
 }
 function FlyerCard({ ad }: { ad?: any }) {
   if (!ad) return <EmptySlot />;
-  const href = ad.link || ad.href || `/ad/${ad.id}`;
+  const href = `/events/${ad.id}`;
   const dateLabel = formatEventRange(ad);
-  const showRegister = !!(ad.link && String(ad.link).startsWith("http"));
   return (
     <Link
       href={href}
@@ -159,11 +158,6 @@ function FlyerCard({ ad }: { ad?: any }) {
         {ad.feeType === "paid" && (
           <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800">
             {ad.price || "Paid"}
-          </span>
-        )}
-        {showRegister && (
-          <span className="inline-block mt-2 ml-1 text-[11px] font-semibold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
-            Register to Join
           </span>
         )}
       </div>
@@ -461,7 +455,7 @@ export default function HomePage() {
         feeType: e.price || e.fee === "paid" ? "paid" : "free",
         price: e.price || e.feeAmount || "",
         placement: "left",
-        href: e.link || "/events",
+        href: `/events/${e.id}`,
         link: e.link || "",
         source: "event",
         active: true,
