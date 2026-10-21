@@ -55,6 +55,7 @@ export default function AdminAdsPage() {
   const [endDate, setEndDate] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email || ""));
 
   useEffect(() => {
@@ -202,6 +203,12 @@ export default function AdminAdsPage() {
     loadAds();
   };
 
+  const approve = async (id: string) => {
+    await updateDoc(doc(db, "ads", id), { active: true, status: "approved" });
+    setMessage("Approved.");
+    loadAds();
+  };
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) {
     router.push("/login");
@@ -210,6 +217,8 @@ export default function AdminAdsPage() {
   if (!isAdmin) return <div className="min-h-screen flex items-center justify-center">Admin access only</div>;
 
   const remaining = MAX_PHOTOS - existingPhotos.length - imageFiles.length;
+  const pending = ads.filter((ad) => ad.active === false || ad.status === "pending");
+  const published = ads.filter((ad) => ad.active !== false && ad.status !== "pending");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -224,6 +233,33 @@ export default function AdminAdsPage() {
               ← Back to Admin
             </Link>
           </div>
+
+          {pending.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-3">Pending approval</h2>
+              <div className="space-y-4">
+                {pending.map((ad) => (
+                  <div key={ad.id} className="bg-white border rounded-2xl p-4 flex gap-4 items-start">
+                    {(ad.photos?.[0] || ad.imageUrl) ? (
+                      <img src={ad.photos?.[0] || ad.imageUrl} alt={ad.title} className="w-24 h-24 object-cover rounded-xl" />
+                    ) : (
+                      <div className="w-24 h-24 bg-gray-100 rounded-xl" />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{ad.title}</h3>
+                      <p className="text-sm text-gray-600">{ad.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">{ad.eventDate} · {ad.district}</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => approve(ad.id)} className="text-sm bg-[#006B3F] text-white font-semibold px-3 py-1 rounded-lg">Approve</button>
+                      <button onClick={() => startEdit(ad)} className="text-sm text-[#006B3F] font-medium">Edit</button>
+                      <button onClick={() => handleDelete(ad.id)} className="text-sm text-red-600 font-medium">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-6 mb-8 space-y-4">
             <div className="grid sm:grid-cols-3 gap-4">
@@ -251,23 +287,19 @@ export default function AdminAdsPage() {
                 </select>
               </div>
             </div>
-
             {feeType === "paid" && (
               <div>
                 <label className="block text-sm font-medium mb-2">Price</label>
                 <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. NLe 500" className="w-full border rounded-xl px-4 py-3" />
               </div>
             )}
-
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full border rounded-xl px-4 py-3" required />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Full description / details" rows={4} className="w-full border rounded-xl px-4 py-3" required />
-
             <div className="grid sm:grid-cols-2 gap-4">
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp / Phone" className="w-full border rounded-xl px-4 py-3" />
               <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Optional external link" className="w-full border rounded-xl px-4 py-3" />
             </div>
             <input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Venue / District" className="w-full border rounded-xl px-4 py-3" />
-
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Event start date</label>
@@ -278,7 +310,6 @@ export default function AdminAdsPage() {
                 <input type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
               </div>
             </div>
-
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Ad start (display period)</label>
@@ -289,7 +320,6 @@ export default function AdminAdsPage() {
                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border rounded-xl px-4 py-3" />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">
                 Photos (up to 4). First photo is the homepage cover.
@@ -325,7 +355,6 @@ export default function AdminAdsPage() {
                 ))}
               </div>
             </div>
-
             {message && (
               <p className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("enter") || message.toLowerCase().includes("maximum") ? "text-red-500" : "text-green-600"}`}>
                 {message}
@@ -345,7 +374,7 @@ export default function AdminAdsPage() {
 
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Published items</h2>
-            {ads.map((ad) => (
+            {published.map((ad) => (
               <div key={ad.id} className="bg-white border rounded-2xl p-4 flex gap-4 items-start">
                 {(ad.photos?.[0] || ad.imageUrl) ? (
                   <img src={ad.photos?.[0] || ad.imageUrl} alt={ad.title} className="w-24 h-24 object-cover rounded-xl" />
