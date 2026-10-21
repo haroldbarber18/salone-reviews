@@ -29,33 +29,44 @@ export default function EventDetailPage() {
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
       <Navbar />
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <Link href="/events" className="text-sm text-[#006B3F]">← Back to Events</Link>
-        {cover && <img src={cover} alt="" className="w-full h-64 object-cover rounded-2xl mt-4" />}
-        <h1 className="text-3xl font-bold mt-4">{event.name}</h1>
-        <p className="text-gray-600 mt-1">
-          {event.date} · {event.venue || event.place} · {event.district}
-        </p>
-        {event.description && <p className="mt-4 whitespace-pre-line">{event.description}</p>}
-        <div className="flex gap-3 mt-6">
-          {event.contact && (
-            <a
-              href={`https://wa.me/${String(event.contact).replace(/\D/g, "")}`}
-              className="bg-[#25D366] text-white font-semibold px-5 py-3 rounded-xl"
-            >
-              WhatsApp
-            </a>
+        <div className="bg-white border rounded-2xl overflow-hidden mt-4">
+          {cover && (
+            <img src={cover} alt="" className="w-full object-contain" />
           )}
-          {event.link && (
-            <a
-              href={event.link}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-[#006B3F] text-white font-semibold px-5 py-3 rounded-xl"
-            >
-              Visit website
-            </a>
-          )}
+          <div className="p-4">
+            <h1 className="text-xl font-bold">{event.name}</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Event date: {event.date}
+            </p>
+            <p className="text-sm text-gray-600">
+              {event.venue || event.place}{event.district ? `, ${event.district}` : ""}
+            </p>
+            {event.description && (
+              <p className="text-sm mt-2">{event.description}</p>
+            )}
+            <div className="flex flex-col gap-2 mt-4">
+              {event.contact && (
+                <a
+                  href={`https://wa.me/${String(event.contact).replace(/\D/g, "")}`}
+                  className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  WhatsApp
+                </a>
+              )}
+              {event.link && (
+                <a
+                  href={event.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-[#006B3F] text-white text-center font-semibold py-3 rounded-xl"
+                >
+                  Visit website
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       </main>
       <Footer />
