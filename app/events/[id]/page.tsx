@@ -36,7 +36,7 @@ export default function EventDetail() {
             <h1 className="text-xl font-bold">{event.title}</h1>
             <p className="text-sm text-gray-600 mt-1">Event date: {event.eventDate}</p>
             <p className="text-sm text-gray-600">{event.district}</p>
-            {event.description && <p className="text-sm mt-2">{event.description}</p>}
+            {event.description && <p className="text-sm mt-2 whitespace-pre-line">{event.description}</p>}
             <div className="flex flex-col gap-2 mt-4">
               {event.phone && (
                 <a href={`https://wa.me/${String(event.phone).replace(/\D/g, "")}`} className="bg-[#25D366] text-white text-center font-semibold py-3 rounded-xl">
