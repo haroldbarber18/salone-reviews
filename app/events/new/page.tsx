@@ -26,11 +26,6 @@ export default function NewEventPage() {
 
   const maxPhotos = pack === "paid3" ? 3 : 1;
 
-  const handleFiles = (files: FileList | null) => {
-    if (!files) return;
-    setImageFiles(Array.from(files).slice(0, maxPhotos));
-  };
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
@@ -38,12 +33,11 @@ export default function NewEventPage() {
       return setErr("Title, description and event start date are required.");
     }
     if (imageFiles.length === 0) return setErr("Add the flyer photo.");
-    if (imageFiles.length > maxPhotos) return setErr(`Maximum ${maxPhotos} photo(s) for this pack.`);
-    if (pack === "paid3" && !receipt) return setErr("Attach the Orange Money screenshot for NLe 200.");
+    if (pack === "paid3" && !receipt) return setErr("Attach the Orange Money screenshot.");
     setBusy(true);
     try {
       const photos: string[] = [];
-      for (const file of imageFiles) {
+      for (const file of imageFiles.slice(0, maxPhotos)) {
         const r = ref(storage, `ads/${Date.now()}-${file.name}`);
         await uploadBytes(r, file);
         photos.push(await getDownloadURL(r));
@@ -57,7 +51,7 @@ export default function NewEventPage() {
       await addDoc(collection(db, "ads"), {
         type: "event",
         placement: "left",
-        feeType: pack === "paid3" ? "paid" : "free",
+        feeType: pack === "paid3" ? "paid" : "",
         price: pack === "paid3" ? "NLe 200 / month" : "",
         title: title.trim(),
         description: description.trim(),
@@ -71,7 +65,6 @@ export default function NewEventPage() {
         photos,
         imageUrl: photos[0] || "",
         receiptUrl,
-        photoPack: pack,
         active: false,
         status: "pending",
         createdAt: serverTimestamp(),
@@ -91,12 +84,10 @@ export default function NewEventPage() {
         <Link href="/" className="text-sm text-[#006B3F]">← Home</Link>
         <h1 className="text-2xl font-bold mt-2 mb-1">Post an event</h1>
         <p className="text-sm text-gray-600 mb-4">
-          1 flyer photo free. Up to 3 photos NLe 200 a month. Appears after Admin approval.
+          1 photo free. Up to 3 photos NLe 200 a month. Appears after Admin approval.
         </p>
         {done ? (
-          <div className="bg-white border rounded-2xl p-5">
-            Sent. You will see it after Admin approval.
-          </div>
+          <div className="bg-white border rounded-2xl p-5">Sent. Waiting for Admin approval.</div>
         ) : (
           <form onSubmit={onSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Event title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -118,20 +109,19 @@ export default function NewEventPage() {
             </div>
             <div className="border rounded-xl p-3 space-y-2 text-sm">
               <p className="font-semibold">Flyer photos</p>
-              <label className="flex items-start gap-2">
-                <input type="radio" checked={pack === "free1"} onChange={() => { setPack("free1"); setImageFiles((p) => p.slice(0, 1)); setReceipt(null); }} />
-                <span>1 photo — free</span>
+              <label className="flex items-center gap-2">
+                <input type="radio" checked={pack === "free1"} onChange={() => { setPack("free1"); setImageFiles([]); setReceipt(null); }} />
+                1 photo — free
               </label>
-              <label className="flex items-start gap-2">
+              <label className="flex items-center gap-2">
                 <input type="radio" checked={pack === "paid3"} onChange={() => setPack("paid3")} />
-                <span>Up to 3 photos — NLe 200 a month</span>
+                Up to 3 photos — NLe 200 a month
               </label>
-              <input type="file" accept="image/*" multiple={pack === "paid3"} onChange={(e) => handleFiles(e.target.files)} />
-              <p className="text-xs text-gray-500">{imageFiles.length}/{maxPhotos} flyer photo(s). First photo is the home flyer.</p>
+              <input type="file" accept="image/*" multiple={pack === "paid3"} onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0, maxPhotos))} />
+              <p className="text-xs text-gray-500">{imageFiles.length}/{maxPhotos}</p>
               {pack === "paid3" && (
                 <div className="pt-2 border-t space-y-2">
-                  <p>Send NLe 200 to Orange Money <span className="font-semibold">{ORANGE}</span></p>
-                  <p className="text-xs text-gray-500">Attach the receipt screenshot.</p>
+                  <p>Send NLe 200 to Orange Money <b>{ORANGE}</b></p>
                   <input type="file" accept="image/*" onChange={(e) => setReceipt(e.target.files?.[0] || null)} />
                 </div>
               )}
