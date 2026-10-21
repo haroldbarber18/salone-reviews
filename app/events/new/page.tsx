@@ -6,25 +6,24 @@ import Footer from "@/components/Footer";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-
 const DISTRICTS = [
   "Western Area Urban","Western Area Rural","Bo","Kenema","Bombali","Port Loko","Kono",
   "Kailahun","Tonkolili","Kambia","Moyamba","Bonthe","Pujehun","Karene","Falaba","Koinadugu",
 ];
 const ORANGE = "075294553";
-
 async function uploadOne(folder: string, file: File) {
   const r = ref(storage, `${folder}/${Date.now()}-${file.name}`);
   await uploadBytes(r, file);
   return getDownloadURL(r);
 }
-
 export default function NewEventPage() {
   const [name, setName] = useState("");
-  const [date, setDate] = useState("");
+  const [eventStart, setEventStart] = useState("");
+  const [eventEnd, setEventEnd] = useState("");
   const [venue, setVenue] = useState("");
   const [place, setPlace] = useState("");
   const [district, setDistrict] = useState("Western Area Urban");
+  const [feeType, setFeeType] = useState<"none" | "free" | "paid">("none");
   const [price, setPrice] = useState("");
   const [contact, setContact] = useState("");
   const [link, setLink] = useState("");
@@ -35,14 +34,12 @@ export default function NewEventPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
-
   const maxPhotos = pack === "paid3" ? 3 : 1;
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (!name.trim() || !date || !venue.trim() || !contact.trim()) {
-      return setErr("Name, date, venue and sender WhatsApp are required.");
+    if (!name.trim() || !eventStart || !venue.trim()) {
+      return setErr("Name, event start date and venue are required.");
     }
     if (files.length === 0) return setErr("Add the flyer photo.");
     if (files.length > maxPhotos) {
@@ -61,11 +58,14 @@ export default function NewEventPage() {
       if (receipt) receiptUrl = await uploadOne("events-receipts", receipt);
       await addDoc(collection(db, "events"), {
         name: name.trim(),
-        date,
+        date: eventStart,
+        eventDate: eventStart,
+        eventEndDate: eventEnd || "",
         venue: venue.trim(),
         place: place.trim(),
         district,
-        price: price.trim(),
+        feeType,
+        price: feeType === "paid" ? price.trim() : "",
         contact: contact.trim(),
         link: link.trim(),
         description: description.trim(),
@@ -83,7 +83,6 @@ export default function NewEventPage() {
       setBusy(false);
     }
   }
-
   return (
     <div className="min-h-screen bg-[#F7F8F5] flex flex-col">
       <Navbar />
@@ -95,19 +94,35 @@ export default function NewEventPage() {
         </p>
         {done ? (
           <div className="bg-white border rounded-2xl p-5">
-            Sent. You will see it in Events & Flyers after approval.
+            Sent. You will see it in Events & Flyers after Admin approval.
           </div>
         ) : (
           <form onSubmit={onSubmit} className="bg-white border rounded-2xl p-5 space-y-3">
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Event name" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className="w-full border rounded-xl px-3 py-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500">Event start date</label>
+                <input className="w-full border rounded-xl px-3 py-2" type="date" value={eventStart} onChange={(e) => setEventStart(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Event end date (optional)</label>
+                <input className="w-full border rounded-xl px-3 py-2" type="date" value={eventEnd} onChange={(e) => setEventEnd(e.target.value)} />
+              </div>
+            </div>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Place / area" value={place} onChange={(e) => setPlace(e.target.value)} />
             <select className="w-full border rounded-xl px-3 py-2" value={district} onChange={(e) => setDistrict(e.target.value)}>
               {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
             </select>
-            <input className="w-full border rounded-xl px-3 py-2" placeholder="Price (optional)" value={price} onChange={(e) => setPrice(e.target.value)} />
-            <input className="w-full border rounded-xl px-3 py-2" placeholder="Sender's WhatsApp if we need to contact you" value={contact} onChange={(e) => setContact(e.target.value)} />
+            <select className="w-full border rounded-xl px-3 py-2" value={feeType} onChange={(e) => setFeeType(e.target.value as any)}>
+              <option value="none">No fee label</option>
+              <option value="free">Free</option>
+              <option value="paid">Paid event</option>
+            </select>
+            {feeType === "paid" && (
+              <input className="w-full border rounded-xl px-3 py-2" placeholder="Price (e.g. NLe 50)" value={price} onChange={(e) => setPrice(e.target.value)} />
+            )}
+            <input className="w-full border rounded-xl px-3 py-2" placeholder="Sender's WhatsApp (optional)" value={contact} onChange={(e) => setContact(e.target.value)} />
             <p className="text-xs text-gray-500">Private. SaloneReviews uses this if we need to reach you about this flyer.</p>
             <input className="w-full border rounded-xl px-3 py-2" placeholder="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
             <textarea className="w-full border rounded-xl px-3 py-2" rows={4} placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -131,7 +146,7 @@ export default function NewEventPage() {
               {pack === "paid3" && (
                 <div className="pt-2 border-t space-y-2">
                   <p>Send NLe 200 to Orange Money <span className="font-semibold">{ORANGE}</span></p>
-                  <p className="text-xs text-gray-500">Attach the receipt screenshot (this can be the 4th file).</p>
+                  <p className="text-xs text-gray-500">Attach the receipt screenshot.</p>
                   <input type="file" accept="image/*" onChange={(e) => setReceipt(e.target.files?.[0] || null)} />
                 </div>
               )}
