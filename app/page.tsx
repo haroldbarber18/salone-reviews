@@ -527,7 +527,7 @@ export default function HomePage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Blue header with curved bottom — Option C */}
+        {/* Blue header — curve only on the right edge */}
         <section className="relative bg-[#1E40AF] text-white overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] items-stretch">
             <div className="order-2 lg:order-1 flex items-center justify-center p-6">
@@ -581,11 +581,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Curved bottom edge of blue */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 md:h-20 bg-white rounded-t-[50%] md:rounded-t-[60%]" />
+          {/* Curve only on the right edge of the blue */}
+          <div className="absolute top-0 right-0 bottom-0 w-32 md:w-48 bg-white rounded-l-[80px] md:rounded-l-[120px] pointer-events-none" />
         </section>
 
-        <div className="sr-bluebar text-white">
+        <div className="sr-bluebar text-white bg-[#1E40AF]">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3">
             <p className="shrink-0 text-xs sm:text-sm font-semibold">
               Freetown {freetownClock || "--:--"}
@@ -612,13 +612,9 @@ export default function HomePage() {
             animation: sr-marquee 28s linear infinite;
           }
           .sr-bluebar {
-            background:
-              linear-gradient(90deg, rgba(8,24,72,0.55), rgba(0,80,180,0.25), rgba(8,24,72,0.55)),
-              repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(80,180,255,0.12) 18px, rgba(80,180,255,0.12) 19px),
-              repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(80,180,255,0.1) 14px, rgba(80,180,255,0.1) 15px),
-              linear-gradient(90deg, #06143a, #0b3d91, #06143a);
-            border-top: 1px solid #3ec6ff;
-            border-bottom: 1px solid #3ec6ff;
+            background: #1E40AF;
+            border-top: 1px solid #3b82f6;
+            border-bottom: 1px solid #3b82f6;
           }
         `}</style>
 
