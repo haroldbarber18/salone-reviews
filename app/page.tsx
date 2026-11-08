@@ -884,31 +884,31 @@ export default function HomePage() {
       </main>
       <Footer />
 
-      {/* Fixed bottom navigation matching the mockup */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#1B5FBF] text-white z-50 shadow-lg">
-        <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-2">
-          <Link href="/" className="flex flex-col items-center text-xs py-1">
-            <span className="text-xl">🏠</span>
-            <span>Home</span>
-          </Link>
-          <Link href="/explore" className="flex flex-col items-center text-xs py-1">
-            <span className="text-xl">🔍</span>
-            <span>Search</span>
-          </Link>
-          <Link href="/list-business" className="flex flex-col items-center text-xs py-1 -mt-4">
-            <span className="bg-white text-[#1B5FBF] rounded-full w-12 h-12 grid place-items-center text-2xl font-bold shadow">+</span>
-            <span className="mt-1">Add</span>
-          </Link>
-          <Link href="/events" className="flex flex-col items-center text-xs py-1">
-            <span className="text-xl">📅</span>
-            <span>Events</span>
-          </Link>
-          <Link href="/account" className="flex flex-col items-center text-xs py-1">
-            <span className="text-xl">👤</span>
-            <span>Hi</span>
-          </Link>
-        </div>
-      </div>
+{/* Fixed bottom navigation */}
+<div className="fixed bottom-0 left-0 right-0 bg-[#1B5FBF] text-white z-50 shadow-lg">
+  <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-2">
+    <Link href="/" className="flex flex-col items-center text-xs py-1">
+      <span className="text-xl">🏠</span>
+      <span>Home</span>
+    </Link>
+    <Link href="/explore" className="flex flex-col items-center text-xs py-1">
+      <span className="text-xl">🔍</span>
+      <span>Search</span>
+    </Link>
+    <Link href="/list-business" className="flex flex-col items-center text-xs py-1 -mt-4">
+      <span className="bg-white text-[#1B5FBF] rounded-full w-12 h-12 grid place-items-center text-2xl font-bold shadow">+</span>
+      <span className="mt-1">Add</span>
+    </Link>
+    <Link href="/events" className="flex flex-col items-center text-xs py-1">
+      <span className="text-xl">📅</span>
+      <span>Events</span>
+    </Link>
+    <Link href="/login" className="flex flex-col items-center text-xs py-1">
+      <span className="text-xl">👤</span>
+      <span>Hi</span>
+    </Link>
+  </div>
+</div>
     </div>
   );
 }
