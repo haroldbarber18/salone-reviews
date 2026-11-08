@@ -524,25 +524,35 @@ export default function HomePage() {
     <div className="min-h-screen bg-white flex flex-col pb-24">
       <Navbar />
 
-      <div className="relative bg-[#1B5FBF] text-white pb-10">
-        <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl sm:text-2xl font-bold">SaloneReviews</span>
-            <span className="text-green-400 text-lg">✓</span>
-          </div>
-        </div>
-        <div className="text-center px-4 mt-6 sm:mt-8">
-          <h1 className="text-3xl sm:text-5xl font-bold leading-tight">
-            Find di best<br />
-            businesses in<br />
-            <span className="text-green-400">Salone</span>
-          </h1>
-          <p className="mt-3 text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
-            Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
-          </p>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-white" style={{ borderTopLeftRadius: "50% 100%", borderTopRightRadius: "50% 100%" }} />
-      </div>
+<div className="relative bg-[#1B5FBF] text-white pb-10">
+  <div className="max-w-7xl mx-auto px-4 pt-4">
+    <div className="flex items-center gap-2">
+      <span className="text-xl sm:text-2xl font-bold">SaloneReviews</span>
+      <span className="text-green-400 text-lg">✓</span>
+    </div>
+  </div>
+
+  <div className="max-w-7xl mx-auto px-4 mt-4 grid grid-cols-1 lg:grid-cols-[160px_1fr_160px] gap-3 items-center">
+    <div className="hidden lg:block">
+      <SponsorCard ad={byPlacement("top1")} compact />
+    </div>
+    <div className="text-center px-2">
+      <h1 className="text-3xl sm:text-5xl font-bold leading-tight">
+        Find di best<br />
+        businesses in<br />
+        <span className="text-green-400">Salone</span>
+      </h1>
+      <p className="mt-3 text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
+        Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
+      </p>
+    </div>
+    <div className="hidden lg:block">
+      <SponsorCard ad={byPlacement("top2")} compact />
+    </div>
+  </div>
+
+  <div className="absolute bottom-0 left-0 right-0 h-8 bg-white" style={{ borderTopLeftRadius: "50% 100%", borderTopRightRadius: "50% 100%" }} />
+</div>
 
       <main className="flex-1">
         <div className="px-4 py-6 bg-white">
