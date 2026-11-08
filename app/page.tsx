@@ -903,7 +903,7 @@ export default function HomePage() {
       <span className="text-xl">📅</span>
       <span>Events</span>
     </Link>
-    <Link href="/login" className="flex flex-col items-center text-xs py-1">
+    <Link href="/profile" className="flex flex-col items-center text-xs py-1">
       <span className="text-xl">👤</span>
       <span>Hi</span>
     </Link>
