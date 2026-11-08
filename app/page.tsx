@@ -521,10 +521,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pb-28">
+    <div className="min-h-screen bg-white flex flex-col pb-24">
       <Navbar />
 
-      {/* NEW HOME HEADER ONLY */}
       <div className="relative bg-[#1B5FBF] text-white pb-10">
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="flex items-center gap-2">
@@ -558,18 +557,6 @@ export default function HomePage() {
               Search
             </button>
           </form>
-        </div>
-
-        {/* Fixed bottom buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 z-40">
-          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
-            <Link href="/explore" className="flex-1 bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl text-center">
-              View businesses
-            </Link>
-            <Link href="/list-business" className="flex-1 bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl text-center">
-              List your business
-            </Link>
-          </div>
         </div>
 
         <div className="sr-bluebar text-white">
@@ -896,6 +883,32 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
+
+      {/* Fixed bottom navigation matching the mockup */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#1B5FBF] text-white z-50 shadow-lg">
+        <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-2">
+          <Link href="/" className="flex flex-col items-center text-xs py-1">
+            <span className="text-xl">🏠</span>
+            <span>Home</span>
+          </Link>
+          <Link href="/explore" className="flex flex-col items-center text-xs py-1">
+            <span className="text-xl">🔍</span>
+            <span>Search</span>
+          </Link>
+          <Link href="/list-business" className="flex flex-col items-center text-xs py-1 -mt-4">
+            <span className="bg-white text-[#1B5FBF] rounded-full w-12 h-12 grid place-items-center text-2xl font-bold shadow">+</span>
+            <span className="mt-1">Add</span>
+          </Link>
+          <Link href="/events" className="flex flex-col items-center text-xs py-1">
+            <span className="text-xl">📅</span>
+            <span>Events</span>
+          </Link>
+          <Link href="/account" className="flex flex-col items-center text-xs py-1">
+            <span className="text-xl">👤</span>
+            <span>Hi</span>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
