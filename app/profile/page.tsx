@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
@@ -91,6 +92,7 @@ export default function ProfilePage() {
         { merge: true }
       );
       setMessage("Profile saved successfully.");
+      setEditing(false);
     } catch (error) {
       setMessage("Failed to save profile. Please try again.");
     } finally {
@@ -116,108 +118,128 @@ export default function ProfilePage() {
       <Navbar />
       <main className="flex-1">
         <div className="max-w-2xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
-          <p className="text-gray-600 mb-8">
-            This information is optional. You can complete it anytime.
-          </p>
-          <div className="bg-white border rounded-2xl p-6">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  value={user?.email || ""}
-                  disabled
-                  className="w-full border rounded-xl px-4 py-3 bg-gray-100 text-gray-500"
-                />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+          <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+
+          {!editing ? (
+            <div className="bg-white border rounded-2xl p-6 mb-6">
+              <p className="text-xl font-semibold">{name || "No name set"}</p>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="mt-2 text-[#006B3F] font-medium"
+              >
+                Edit
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border rounded-2xl p-6 mb-6">
+              <form onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Age</label>
+                  <label className="block text-sm font-medium mb-1">Name</label>
                   <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
-                    placeholder="Optional"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Birth Month</label>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={user?.email || ""}
+                    disabled
+                    className="w-full border rounded-xl px-4 py-3 bg-gray-100 text-gray-500"
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Age</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Birth Month</label>
+                    <select
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
+                    >
+                      <option value="">Optional</option>
+                      {months.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">City</label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                    placeholder="e.g. Freetown"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Sex</label>
                   <select
-                    value={birthMonth}
-                    onChange={(e) => setBirthMonth(e.target.value)}
+                    value={sex}
+                    onChange={(e) => setSex(e.target.value)}
                     className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
                   >
                     <option value="">Optional</option>
-                    {months.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">City</label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
-                  placeholder="e.g. Freetown"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Sex</label>
-                <select
-                  value={sex}
-                  onChange={(e) => setSex(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F] bg-white"
-                >
-                  <option value="">Optional</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Hobbies</label>
-                <textarea
-                  value={hobbies}
-                  onChange={(e) => setHobbies(e.target.value)}
-                  rows={3}
-                  className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
-                  placeholder="e.g. football, cooking, reading"
-                />
-              </div>
-              {message && (
-                <p className={`text-sm ${message.includes("success") ? "text-green-600" : "text-red-500"}`}>
-                  {message}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#005a35] disabled:opacity-60"
-              >
-                {saving ? "Saving..." : "Save Profile"}
-              </button>
-            </form>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hobbies</label>
+                  <textarea
+                    value={hobbies}
+                    onChange={(e) => setHobbies(e.target.value)}
+                    rows={3}
+                    className="w-full border rounded-xl px-4 py-3 outline-none focus:border-[#006B3F]"
+                    placeholder="e.g. football, cooking, reading"
+                  />
+                </div>
+                {message && (
+                  <p className={`text-sm ${message.includes("success") ? "text-green-600" : "text-red-500"}`}>
+                    {message}
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#005a35] disabled:opacity-60"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="px-6 py-3 rounded-xl border"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
-          <div className="mt-6 space-y-2">
+          <div className="space-y-2">
             {isAdmin && (
               <Link href="/admin" className="block bg-white border rounded-xl px-4 py-3 font-semibold text-center">
                 Admin
