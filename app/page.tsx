@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -520,75 +519,77 @@ export default function HomePage() {
   const handleAreaFind = (e: React.FormEvent) => {
     e.preventDefault();
     const parts = [findTrade, findArea].map((s) => s.trim()).filter(Boolean);
-    const query = parts.join(" ");
-    router.push(query ? `/explore?q=${encodeURIComponent(query)}` : "/explore");
+    router.push(parts.length ? `/explore?q=${encodeURIComponent(parts.join(" "))}` : "/explore");
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
+
       <main className="flex-1">
-        {/* HEADER — blue with curve */}
-        <section className="relative bg-[#1B5FBF] pb-10">
-          <div className="max-w-7xl mx-auto px-4 pt-8 sm:pt-12 text-center">
-            <h1 className="text-3xl sm:text-5xl font-bold mb-3 leading-tight text-white">
-              Find trusted businesses in{" "}
-              <span className="text-[#006B3F]">Salone</span>
-            </h1>
-            <p className="text-white mb-6 max-w-2xl mx-auto text-sm sm:text-base">
-              Real reviews from real people. Trusted plumbers, electricians,
-              mechanics, restaurants and more across Sierra Leone.
-            </p>
-
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search plumbers, restaurants, mechanics..."
-                className="flex-1 rounded-2xl px-4 py-3 bg-white text-gray-900 outline-none"
-              />
-              <button type="submit" className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl">
-                Search
-              </button>
-            </form>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
-              <Link href="/explore" className="bg-white text-[#1B5FBF] font-semibold px-6 py-3 rounded-2xl">
-                View businesses
-              </Link>
-              <Link
-                href="/list-business"
-                className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl"
-              >
-                List your business
-              </Link>
-              <Link
-                href="/contact"
-                className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
-              >
-                Contact us
-              </Link>
+        <section>
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] items-stretch">
+            <div className="order-2 lg:order-1 bg-white lg:bg-[#006B3F] flex items-center justify-center p-6">
+              <div className="w-full max-w-[260px]">
+                <SponsorCard ad={byPlacement("top1")} compact />
+              </div>
             </div>
-          </div>
 
-          {/* Curve */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 overflow-hidden">
-            <svg viewBox="0 0 1440 48" className="w-full h-full" preserveAspectRatio="none">
-              <path d="M0,48 Q720,0 1440,48 L1440,48 L0,48 Z" fill="#ffffff" />
-            </svg>
+            <div className="order-1 lg:order-2 bg-[#006B3F] lg:bg-white text-center px-3 sm:px-4 py-8 sm:py-12">
+              <h1 className="text-3xl sm:text-5xl font-bold mb-4 text-white lg:text-gray-900">
+                Find di best businesses in Salone.
+              </h1>
+              <p className="text-white/90 lg:text-gray-700 mb-6 max-w-2xl mx-auto text-sm sm:text-base">
+                Real reviews from real people. Trusted plumbers, electricians,
+                mechanics, restaurants and more across Sierra Leone.
+              </p>
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search plumbers, restaurants, mechanics..."
+                  className="flex-1 rounded-2xl px-4 py-3 bg-white text-gray-900 outline-none"
+                />
+                <button type="submit" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
+                  Search
+                </button>
+              </form>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
+                <Link href="/explore" className="bg-white text-[#006B3F] font-semibold px-6 py-3 rounded-2xl">
+                  View businesses
+                </Link>
+                <Link
+                  href="/list-business"
+                  className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl border border-white/30"
+                >
+                  List your business
+                </Link>
+                <Link
+                  href="/contact"
+                  className="bg-transparent text-white font-semibold px-6 py-3 rounded-2xl border border-white/40"
+                >
+                  Contact us
+                </Link>
+              </div>
+            </div>
+
+            <div className="order-3 bg-[#1B5FBF] flex items-center justify-center p-6">
+              <div className="w-full max-w-[260px]">
+                <SponsorCard ad={byPlacement("top2")} compact />
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Matching blue ticker bar */}
-        <div className="bg-[#1B5FBF] text-white">
+        <div className="sr-bluebar text-white">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3">
-            <p className="shrink-0 text-xs sm:text-sm font-semibold text-white">
+            <p className="shrink-0 text-xs sm:text-sm font-semibold">
               Freetown {freetownClock || "--:--"}
               {freetownTemp ? ` · ${freetownTemp}` : ""}
               {freetownSky ? ` ${freetownSky}` : ""}
             </p>
             <div className="flex-1 overflow-hidden">
-              <div className="sr-marquee text-xs sm:text-sm text-white font-semibold">
+              <div className="sr-marquee text-xs sm:text-sm text-cyan-100 font-semibold">
                 {NEWS_LINE}
                 {NEWS_LINE}
               </div>
@@ -605,6 +606,15 @@ export default function HomePage() {
             display: inline-block;
             white-space: nowrap;
             animation: sr-marquee 28s linear infinite;
+          }
+          .sr-bluebar {
+            background:
+              linear-gradient(90deg, rgba(8,24,72,0.55), rgba(0,80,180,0.25), rgba(8,24,72,0.55)),
+              repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(80,180,255,0.12) 18px, rgba(80,180,255,0.12) 19px),
+              repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(80,180,255,0.1) 14px, rgba(80,180,255,0.1) 15px),
+              linear-gradient(90deg, #06143a, #0b3d91, #06143a);
+            border-top: 1px solid #3ec6ff;
+            border-bottom: 1px solid #3ec6ff;
           }
         `}</style>
 
@@ -774,6 +784,7 @@ export default function HomePage() {
               {leftProfile ? <ProfileCard biz={leftProfile} /> : null}
               {leftFeat ? <SideFeaturedCard biz={leftFeat} /> : null}
             </div>
+
             <div>
               {featuredBiz.length > 0 && (
                 <div>
@@ -794,6 +805,7 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+
             <div className="bg-white border border-gray-200 rounded-2xl p-3">
               <p className="text-sm font-bold text-gray-900 mb-2">Real work videos</p>
               <div className="space-y-2">
@@ -901,7 +913,26 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
       <Footer />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "SaloneReviews",
+            "url": "https://salonereviews.com",
+            "description": "Find trusted businesses and tradesmen across Sierra Leone. Real reviews from real people.",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://salonereviews.com/explore?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }),
+        }}
+      />
     </div>
   );
 }
