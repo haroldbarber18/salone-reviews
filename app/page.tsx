@@ -521,7 +521,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pb-28">
       <Navbar />
 
       {/* NEW HOME HEADER ONLY */}
@@ -541,9 +541,6 @@ export default function HomePage() {
           <p className="mt-3 text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
             Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
           </p>
-          <p className="mt-2 text-white/80 text-sm">
-            Read reviews. Share experiences. Support the best.
-          </p>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-white" style={{ borderTopLeftRadius: "50% 100%", borderTopRightRadius: "50% 100%" }} />
       </div>
@@ -555,17 +552,21 @@ export default function HomePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search plumbers, restaurants, mechanics..."
-              className="flex-1 rounded-2xl px-4 py-3 bg-gray-100 text-gray-900 outline-none"
+              className="flex-1 rounded-2xl px-4 py-3 bg-white border-2 border-gray-300 text-gray-900 outline-none"
             />
             <button type="submit" className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl">
               Search
             </button>
           </form>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5">
-            <Link href="/explore" className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl text-center">
+        </div>
+
+        {/* Fixed bottom buttons */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 z-40">
+          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
+            <Link href="/explore" className="flex-1 bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl text-center">
               View businesses
             </Link>
-            <Link href="/list-business" className="bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl text-center">
+            <Link href="/list-business" className="flex-1 bg-[#004d2e] text-white font-semibold px-6 py-3 rounded-2xl text-center">
               List your business
             </Link>
           </div>
