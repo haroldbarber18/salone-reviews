@@ -39,11 +39,11 @@ function SponsorCard({ ad }: { ad: any }) {
   if (!ad) return null;
   const img = ad.photos?.[0] || ad.imageUrl;
   return (
-    <a href={ad.link || "#"} target="_blank" rel="noreferrer" className="block bg-white border rounded-2xl overflow-hidden hover:shadow-md">
-      {img && <img src={img} alt="" className="w-full h-32 object-cover" />}
-      <div className="p-3">
-        <p className="font-semibold text-sm">{ad.title}</p>
-        <p className="text-xs text-gray-500 line-clamp-2">{ad.description}</p>
+    <a href={ad.link || "#"} target="_blank" rel="noreferrer" className="block bg-white border rounded-2xl overflow-hidden hover:shadow-md w-full max-w-[220px]">
+      {img && <img src={img} alt="" className="w-full h-28 object-cover" />}
+      <div className="p-2">
+        <p className="font-semibold text-xs line-clamp-2">{ad.title}</p>
+        <p className="text-[10px] text-gray-500 line-clamp-2">{ad.description}</p>
       </div>
     </a>
   );
@@ -153,38 +153,53 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
       <main className="flex-1 pb-20">
-        <section className="bg-[#1B5FBF] text-white text-center px-4 py-12">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find di best businesses in Salone</h1>
-          <p className="max-w-xl mx-auto text-white/90 text-sm sm:text-base">
-            Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value;
-              router.push(`/explore?q=${encodeURIComponent(q)}`);
-            }}
-            className="mt-6 max-w-lg mx-auto flex gap-2"
-          >
-            <input
-              name="q"
-              placeholder="Search plumbers, restaurants, mechanics..."
-              className="flex-1 rounded-xl px-4 py-3 text-gray-900 outline-none"
-            />
-            <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 rounded-xl">
-              Search
-            </button>
-          </form>
+        {/* Blue header with sponsors on left and right – curve stays as you already have it */}
+        <section className="relative bg-[#1B5FBF] text-white overflow-hidden">
+          {/* Your existing curve shape stays here. Do not remove it. */}
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_220px] gap-6 items-center">
+              <div className="hidden lg:flex justify-center">
+                <SponsorCard ad={byPlacement("top1")} />
+              </div>
+
+              <div className="text-center">
+                <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find di best businesses in Salone</h1>
+                <p className="max-w-xl mx-auto text-white/90 text-sm sm:text-base mb-6">
+                  Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
+                </p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value;
+                    router.push(`/explore?q=${encodeURIComponent(q)}`);
+                  }}
+                  className="max-w-lg mx-auto flex gap-2"
+                >
+                  <input
+                    name="q"
+                    placeholder="Search plumbers, restaurants, mechanics..."
+                    className="flex-1 rounded-xl px-4 py-3 text-gray-900 outline-none"
+                  />
+                  <button type="submit" className="bg-[#006B3F] text-white font-semibold px-5 rounded-xl">
+                    Search
+                  </button>
+                </form>
+              </div>
+
+              <div className="hidden lg:flex justify-center">
+                <SponsorCard ad={byPlacement("top2")} />
+              </div>
+            </div>
+
+            <div className="lg:hidden grid grid-cols-2 gap-4 mt-6">
+              <SponsorCard ad={byPlacement("top1")} />
+              <SponsorCard ad={byPlacement("top2")} />
+            </div>
+          </div>
         </section>
 
         <section className="px-3 sm:px-4 py-8 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            {/* Top sponsors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <SponsorCard ad={byPlacement("top1")} />
-              <SponsorCard ad={byPlacement("top2")} />
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
               <aside className="bg-white border border-gray-200 rounded-2xl p-3">
                 <div className="mb-3">
@@ -437,7 +452,6 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Fixed bottom navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#1B5FBF] text-white z-50 shadow-lg">
         <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-2">
           <Link href="/" className="flex flex-col items-center text-xs py-1">
