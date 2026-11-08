@@ -7,6 +7,7 @@ import { isAdminEmail } from "@/lib/roles";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     return onAuthStateChanged(auth, setUser);
@@ -24,29 +25,37 @@ export default function Navbar() {
           <span className="font-bold text-xl">SaloneReviews</span>
         </Link>
 
-        <nav className="flex items-center gap-4 sm:gap-6 text-sm">
-          <Link href="/explore" className="hover:underline">Find Businesses</Link>
-          <Link href="/categories" className="hover:underline">Categories</Link>
-          <Link href="/write-review" className="hover:underline">Write a Review</Link>
-          <Link href="/about" className="hover:underline">About Us</Link>
+        <div className="flex items-center gap-3">
           {user ? (
             <>
               {isAdmin && (
-                <Link href="/admin" className="font-semibold hover:underline">Admin</Link>
+                <Link href="/admin" className="font-semibold text-sm hover:underline">Admin</Link>
               )}
-              <span className="text-white/90 whitespace-nowrap">Hi {user.displayName?.split(" ")[0] || "there"}</span>
-              <button onClick={() => signOut(auth)} className="hover:underline">Log out</button>
+              <span className="text-sm text-white/90 whitespace-nowrap">
+                Hi {user.displayName?.split(" ")[0] || "there"}
+              </span>
+              <button onClick={() => signOut(auth)} className="text-sm hover:underline">Log out</button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:underline">Log In</Link>
-              <Link href="/signup" className="bg-white text-[#1e40af] font-semibold px-3 py-1 rounded-full">
+              <Link href="/login" className="text-sm hover:underline">Log In</Link>
+              <Link href="/signup" className="bg-white text-[#1e40af] text-sm font-semibold px-3 py-1 rounded-full">
                 Sign Up
               </Link>
             </>
           )}
-        </nav>
+          <button className="text-2xl ml-2" onClick={() => setOpen(!open)}>☰</button>
+        </div>
       </div>
+
+      {open && (
+        <div className="bg-[#1e40af] border-t border-white/20 px-4 py-4 space-y-4">
+          <Link href="/explore" className="block" onClick={() => setOpen(false)}>Find Businesses</Link>
+          <Link href="/categories" className="block" onClick={() => setOpen(false)}>Categories</Link>
+          <Link href="/write-review" className="block" onClick={() => setOpen(false)}>Write a Review</Link>
+          <Link href="/about" className="block" onClick={() => setOpen(false)}>About Us</Link>
+        </div>
+      )}
     </header>
   );
 }
