@@ -1,4 +1,4 @@
-const CACHE = "salonereviews-v1";
+const CACHE = "salonereviews-v2";
 const PRECACHE = ["/", "/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -30,6 +30,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).catch(() => cached))
+    fetch(req).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE).then((cache) => cache.put(req, copy));
+      return res;
+    }).catch(() => caches.match(req))
   );
 });
