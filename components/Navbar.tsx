@@ -29,19 +29,38 @@ export default function Navbar() {
     router.push("/");
   };
 
+  const goBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
+
   const isAdmin = isAdminEmail(user?.email);
 
-  // On the home page the special blue header is already rendered in page.tsx,
-  // so we hide this Navbar there.
   if (isHome) return null;
 
   return (
     <header className="bg-[#1B5FBF] text-white sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg sm:text-xl font-bold">SaloneReviews</span>
-          <span className="text-green-400 text-base">✓</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="inline-flex items-center gap-1 text-white font-semibold text-sm py-2 pr-2"
+            aria-label="Go back"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back
+          </button>
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-lg sm:text-xl font-bold">SaloneReviews</span>
+            <span className="text-green-400 text-base">✓</span>
+          </Link>
+        </div>
 
         <div className="flex items-center gap-4">
           {loading ? (
