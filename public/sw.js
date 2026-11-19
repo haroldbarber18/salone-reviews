@@ -1,6 +1,6 @@
-const CACHE = "salonereviews-v3";
+const CACHE = "salonereviews-v4";
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -17,12 +17,6 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
 
   event.respondWith(
-    fetch(req)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(req, copy));
-        return res;
-      })
-      .catch(() => caches.match(req).then((cached) => cached || caches.match("/offline.html")))
+    fetch(req).catch(() => caches.match(req).then((cached) => cached || caches.match("/offline.html")))
   );
 });
