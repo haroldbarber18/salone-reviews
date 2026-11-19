@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BackBar from "@/components/BackBar";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
@@ -344,6 +345,7 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
+      <BackBar />
       <main className="flex-1 px-4 py-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Explore businesses</h1>
