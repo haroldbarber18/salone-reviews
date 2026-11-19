@@ -145,35 +145,69 @@ function EmptySlot() {
   );
 }
 
-function FlyerCard({ ad }: { ad?: any }) {
+function EventBanner({ ad }: { ad?: any }) {
   if (!ad) return <EmptySlot />;
   const href = `/events/${ad.id}`;
   const dateLabel = formatEventRange(ad);
   return (
     <Link
       href={href}
-      className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex items-stretch gap-3 p-2 hover:shadow-sm transition"
+      className="relative block h-[131px] md:h-[180px] rounded-2xl overflow-hidden bg-[#0E1B33] shadow-sm hover:shadow-md transition"
     >
-      <div className="w-[112px] h-[112px] shrink-0 rounded-xl overflow-hidden bg-gray-100">
-        {ad.imageUrl ? (
-          <img src={ad.imageUrl} alt={ad.title || "Flyer"} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full grid place-items-center text-xs text-gray-400">Flyer</div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1 py-1 pr-1">
-        {dateLabel ? <p className="text-xs text-gray-500 mb-1">{dateLabel}</p> : null}
-        <h3 className="font-semibold text-sm text-gray-900 leading-snug line-clamp-3">{ad.title}</h3>
+      {ad.imageUrl ? (
+        <img
+          src={ad.imageUrl}
+          alt={ad.title || "Event flyer"}
+          className="absolute inset-0 w-full h-full object-cover object-[50%_28%]"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#060e20]/90 via-[#060e20]/55 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060e20]/55 via-transparent to-transparent" />
+      <div className="absolute left-3.5 bottom-3 right-[118px] flex flex-col gap-1">
+        <h3 className="text-white font-extrabold text-[19px] leading-tight line-clamp-2 drop-shadow">
+          {ad.title}
+        </h3>
+        {dateLabel ? <p className="text-white/90 text-[13px] font-medium">{dateLabel}</p> : null}
         {ad.feeType === "free" && (
-          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-800">
+          <span className="self-start text-[11px] px-2 py-0.5 rounded-full font-semibold bg-white/20 text-white backdrop-blur-sm">
             Free
           </span>
         )}
         {ad.feeType === "paid" && (
-          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-800">
+          <span className="self-start text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-400 text-amber-950">
             {ad.price || "Paid"}
           </span>
         )}
+      </div>
+      <span className="absolute right-3 bottom-3 h-[34px] px-3.5 rounded-[10px] bg-[#1EB53A] text-white text-[13.5px] font-bold inline-flex items-center whitespace-nowrap">
+        View event ›
+      </span>
+    </Link>
+  );
+}
+
+function DiasporaCard() {
+  return (
+    <Link
+      href="/materials"
+      className="grid grid-cols-[45%_1fr] md:grid-cols-[360px_1fr] rounded-2xl border border-gray-800 bg-white overflow-hidden hover:shadow-md transition"
+    >
+      <img
+        src="/materials-banner.jpg"
+        alt="Cement, timber, gravel and sand"
+        className="w-full h-full min-h-[150px] md:min-h-0 md:h-[190px] object-cover object-[35%_50%] bg-gray-100"
+      />
+      <div className="flex flex-col justify-center py-2.5 pl-3 pr-2.5 md:p-6">
+        <p className="text-xs md:text-sm font-semibold text-[#006B3F]">Diaspora building</p>
+        <h2 className="text-[15.5px] md:text-xl font-bold text-gray-900 leading-tight mt-0.5 mb-1">
+          Building materials for diaspora
+        </h2>
+        <p className="text-xs md:text-sm text-gray-600 leading-snug mb-2">
+          Pick Urban or Rural zone, get a 6-digit job code. Pay in Freetown.
+        </p>
+        <span className="self-start inline-flex items-center h-8 md:h-10 px-2.5 md:px-4 rounded-[10px] bg-[#006B3F] text-white text-[12.5px] md:text-sm font-bold whitespace-nowrap">
+          Request materials quote ›
+        </span>
       </div>
     </Link>
   );
@@ -502,8 +536,10 @@ export default function HomePage() {
     return [...filtered].sort((a, b) => getAdSortTime(a) - getAdSortTime(b));
   }, [ads, publicEvents, eventFilter]);
 
-  const visibleLeftFeed =
-    !isMobile || showAllEvents ? leftFeed : leftFeed.slice(0, 10);
+  // Collapsed: 1 banner on phones, 3 on wider screens (extra ones are hidden with CSS below md
+  // so there is no flash before isMobile is known). Expanded: everything.
+  const collapsedCount = isMobile ? 1 : 3;
+  const visibleLeftFeed = showAllEvents ? leftFeed : leftFeed.slice(0, 3);
   const visibleCats = showAllCats ? categories : categories.slice(0, 8);
   const leftProfile = profiles.length ? profiles[slide % profiles.length] : null;
   const leftFeat = featuredAll.length ? featuredAll[featSlide % featuredAll.length] : null;
@@ -524,67 +560,113 @@ export default function HomePage() {
     <div className="min-h-screen bg-white flex flex-col pb-24">
       <Navbar />
 
-<div className="relative bg-[#1B5FBF] text-white pb-10">
-  <div className="max-w-7xl mx-auto px-4 pt-4">
-    <div className="flex items-center gap-2">
-      <span className="text-xl sm:text-2xl font-bold">SaloneReviews</span>
-      <span className="text-green-400 text-lg">✓</span>
+<div className="relative bg-[#1B5FBF] text-white rounded-b-[24px] pb-3 lg:pb-8">
+  <div className="max-w-7xl mx-auto px-4">
+    {/* Brand row */}
+    <div className="h-[42px] lg:h-14 flex items-center">
+      <span className="inline-flex items-center gap-[7px] text-[19px] sm:text-2xl font-extrabold tracking-tight">
+        SaloneReviews
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" className="sm:w-5 sm:h-5">
+          <circle cx="12" cy="12" r="12" fill="#22C55E" />
+          <path d="M6.8 12.4l3.4 3.4 7-7.2" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     </div>
-  </div>
 
-  <div className="max-w-7xl mx-auto px-4 mt-4 grid grid-cols-1 lg:grid-cols-[160px_1fr_160px] gap-3 items-center">
-    <div className="hidden lg:block">
-      <SponsorCard ad={byPlacement("top1")} compact />
+    {/* Headline (top1 / top2 sponsors either side on desktop) */}
+    <div className="grid grid-cols-1 lg:grid-cols-[160px_1fr_160px] gap-3 items-center">
+      <div className="hidden lg:block">
+        <SponsorCard ad={byPlacement("top1")} compact />
+      </div>
+      <div className="text-center">
+        <h1 className="text-[25px] sm:text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight">
+          Find di best businesses<br />in Salone
+        </h1>
+        <p className="mt-1 text-[13px] sm:text-base text-white/90 font-medium">
+          Real reviews. Honest opinions. Better choices.
+        </p>
+      </div>
+      <div className="hidden lg:block">
+        <SponsorCard ad={byPlacement("top2")} compact />
+      </div>
     </div>
-    <div className="text-center px-2">
-      <h1 className="text-3xl sm:text-5xl font-bold leading-tight">
-        Find di best<br />
-        businesses in<br />
-        <span className="text-green-400">Salone</span>
-      </h1>
-      <p className="mt-3 text-white/90 text-sm sm:text-base max-w-2xl mx-auto">
-        Real reviews from real people. Trusted plumbers, electricians, mechanics, restaurants and more across Sierra Leone.
+
+    {/* Search inside the blue */}
+    <form
+      onSubmit={handleSearch}
+      className="mt-2.5 lg:mt-6 max-w-3xl mx-auto flex items-center gap-2 bg-white rounded-xl p-1 pl-3 shadow-[0_8px_24px_rgba(11,40,100,0.18)]"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" className="text-gray-500 shrink-0" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search businesses..."
+        className="flex-1 min-w-0 h-10 lg:h-12 bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 outline-none"
+      />
+      <button
+        type="submit"
+        className="shrink-0 h-10 lg:h-12 px-3.5 lg:px-6 rounded-[10px] bg-[#1EB53A] text-white text-[14.5px] font-bold inline-flex items-center gap-1.5"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.4" />
+          <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+        Search
+      </button>
+    </form>
+
+    {/* Slim weather + marquee strip */}
+    <div className="sr-strip mt-1.5 lg:mt-4 max-w-3xl lg:max-w-none mx-auto h-[30px] rounded-[10px] overflow-hidden flex items-center text-xs">
+      <p className="shrink-0 h-full flex items-center gap-1.5 px-2.5 bg-white/15 font-bold whitespace-nowrap">
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="19" cy="17" r="8" fill="#FDB813" />
+          <path d="M15 38h22a7 7 0 0 0 0-14 10 10 0 0 0-19 3 5.5 5.5 0 0 0-3 11z" fill="#fff" />
+        </svg>
+        Freetown {freetownClock || "--:--"}
+        {freetownTemp ? ` · ${freetownTemp}` : ""}
+        {freetownSky ? ` ${freetownSky}` : ""}
       </p>
+      <div className="flex-1 overflow-hidden">
+        <div className="sr-marquee pl-3 text-[#E3ECFF] font-medium">
+          {NEWS_LINE}
+          {NEWS_LINE}
+        </div>
+      </div>
     </div>
-    <div className="hidden lg:block">
-      <SponsorCard ad={byPlacement("top2")} compact />
+
+    {/* Popular Categories on the blue */}
+    <div className="mt-1 lg:mt-6">
+      <div className="flex items-center justify-between mb-[5px]">
+        <h2 className="text-lg lg:text-[22px] font-bold">Popular Categories</h2>
+        <button
+          type="button"
+          onClick={() => setShowAllCats((v) => !v)}
+          className="text-[13.5px] font-semibold text-white inline-flex items-center gap-0.5 min-h-[28px]"
+        >
+          {showAllCats ? "Show fewer" : "View all"}
+          <span aria-hidden="true" className="text-base leading-none">›</span>
+        </button>
+      </div>
+      <div className="grid grid-cols-4 lg:grid-cols-8 gap-1.5 lg:gap-3">
+        {visibleCats.map((cat) => (
+          <Link
+            key={cat.name}
+            href={`/explore?q=${encodeURIComponent(cat.q)}`}
+            className="bg-white rounded-xl min-h-[56px] lg:min-h-[88px] px-0.5 py-1.5 flex flex-col items-center justify-center gap-[3px] text-center shadow-[0_2px_8px_rgba(4,30,90,0.18)] hover:shadow-md active:scale-[0.97] transition"
+          >
+            <span className="text-xl lg:text-2xl leading-none">{cat.icon}</span>
+            <span className="text-xs lg:text-[13px] font-semibold text-gray-900 leading-tight">{cat.name}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   </div>
-
-  <div className="absolute bottom-0 left-0 right-0 h-8 bg-white" style={{ borderTopLeftRadius: "50% 100%", borderTopRightRadius: "50% 100%" }} />
 </div>
 
       <main className="flex-1">
-        <div className="px-4 py-6 bg-white">
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search plumbers, restaurants, mechanics..."
-              className="flex-1 rounded-2xl px-4 py-3 bg-white border-2 border-gray-300 text-gray-900 outline-none"
-            />
-            <button type="submit" className="bg-[#006B3F] text-white font-semibold px-6 py-3 rounded-2xl">
-              Search
-            </button>
-          </form>
-        </div>
-
-        <div className="sr-bluebar text-white">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3">
-            <p className="shrink-0 text-xs sm:text-sm font-semibold">
-              Freetown {freetownClock || "--:--"}
-              {freetownTemp ? ` · ${freetownTemp}` : ""}
-              {freetownSky ? ` ${freetownSky}` : ""}
-            </p>
-            <div className="flex-1 overflow-hidden">
-              <div className="sr-marquee text-xs sm:text-sm text-cyan-100 font-semibold">
-                {NEWS_LINE}
-                {NEWS_LINE}
-              </div>
-            </div>
-          </div>
-        </div>
-
         <style>{`
           @keyframes sr-marquee {
             from { transform: translateX(0); }
@@ -594,6 +676,10 @@ export default function HomePage() {
             display: inline-block;
             white-space: nowrap;
             animation: sr-marquee 28s linear infinite;
+          }
+          .sr-strip {
+            background: rgba(4, 30, 90, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.18);
           }
           .sr-bluebar {
             background:
@@ -606,56 +692,69 @@ export default function HomePage() {
           }
         `}</style>
 
-        <section className="px-3 sm:px-4 py-8 bg-gray-50">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[260px_1fr_240px] gap-4 items-start">
-            <aside className="bg-white border border-gray-200 rounded-2xl p-3">
-              <div className="mb-3">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <p className="text-sm font-bold text-gray-900">Events & Flyers</p>
-                  <Link href="/events/new" className="text-xs font-semibold text-[#006B3F] shrink-0">
-                    Post a free event
-                  </Link>
-                </div>
-                <select
-                  value={eventFilter}
-                  onChange={(e) => {
-                    setEventFilter(e.target.value as "all" | "week");
+        {/* Events & Flyers + diaspora card, straight under the blue */}
+        <section className="px-4 pt-1.5 pb-2 lg:pt-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between gap-1.5 mb-1">
+              <h2 className="text-base lg:text-[22px] font-bold text-gray-900 whitespace-nowrap">Events &amp; Flyers</h2>
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1B5FBF]">
+                {leftFeed.length > collapsedCount && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllEvents((v) => !v)}
+                    aria-expanded={showAllEvents}
+                    className="inline-flex items-center gap-0.5 min-h-[24px]"
+                  >
+                    {showAllEvents ? "Show fewer" : "View all"}
+                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" className={showAllEvents ? "rotate-180 transition" : "transition"}>
+                      <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                )}
+                {leftFeed.length > collapsedCount && <span className="w-px h-3.5 bg-gray-200" aria-hidden="true" />}
+                <Link href="/events/new" className="whitespace-nowrap">+ Post a free event</Link>
+              </div>
+            </div>
+            <div className="flex gap-1.5 mb-1">
+              {(["all", "week"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => {
+                    setEventFilter(f);
                     setShowAllEvents(false);
                   }}
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none text-gray-900 bg-white"
+                  aria-pressed={eventFilter === f}
+                  className={
+                    "h-6 px-3 rounded-full text-xs font-semibold border transition " +
+                    (eventFilter === f
+                      ? "bg-[#1B5FBF] border-[#1B5FBF] text-white"
+                      : "bg-white border-gray-200 text-gray-500")
+                  }
                 >
-                  <option value="all">All</option>
-                  <option value="week">This week</option>
-                </select>
-              </div>
-              <div className="space-y-3 lg:max-h-[560px] lg:overflow-y-auto lg:pr-1">
-                {visibleLeftFeed.length === 0 ? (
-                  <EmptySlot />
-                ) : (
-                  visibleLeftFeed.map((ad) => (
-                    <FlyerCard key={`${ad.source || "ad"}-${ad.id}`} ad={ad} />
-                  ))
-                )}
-              </div>
-              {isMobile && leftFeed.length > 10 && !showAllEvents && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllEvents(true)}
-                  className="w-full mt-3 border border-[#006B3F] text-[#006B3F] font-semibold py-3 rounded-xl bg-white"
-                >
-                  See more ({leftFeed.length - 10} more)
+                  {f === "all" ? "All" : "This week"}
                 </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+              {visibleLeftFeed.length === 0 ? (
+                <EmptySlot />
+              ) : (
+                visibleLeftFeed.map((ad, i) => (
+                  <div key={`${ad.source || "ad"}-${ad.id}`} className={!showAllEvents && i > 0 ? "hidden md:block" : ""}>
+                    <EventBanner ad={ad} />
+                  </div>
+                ))
               )}
-              {isMobile && showAllEvents && leftFeed.length > 10 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllEvents(false)}
-                  className="w-full mt-2 text-sm text-gray-600 py-2"
-                >
-                  Show less
-                </button>
-              )}
-            </aside>
+            </div>
+            <div className="mt-[7px] md:mt-4">
+              <DiasporaCard />
+            </div>
+          </div>
+        </section>
+
+        <section className="px-3 sm:px-4 py-8 bg-gray-50">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4 items-start">
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Essential Services</h2>
@@ -677,53 +776,7 @@ export default function HomePage() {
                   <option value="/services/emergency">Emergency Services</option>
                 </select>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Popular Categories</h2>
-              <p className="text-gray-600 text-sm mb-3">What are you looking for today?</p>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 items-stretch">
-                {visibleCats.map((cat) => (
-                  <Link
-                    key={cat.name}
-                    href={`/explore?q=${encodeURIComponent(cat.q)}`}
-                    className="bg-white border border-gray-200 rounded-2xl p-2 hover:shadow-sm transition h-full min-h-[76px]"
-                  >
-                    <div className="text-base mb-0.5">{cat.icon}</div>
-                    <h3 className="font-semibold text-xs text-gray-900 leading-tight">{cat.name}</h3>
-                    <p className="text-[10px] text-gray-500 leading-tight">{cat.desc}</p>
-                  </Link>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAllCats((v) => !v)}
-                className="mt-2 text-sm font-semibold text-[#006B3F]"
-              >
-                {showAllCats ? "See less" : "See more"}
-              </button>
-              <Link
-                href="/materials"
-                className="mt-6 block rounded-2xl border bg-white overflow-hidden hover:shadow-sm"
-              >
-                <div className="flex flex-col sm:flex-row">
-                  <img
-                    src="/materials-banner.jpg"
-                    alt="Cement and building materials"
-                    className="w-full sm:w-44 h-36 sm:h-auto object-cover shrink-0 bg-gray-100"
-                  />
-                  <div className="p-4 sm:p-5">
-                    <p className="text-sm font-semibold text-[#006B3F]">Diaspora building</p>
-                    <h2 className="text-lg font-bold text-gray-900 mt-0.5">
-                      Building materials for diaspora
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Pick Urban or Rural zone, get a 6-digit job code. Payment in Freetown.
-                    </p>
-                    <span className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#006B3F] text-white text-sm font-medium">
-                      Request materials quote
-                    </span>
-                  </div>
-                </div>
-              </Link>
-              <form onSubmit={handleAreaFind} className="mt-4 bg-white border border-gray-200 rounded-2xl px-3 py-2 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <form onSubmit={handleAreaFind} className="bg-white border border-gray-200 rounded-2xl px-3 py-2 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                 <p className="text-sm font-bold text-black shrink-0">Looking in your area</p>
                 <span className="hidden sm:inline text-[#006B3F]">📍</span>
                 <select
