@@ -1,9 +1,6 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 
-// Slim back bar for every page except Home.
-// "Back" goes one step back each tap, until you reach Home.
-// If there is nothing to go back to (link opened directly), it goes Home.
 export default function BackBar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -22,7 +19,7 @@ export default function BackBar() {
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-[#1B5FBF] text-white">
+    <div className="bg-[#1B5FBF] text-white">
       <div className="max-w-7xl mx-auto px-3 h-11 flex items-center justify-between">
         <button
           type="button"
