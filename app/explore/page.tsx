@@ -344,24 +344,6 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
-      <div className="bg-[#1B5FBF] text-white">
-        <div className="max-w-7xl mx-auto px-3 h-11 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = "/"))}
-            className="inline-flex items-center gap-1 text-[15px] font-semibold py-2 pr-3"
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            onClick={() => (window.location.href = "/")}
-            className="inline-flex items-center gap-1 text-sm font-semibold py-2 pl-3"
-          >
-            Home
-          </button>
-        </div>
-      </div>
       <main className="flex-1 px-4 py-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Explore businesses</h1>
